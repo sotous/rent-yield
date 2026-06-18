@@ -1,0 +1,15 @@
+.DS_Store
+
+.idea/
+
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+.env
+.env.local
+.env.*.local
+
+*.log
