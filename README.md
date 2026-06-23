@@ -63,6 +63,14 @@ That means we define:
 
 In that order whenever possible.
 
+## Project Tracking
+
+Approved non-trivial plans are broken down into actionable Notion tasks after planning is complete.
+
+The repo plan files in `plan/` remain the source of truth for intent and decisions. Notion is used as the execution tracker for implementation slices, review, and documentation work.
+
+Those Notion tasks should be written as small execution briefs, not placeholder tickets, so they can be understood from Notion alone during implementation.
+
 ## Current Status
 
 The repository is currently in the planning and specification phase.

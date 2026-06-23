@@ -1,0 +1,4 @@
+interface:
+  display_name: "Breakdown Plan To Notion"
+  short_description: "Break approved plans into structured Notion tasks"
+  default_prompt: "Use $breakdown-plan-to-notion to turn a completed plan in plan/ into structured, execution-ready Notion tasks for rent-yield."

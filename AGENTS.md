@@ -24,10 +24,11 @@ The goal is not just to write code. The goal is to evolve the product intentiona
 For any non-trivial feature, agents must follow this order:
 
 1. Create or update a feature plan in `plan/`
-2. Implement the feature
-3. Perform a retrospective on the finished implementation
-4. Iterate if needed
-5. Write or update documentation
+2. Break the approved plan into tracked execution tasks in Notion
+3. Implement the feature
+4. Perform a retrospective on the finished implementation
+5. Iterate if needed
+6. Write or update documentation
 
 Do not jump straight into implementation when the task is feature-sized.
 
@@ -46,6 +47,10 @@ The plan should usually capture:
 - how success will be validated
 
 If a feature evolves during implementation, update the plan rather than leaving it stale.
+
+After the plan is approved and decision-complete, turn it into structured Notion tasks rather than keeping execution implicit.
+
+Those tasks should be rich enough to stand on their own, with clear scope, acceptance criteria, and execution context for the next engineer or agent.
 
 ## Spec Alignment
 
