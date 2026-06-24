@@ -239,9 +239,16 @@ Version one does not need:
 
 - What is the most comfortable property count per chart before scrolling becomes visually crowded?
 
-## Suggested Next Specs
+## Related And Follow-On Specs
 
-1. A shared domain spec that locks the formulas for `gross rent yield` and `sale-to-rent ratio`.
-2. A frontend interaction spec for map state, chart state, responsive chart orientation, and area selection behavior.
-3. A Colombia market scope spec defining the first cities or regions to support.
-4. A backend spec for listing ingestion, rent estimation, metric calculation, and area aggregation.
+- The shared domain spec locks the formulas for `gross rent yield` and
+  `sale-to-rent ratio`.
+- The frontend interaction spec defines map state, chart state, responsive chart
+  orientation, and area selection behavior.
+- A future Colombia market scope spec can define later cities or regions beyond
+  the Barranquilla-first prototype.
+- A future backend spec should define listing ingestion, rent estimation, metric
+  calculation, and area aggregation.
+
+The frontend interaction spec now lives at
+[frontend-interaction-spec.md](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md).

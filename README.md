@@ -45,6 +45,7 @@ Version one is intentionally narrow.
 ## Specs
 
 - [Frontend Product Spec](/Users/soto/Documents/rent-yield/specs/frontend-spec.md)
+- [Frontend Interaction Spec](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md)
 - [Shared Domain Spec](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
@@ -79,16 +80,18 @@ What already exists:
 
 - monorepo structure
 - initial README
+- root agent context files
 - frontend product spec
+- frontend interaction spec
 - shared domain spec
 
 What comes next:
 
-- root LLM context files
-- frontend interaction spec
-- Colombia scope refinement
-- backend specification
-- application scaffolding
+- frontend tech-stack decision
+- frontend prototype scaffold
+- map explorer shell
+- ranked property chart
+- backend prototype contract
 
 ## Long-Term Direction
 

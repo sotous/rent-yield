@@ -358,5 +358,6 @@ These may belong to future versions, but they are intentionally out of scope for
 ## Relationship To Other Specs
 
 - [frontend-spec.md](/Users/soto/Documents/rent-yield/specs/frontend-spec.md) defines the user-facing explorer behavior
+- [frontend-interaction-spec.md](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md) defines map state, chart state, area selection, responsive behavior, and fake-data interaction requirements
 - The future backend spec should implement the ingestion, normalization, and calculation rules defined here
 - The future Colombia market scope spec should define which cities or regions launch first

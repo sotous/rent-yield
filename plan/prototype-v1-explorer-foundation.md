@@ -66,6 +66,13 @@ This plan does not include:
 7. Document prototype v1 architecture notes
 8. Define backend prototype contract
 
+## Progress Notes
+
+- 2026-06-23: Added `specs/frontend-interaction-spec.md` to define the
+  explorer screen state, area selection behavior, map and chart linking,
+  responsive rules, accessibility expectations, fake-data requirements, and
+  success criteria for the first frontend prototype.
+
 ## Task Slices
 
 ### 1. Write the frontend interaction spec
