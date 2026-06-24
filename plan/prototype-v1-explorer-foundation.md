@@ -8,6 +8,7 @@ Plan the first executable work package for `rent-yield` prototype v1 so the repo
 
 - Keep the first implementation slice aligned with the approved specs
 - Finish the remaining planning artifacts needed before coding
+- Analyze and select a frontend tech stack that fits the approved v1 specs before scaffolding the app
 - Stand up the frontend explorer shell for Barranquilla-first map-plus-chart exploration
 - Use fake data to unblock frontend prototyping before the backend contract is finalized
 - Preserve explicit review and documentation steps in the tracked workflow
@@ -24,6 +25,7 @@ Plan the first executable work package for `rent-yield` prototype v1 so the repo
 This plan covers the first coherent execution package for prototype v1:
 
 - frontend interaction planning
+- frontend tech-stack analysis
 - frontend app scaffolding
 - map explorer shell
 - ranked gross-yield chart
@@ -43,24 +45,26 @@ This plan does not include:
 ## Approach
 
 1. Lock the remaining interaction details that are still missing from the current specs.
-2. Create the frontend app shell in the monorepo.
-3. Implement the main explorer layout around the approved v1 interaction model using fake data:
+2. Analyze the frontend tech stack choices that best fit the approved v1 specs and monorepo direction.
+3. Create the frontend app shell in the monorepo.
+4. Implement the main explorer layout around the approved v1 interaction model using fake data:
    - area selection through the map
    - ranked property chart using `gross rent yield`
    - responsive chart orientation by screen size
-4. Review the result against ergonomics and spec alignment.
-5. Record the resulting architecture and implementation assumptions.
-6. Derive the backend prototype contract from the frontend's proven data needs.
+5. Review the result against ergonomics and spec alignment.
+6. Record the resulting architecture and implementation assumptions.
+7. Derive the backend prototype contract from the frontend's proven data needs.
 
 ## Execution Order
 
 1. Write the frontend interaction spec
-2. Scaffold the frontend prototype app
-3. Build the map explorer shell
-4. Build the ranked property chart
-5. Review prototype v1 ergonomics against the specs
-6. Document prototype v1 architecture notes
-7. Define backend prototype contract
+2. Analyze and select frontend tech stack
+3. Scaffold the frontend prototype app
+4. Build the map explorer shell
+5. Build the ranked property chart
+6. Review prototype v1 ergonomics against the specs
+7. Document prototype v1 architecture notes
+8. Define backend prototype contract
 
 ## Task Slices
 
@@ -75,7 +79,18 @@ Outcome:
 
 - A dedicated interaction spec that defines the explorer screen behavior clearly enough to implement without product drift.
 
-### 2. Scaffold the frontend prototype app
+### 2. Analyze and select frontend tech stack
+
+Why this exists:
+
+- The first frontend scaffold should follow an explicit technical decision rather than a default habit.
+- The stack should match the approved product constraints: monorepo structure, map-plus-chart explorer UI, responsive behavior, and fake-data-first prototyping.
+
+Outcome:
+
+- A written frontend stack decision that explains which framework, UI foundations, mapping approach, charting approach, and supporting tooling best fit prototype v1.
+
+### 3. Scaffold the frontend prototype app
 
 Why this exists:
 
@@ -85,7 +100,7 @@ Outcome:
 
 - A runnable frontend app inside `apps/frontend` with the initial project structure for the explorer.
 
-### 3. Build the map explorer shell
+### 4. Build the map explorer shell
 
 Why this exists:
 
@@ -95,7 +110,7 @@ Outcome:
 
 - The explorer screen has a map region and obvious area-selection behavior centered on Barranquilla-first usage.
 
-### 4. Build the ranked property chart
+### 5. Build the ranked property chart
 
 Why this exists:
 
@@ -105,7 +120,7 @@ Outcome:
 
 - A chart that ranks properties by `gross rent yield` and adapts orientation to screen size.
 
-### 5. Review prototype v1 ergonomics against the specs
+### 6. Review prototype v1 ergonomics against the specs
 
 Why this exists:
 
@@ -115,7 +130,7 @@ Outcome:
 
 - A retrospective-style review of whether the implementation still honors the core `map answers where, chart answers which` principle.
 
-### 6. Document prototype v1 architecture notes
+### 7. Document prototype v1 architecture notes
 
 Why this exists:
 
@@ -125,7 +140,7 @@ Outcome:
 
 - Architecture and usage notes covering frontend boundaries, expected data flow, and important implementation assumptions.
 
-### 7. Define the backend prototype contract
+### 8. Define the backend prototype contract
 
 Why this exists:
 
@@ -139,6 +154,7 @@ Outcome:
 ## Risks And Assumptions
 
 - Fake data is acceptable for the first frontend prototype as long as it stays consistent with the shared domain language.
+- The frontend stack decision should be explicit before app scaffolding so early implementation does not drift into accidental framework choices.
 - The backend contract may still evolve after a later backend-specific plan, so the first version should stay minimal.
 - The chart may need scrolling behavior tuning once real property counts are visible.
 - Barranquilla-first support is assumed throughout this slice.
