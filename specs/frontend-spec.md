@@ -42,6 +42,31 @@ Because of that, the v1 UI standard should be:
 
 This keeps the first visualization ergonomically intuitive and reduces version-one complexity.
 
+## Metric Communication Standard
+
+The UI should use natural language for non-technical users while preserving the
+domain metric names internally.
+
+User-facing language:
+
+- Use `rent return` as the friendly name for `gross rent yield`.
+- Use `yearly rent return` when the UI needs to make the timeframe explicit.
+- Use `best rent returns` for the ranked chart section.
+- Use `typical rent return` for area-level median values.
+- Keep `gross rent yield` as an explainer-only technical alias, not the primary
+  visible label.
+- Do not promote `sale-to-rent ratio` as a first-version UI metric.
+
+If the UI explains `sale-to-rent ratio`, describe the user's question rather
+than leading with the formula. Suggested language:
+
+- `Years of rent vs. price`
+- `How expensive the home looks compared with the rent it may earn`
+
+This language keeps the product close to the user's real question:
+
+`Does the rent look strong enough for the price?`
+
 ## Problem Statement
 
 Real estate users can often find sale prices and rent estimates, but they usually cannot compare properties in a selected area through a single clear visual ranking.
@@ -158,6 +183,7 @@ The bar chart is a product-defining component and should have clear behavior rul
 
 - One bar equals one property.
 - The default sort should rank by highest `gross rent yield`.
+- The user-facing chart label should say `rent return` or `yearly rent return`.
 - Bars should support hover states, and selection is optional for version one.
 - Bars should expose key summary data on hover.
 - The chart should handle many properties primarily through scrolling in version one.
@@ -165,6 +191,28 @@ The bar chart is a product-defining component and should have clear behavior rul
 - The chart orientation should adapt to screen size.
 - Vertical bars may be used on larger screens.
 - Horizontal ranked bars may be used on smaller screens.
+
+### Bar Visual Encoding
+
+The bar length should make relative rent-return strength easy to scan.
+
+For version one:
+
+- Keep the exact rent-return percentage visible as text.
+- Scale bar length relative to the currently visible property set, not from a
+  hard zero baseline when doing so makes all bars look nearly identical.
+- The highest visible rent return should receive the strongest fill.
+- The lowest visible rent return should still remain visible with a minimum bar
+  length.
+- Use color as a subtle opportunity signal, not as an alarm.
+- Prefer a green or teal scale for stronger rent returns.
+- Use muted neutral or soft amber tones for weaker visible returns.
+- Avoid red for lower rent returns in version one because lower return is not
+  necessarily an error.
+
+The visual rule is:
+
+`The number tells the exact estimated rent return. The bar shows relative strength among the currently visible homes.`
 
 ## Map Behavior
 
@@ -200,6 +248,10 @@ At minimum:
 - When the default chart metric is `gross rent yield`, higher should visually feel better.
 - The frontend should never assume the user already understands these metrics.
 - If values are estimated, the product should say so plainly.
+- User-facing copy should prefer `rent return` over `gross rent yield` outside
+  metric explainers.
+- Technical metric names may appear in help text when they clarify how the value
+  is calculated.
 
 ## Success Criteria
 

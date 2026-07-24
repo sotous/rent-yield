@@ -76,6 +76,14 @@ This plan does not include:
   select Vite React TypeScript, pnpm, Tailwind CSS, MapLibre GL JS, a custom
   accessible ranked-bar chart, Vitest, Playwright, ESLint, and Prettier for the
   frontend prototype scaffold.
+- 2026-07-24: Scaffolded the first runnable frontend prototype in
+  `apps/frontend` with Barranquilla demo areas, fake domain-shaped property
+  data, a MapLibre map shell, area summary, metric explainer, and custom ranked
+  gross-yield bars. Added `docs/architecture/frontend-prototype-v1.md`.
+- 2026-07-24: Updated the frontend specs to separate internal metric names from
+  user-facing language. The UI should say `rent return` / `yearly rent return`
+  while preserving `gross_rent_yield` internally, and chart bars should encode
+  relative strength among currently visible homes.
 
 ## Task Slices
 

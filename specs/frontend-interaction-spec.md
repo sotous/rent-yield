@@ -13,13 +13,13 @@ responsive rules.
 
 The prototype should help the user answer one question quickly:
 
-`In this selected Barranquilla area, which properties have the strongest gross rent yield?`
+`In this selected Barranquilla area, which homes may bring in the strongest rent for their price?`
 
 The main interaction should stay focused on:
 
 1. choosing or focusing an area,
 2. seeing the matching properties,
-3. scanning the ranked yield chart,
+3. scanning the ranked rent-return chart,
 4. understanding which values are estimated.
 
 ## Explorer Screen Model
@@ -139,13 +139,56 @@ Required behavior:
 
 - one bar represents one property,
 - default metric is `gross_rent_yield`,
+- user-facing metric label is `rent return` or `yearly rent return`,
 - sort descending by `gross_rent_yield`,
 - use the domain tie-breakers when needed:
   - ascending `sale_to_rent_ratio`,
   - descending `monthly_rent_amount`,
-- display yield as a percentage,
+- display rent return as a percentage,
 - keep estimated values visibly labeled,
 - allow scrolling when property count exceeds comfortable screen space.
+
+### Chart Language
+
+The chart should sound like it is speaking to a curious buyer or individual
+investor, not exposing raw database fields.
+
+Preferred visible labels:
+
+- chart section: `Best rent returns`
+- chart title: `Yearly rent return`
+- area median: `Typical rent return`
+- explainer heading: `How to read rent return`
+
+Technical language rules:
+
+- `gross rent yield` may appear as an explainer-only alias.
+- `sale-to-rent ratio` should not be promoted as a first-version chart label.
+- If needed, describe `sale_to_rent_ratio` as `Years of rent vs. price` or
+  similar plain language.
+
+### Bar Visual Encoding
+
+The bar should not feel static when visible properties have similar returns.
+
+Required behavior:
+
+- Keep the exact percentage visible as text for every row.
+- Use relative bar length to compare properties within the currently visible
+  area.
+- The strongest visible rent return should have the longest bar.
+- The weakest visible rent return should have a short but still visible bar.
+- Use the underlying `gross_rent_yield` value for sorting and calculation.
+- Use color as an ergonomic strength cue:
+  - stronger returns: deeper green or teal
+  - middle returns: softer green
+  - weaker visible returns: muted neutral or soft amber
+- Avoid red in version one because a weaker rent return is not necessarily an
+  invalid or dangerous listing.
+
+The visual encoding should communicate:
+
+`The text is the exact estimated rent return. The bar is the relative strength signal.`
 
 Hover and focus behavior:
 
@@ -180,7 +223,7 @@ Recommended fields:
 - interior area in square meters when available,
 - sale price in COP,
 - monthly rent in COP,
-- gross rent yield as a percentage,
+- rent return percentage,
 - rent source type or estimated label.
 
 The UI should prefer readable approximations over excessive precision. For
@@ -197,7 +240,7 @@ Recommended fields:
 - property count,
 - median sale price,
 - median monthly rent,
-- median gross rent yield,
+- median gross rent yield shown as `typical rent return`,
 - data source or fake-data label during prototyping.
 
 The summary should update whenever `selectedArea` changes.
@@ -301,7 +344,10 @@ This interaction spec is satisfied when the prototype can demonstrate:
 - Barranquilla loads as the default geography,
 - the user can change the active area through simple map or named-area behavior,
 - the chart updates to properties in the active area,
-- properties are ranked by descending `gross rent yield`,
+- properties are ranked by descending `gross_rent_yield`,
+- the user-facing chart uses `rent return` language,
+- the bar lengths visibly distinguish relative return strength within the active
+  area,
 - chart hover or focus highlights the matching map marker,
 - map marker hover or focus highlights the matching chart bar,
 - estimated values are visibly labeled,

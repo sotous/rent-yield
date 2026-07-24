@@ -40,6 +40,7 @@ Version one is intentionally narrow.
 
 - `apps/frontend`: frontend application
 - `apps/backend`: backend application
+- `docs`: architecture and implementation notes
 - `specs`: product and technical specifications
 
 ## Specs
@@ -78,7 +79,8 @@ Those Notion tasks should be written as small execution briefs, not placeholder 
 
 ## Current Status
 
-The repository is currently in the planning and specification phase.
+The repository is currently moving from planning into the first runnable
+frontend prototype.
 
 What already exists:
 
@@ -89,13 +91,31 @@ What already exists:
 - frontend interaction spec
 - shared domain spec
 - frontend tech-stack decision
+- runnable frontend prototype scaffold
+- Barranquilla fake-data explorer layout
 
 What comes next:
 
-- frontend prototype scaffold
-- map explorer shell
-- ranked property chart
+- refine map explorer shell
+- refine ranked property chart
+- review prototype v1 ergonomics
 - backend prototype contract
+
+## Running The Frontend Prototype
+
+From the repository root:
+
+```sh
+pnpm install
+pnpm dev
+```
+
+Run the current checks with:
+
+```sh
+pnpm check
+pnpm --filter @rent-yield/frontend test:e2e
+```
 
 ## Long-Term Direction
 

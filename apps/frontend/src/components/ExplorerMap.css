@@ -1,0 +1,106 @@
+.explorer-map {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid var(--border, #d9dee8);
+  border-radius: 8px;
+  background: #dbe7ee;
+}
+
+.explorer-map__status {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 88px);
+  padding: 6px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  color: #172033;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.explorer-map__canvas {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+}
+
+.explorer-map__marker {
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px 999px 999px 0;
+  color: #ffffff;
+  background: #0f766e;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+  transform: rotate(-45deg);
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.explorer-map__marker::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentcolor;
+}
+
+.explorer-map__marker:hover,
+.explorer-map__marker:focus-visible,
+.explorer-map__marker--highlighted {
+  background: #1d4ed8;
+  box-shadow:
+    0 0 0 4px rgba(29, 78, 216, 0.22),
+    0 10px 22px rgba(15, 23, 42, 0.3);
+  transform: rotate(-45deg) scale(1.14);
+}
+
+.explorer-map__marker:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+.explorer-map__marker--selected {
+  background: #b45309;
+  box-shadow:
+    0 0 0 5px rgba(180, 83, 9, 0.24),
+    0 12px 26px rgba(15, 23, 42, 0.35);
+}
+
+.explorer-map__marker--selected::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 2px solid #ffffff;
+  border-radius: inherit;
+}
+
+.explorer-map .maplibregl-ctrl-group {
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+}
+
+@media (max-width: 720px) {
+  .explorer-map {
+    min-height: 320px;
+  }
+
+  .explorer-map__status {
+    right: 12px;
+    max-width: calc(100% - 76px);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+}
