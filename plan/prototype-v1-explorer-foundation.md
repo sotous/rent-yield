@@ -72,6 +72,10 @@ This plan does not include:
   explorer screen state, area selection behavior, map and chart linking,
   responsive rules, accessibility expectations, fake-data requirements, and
   success criteria for the first frontend prototype.
+- 2026-06-24: Added `plan/prototype-v1-frontend-tech-stack-decision.md` to
+  select Vite React TypeScript, pnpm, Tailwind CSS, MapLibre GL JS, a custom
+  accessible ranked-bar chart, Vitest, Playwright, ESLint, and Prettier for the
+  frontend prototype scaffold.
 
 ## Task Slices
 

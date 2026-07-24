@@ -323,7 +323,8 @@ This interaction spec is satisfied when the prototype can demonstrate:
   defines the product framing and frontend scope.
 - [domain-spec.md](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
   defines the metric formulas, entities, and field semantics.
-- The future frontend stack decision should choose libraries that can implement
-  this interaction contract without widening version-one scope.
+- [prototype-v1-frontend-tech-stack-decision.md](/Users/soto/Documents/rent-yield/plan/prototype-v1-frontend-tech-stack-decision.md)
+  selects the frontend scaffold, map, chart, styling, and testing stack for this
+  interaction contract.
 - The future backend prototype contract should use this interaction contract to
   confirm the minimal property, area, and area-summary payloads.

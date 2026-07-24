@@ -50,6 +50,10 @@ Version one is intentionally narrow.
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
+## Active Decisions
+
+- [Prototype v1 Frontend Tech Stack Decision](/Users/soto/Documents/rent-yield/plan/prototype-v1-frontend-tech-stack-decision.md)
+
 ## Development Approach
 
 This repository is being developed through spec-driven development.
@@ -84,10 +88,10 @@ What already exists:
 - frontend product spec
 - frontend interaction spec
 - shared domain spec
+- frontend tech-stack decision
 
 What comes next:
 
-- frontend tech-stack decision
 - frontend prototype scaffold
 - map explorer shell
 - ranked property chart
