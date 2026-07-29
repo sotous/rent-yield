@@ -230,6 +230,7 @@ At minimum:
 - property id
 - address or location label
 - latitude and longitude
+- listing URL for the original property post
 - property type
 - bedrooms
 - bathrooms
@@ -242,6 +243,11 @@ At minimum:
 - listing status
 - rent source type such as `observed` or `estimated`
 - area identifier such as neighborhood, ZIP code, or city
+
+When a property result is hovered, focused, or selected, the UI should provide a
+direct `View listing` link to the original property post when `listing_url` is
+available. This should be a contextual outbound link, not a persistent control
+on every row, a transactional flow, or a property-detail screen.
 
 ## UX Rules For Metrics
 

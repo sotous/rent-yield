@@ -32,6 +32,7 @@ export type PropertyRecord = {
   area_id: string;
   neighborhood_name: string;
   address_label: string;
+  listing_url: string;
   latitude: number;
   longitude: number;
   property_type: PropertyType;

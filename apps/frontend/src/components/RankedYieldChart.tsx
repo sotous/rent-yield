@@ -42,6 +42,15 @@ function propertyFacts(property: PropertyRecord) {
   return facts;
 }
 
+function formatListingUrl(listingUrl: string) {
+  try {
+    const url = new URL(listingUrl);
+    return `${url.hostname}${url.pathname}`;
+  } catch {
+    return listingUrl;
+  }
+}
+
 function getReturnStrength(value: number, minValue: number, maxValue: number) {
   if (maxValue === minValue) {
     return {
@@ -134,16 +143,19 @@ export function RankedYieldChart({
               );
 
               return (
-                <li key={property.property_id}>
+                <li
+                  key={property.property_id}
+                  className="ry-chart__row"
+                  data-highlighted={highlighted}
+                  data-selected={selected}
+                  data-return-strength={returnStrength.tone}
+                  style={{ "--bar-fill": returnStrength.fill } as CSSProperties}
+                  onMouseEnter={() => onHighlightProperty(property.property_id)}
+                  onMouseLeave={() => onHighlightProperty(null)}
+                >
                   <button
                     type="button"
-                    className="ry-chart__row"
-                    data-highlighted={highlighted}
-                    data-selected={selected}
-                    data-return-strength={returnStrength.tone}
-                    style={
-                      { "--bar-fill": returnStrength.fill } as CSSProperties
-                    }
+                    className="ry-chart__row-main"
                     aria-pressed={selected}
                     aria-describedby={
                       shouldShowDetail
@@ -153,10 +165,6 @@ export function RankedYieldChart({
                     onBlur={() => onHighlightProperty(null)}
                     onClick={() => onSelectProperty(property.property_id)}
                     onFocus={() => onHighlightProperty(property.property_id)}
-                    onMouseEnter={() =>
-                      onHighlightProperty(property.property_id)
-                    }
-                    onMouseLeave={() => onHighlightProperty(null)}
                   >
                     <span>
                       <span className="ry-chart__rank">{index + 1}</span>
@@ -209,6 +217,24 @@ export function RankedYieldChart({
                       </span>
                     ) : null}
                   </button>
+                  {shouldShowDetail ? (
+                    <a
+                      className="ry-chart__listing-link"
+                      href={property.listing_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`View listing ${formatListingUrl(
+                        property.listing_url,
+                      )}`}
+                      onFocus={() => onHighlightProperty(property.property_id)}
+                      onBlur={() => onHighlightProperty(null)}
+                    >
+                      <span>View listing</span>
+                      <span className="ry-chart__listing-url">
+                        {formatListingUrl(property.listing_url)}
+                      </span>
+                    </a>
+                  ) : null}
                 </li>
               );
             })}

@@ -121,17 +121,28 @@
   border: 1px solid transparent;
   border-radius: 8px;
   color: inherit;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.ry-chart__row-main {
+  background: transparent;
+  border: 0;
+  color: inherit;
   cursor: pointer;
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) minmax(140px, 32%);
-  padding: 10px 8px;
+  padding: 0;
   text-align: left;
   width: 100%;
 }
 
 .ry-chart__row:hover,
-.ry-chart__row:focus-visible,
+.ry-chart__row:focus-within,
 .ry-chart__row[data-highlighted="true"] {
   border-color: var(--accent-border);
   outline: none;
@@ -230,6 +241,34 @@
   padding-top: 8px;
 }
 
+.ry-chart__listing-link {
+  align-self: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-h);
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 8px 10px;
+  text-decoration: none;
+  max-width: 220px;
+}
+
+.ry-chart__listing-link:hover,
+.ry-chart__listing-link:focus-visible {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+  outline: none;
+}
+
+.ry-chart__listing-url {
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
 .ry-explainer {
   padding-bottom: 20px;
 }
@@ -277,6 +316,10 @@
   }
 
   .ry-chart__row {
+    grid-template-columns: 1fr;
+  }
+
+  .ry-chart__row-main {
     grid-template-columns: 1fr;
   }
 

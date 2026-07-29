@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import App from "../../src/App";
@@ -29,5 +29,19 @@ describe("frontend scaffold", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "Yearly rent return" }),
     ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "View listing" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByRole("button", { name: /Carrera 54/i }));
+
+    expect(
+      screen.getByRole("link", {
+        name: /View listing example\.com\/rent-yield\/listings\/baq-001/i,
+      }),
+    ).toHaveAttribute(
+      "href",
+      "https://example.com/rent-yield/listings/baq-001",
+    );
   });
 });
