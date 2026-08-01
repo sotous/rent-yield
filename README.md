@@ -48,6 +48,7 @@ Version one is intentionally narrow.
 - [Frontend Product Spec](/Users/soto/Documents/rent-yield/specs/frontend-spec.md)
 - [Frontend Interaction Spec](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md)
 - [Shared Domain Spec](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
+- [Backend API Spec](/Users/soto/Documents/rent-yield/specs/backend-api-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
@@ -79,8 +80,8 @@ Those Notion tasks should be written as small execution briefs, not placeholder 
 
 ## Current Status
 
-The repository is currently moving from planning into the first runnable
-frontend prototype.
+The repository has a runnable frontend prototype and a runnable backend
+prototype API for the first Barranquilla explorer contract.
 
 What already exists:
 
@@ -93,13 +94,15 @@ What already exists:
 - frontend tech-stack decision
 - runnable frontend prototype scaffold
 - Barranquilla fake-data explorer layout
+- prototype v1 ergonomics review
+- backend prototype API contract
+- backend prototype API implementation
 
 What comes next:
 
-- refine map explorer shell
-- refine ranked property chart
-- review prototype v1 ergonomics
-- backend prototype contract
+- review backend API scenarios before frontend integration
+- integrate the frontend explorer with the backend prototype API
+- follow-up frontend ergonomics iteration after backend data needs are clearer
 
 ## Running The Frontend Prototype
 
@@ -108,6 +111,19 @@ From the repository root:
 ```sh
 pnpm install
 pnpm dev
+```
+
+Run the backend prototype API with:
+
+```sh
+pnpm dev:backend
+```
+
+The backend listens on `http://127.0.0.1:3001` by default and currently serves:
+
+```text
+GET /api/v1/explorer/bootstrap?country_code=CO&city_name=Barranquilla
+GET /api/v1/explorer/areas/{area_id}
 ```
 
 Run the current checks with:

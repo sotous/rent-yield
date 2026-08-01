@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @rent-yield/frontend dev",
+    "dev:backend": "pnpm --filter @rent-yield/backend dev",
+    "dev:frontend": "pnpm --filter @rent-yield/frontend dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",

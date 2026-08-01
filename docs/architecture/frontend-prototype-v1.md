@@ -88,6 +88,11 @@ The records intentionally use the shared domain language:
 The fake records are plausible enough to validate layout, sorting, summaries,
 and interaction behavior. They are not a market study.
 
+The first backend contract derived from this fake-data boundary is documented in
+[backend-api-spec.md](/Users/soto/Documents/rent-yield/specs/backend-api-spec.md)
+and
+[prototype-v1.md](/Users/soto/Documents/rent-yield/docs/api/prototype-v1.md).
+
 ## Running The Prototype
 
 From the repo root:
@@ -130,7 +135,19 @@ concern.
 
 The next implementation slices should focus on:
 
-- strengthening the map explorer shell behavior
 - expanding browser tests for area switching and cross-highlighting
-- refining the ranked chart ergonomics after hands-on review
-- deriving the backend prototype contract from the fake data shape
+- integrating the frontend explorer with the backend prototype API after the
+  provider scenarios are reviewed
+
+See
+[prototype-v1-ergonomics-review.md](/Users/soto/Documents/rent-yield/docs/reviews/prototype-v1-ergonomics-review.md)
+for the review that closed the first ergonomics checkpoint and deferred further
+frontend polish until backend data needs are clearer.
+
+See
+[backend-prototype-contract-review.md](/Users/soto/Documents/rent-yield/docs/reviews/backend-prototype-contract-review.md)
+for the review that closed the first backend contract checkpoint.
+
+See
+[backend-prototype-v1.md](/Users/soto/Documents/rent-yield/docs/architecture/backend-prototype-v1.md)
+for the backend provider architecture that now serves the prototype API.

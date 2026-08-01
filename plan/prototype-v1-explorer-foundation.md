@@ -84,6 +84,15 @@ This plan does not include:
   user-facing language. The UI should say `rent return` / `yearly rent return`
   while preserving `gross_rent_yield` internally, and chart bars should encode
   relative strength among currently visible homes.
+- 2026-07-29: Added
+  `docs/reviews/prototype-v1-ergonomics-review.md` to close the first
+  ergonomics review. The prototype is sound enough to proceed to the backend
+  contract, with frontend polish deferred until real data needs are clearer.
+- 2026-07-29: Added `specs/backend-api-spec.md`,
+  `docs/api/prototype-v1.md`, and
+  `docs/reviews/backend-prototype-contract-review.md` to define the first
+  backend prototype contract and API documentation from the frontend's proven
+  fake-data needs.
 
 ## Task Slices
 
