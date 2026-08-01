@@ -57,6 +57,25 @@
   font-weight: 700;
 }
 
+.explorer-data-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-width: 1440px;
+  margin: 0 auto 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.explorer-data-state strong {
+  color: var(--text-h);
+}
+
 .area-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -82,6 +101,11 @@
   border-color: var(--accent-border);
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.area-tabs__button:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .area-tabs__button span {

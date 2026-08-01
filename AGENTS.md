@@ -25,12 +25,23 @@ For any non-trivial feature, agents must follow this order:
 
 1. Create or update a feature plan in `plan/`
 2. Break the approved plan into tracked execution tasks in Notion
-3. Implement the feature
-4. Perform a retrospective on the finished implementation
-5. Iterate if needed
-6. Write or update documentation
+3. Define the behavior with tests before implementation
+4. Implement the feature through the TDD red-green-refactor loop
+5. Perform a retrospective on the finished implementation
+6. Iterate if needed
+7. Write or update documentation
 
 Do not jump straight into implementation when the task is feature-sized.
+
+### Test-Driven Development
+
+Behavioral and architectural changes should be built through the continuous TDD `RED -> GREEN -> RED` cycle:
+
+1. `RED`: write a focused test for the next desired behavior and confirm that it fails for the expected reason.
+2. `GREEN`: implement the smallest change that makes the test pass.
+3. Refactor the implementation and tests while keeping the suite green, then return to `RED` by writing the next focused test.
+
+Tests should be written at the narrowest useful level first, then expanded with integration or end-to-end coverage when the change crosses module or process boundaries. Existing tests may be used as regression coverage, but new behavior should not be implemented first and tested only afterward. Documentation-only, formatting-only, and other trivial changes may skip TDD when no executable behavior changes.
 
 ## Planning Expectations
 

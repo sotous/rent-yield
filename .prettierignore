@@ -1,5 +1,2 @@
-coverage/
-dist/
-node_modules/
-playwright-report/
-test-results/
+**/.env.template
+**/.last-run.json

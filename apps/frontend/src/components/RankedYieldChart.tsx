@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 import type { PropertyRecord } from "../domain/propertyTypes";
-import { sortByGrossRentYield } from "../domain/sorting";
 import { formatCurrency, formatPercent } from "../lib/formatters";
 import "./rentYieldComponents.css";
 
@@ -91,7 +90,7 @@ export function RankedYieldChart({
   onHighlightProperty,
   onSelectProperty,
 }: RankedYieldChartProps) {
-  const rankedProperties = sortByGrossRentYield(properties);
+  const rankedProperties = properties;
   const maxYield = Math.max(
     ...rankedProperties.map((property) => property.gross_rent_yield),
     0,
@@ -217,7 +216,7 @@ export function RankedYieldChart({
                       </span>
                     ) : null}
                   </button>
-                  {shouldShowDetail ? (
+                  {shouldShowDetail && property.listing_url != null ? (
                     <a
                       className="ry-chart__listing-link"
                       href={property.listing_url}

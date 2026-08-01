@@ -80,7 +80,7 @@ export function AreaSummary({ summary }: AreaSummaryProps) {
 
       <p className="ry-summary__note ry-muted">
         {summary.average_gross_rent_yield == null
-          ? "Prototype summary based on the currently visible fake property set."
+          ? "Prototype summary based on the currently visible API property set."
           : `Average rent return is ${formatPercent(
               summary.average_gross_rent_yield,
             )}.`}

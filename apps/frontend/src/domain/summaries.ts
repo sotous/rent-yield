@@ -7,6 +7,7 @@ export function summarizeArea(
   return {
     area_id: area.area_id,
     display_name: area.display_name,
+    area_type: area.area_type,
     property_count: properties.length,
     median_sale_price_amount: median(
       properties.map((property) => property.sale_price_amount),
@@ -26,6 +27,10 @@ export function summarizeArea(
     max_gross_rent_yield: max(
       properties.map((property) => property.gross_rent_yield),
     ),
+    median_sale_to_rent_ratio: median(
+      properties.map((property) => property.sale_to_rent_ratio),
+    ),
+    data_coverage_score: null,
   };
 }
 

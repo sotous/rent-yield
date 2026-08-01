@@ -43,9 +43,9 @@ export type ExplorerMapProperty = {
   latitude: number;
   longitude: number;
   gross_rent_yield: number;
-  property_type?: string;
-  bedrooms?: number;
-  bathrooms?: number;
+  property_type?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
 };
 
 export type ExplorerMapViewport = {

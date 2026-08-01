@@ -1,15 +1,15 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
 import { AreaSummary } from "../../components/AreaSummary";
 import type { ExplorerMapViewport } from "../../components/ExplorerMap";
 import { MetricExplainer } from "../../components/MetricExplainer";
 import { RankedYieldChart } from "../../components/RankedYieldChart";
-import {
-  barranquillaDemoAreas,
-  defaultArea,
-} from "../../data/barranquillaDemoAreas";
-import { barranquillaDemoProperties } from "../../data/barranquillaDemoProperties";
-import { summarizeArea } from "../../domain/summaries";
+import type {
+  AreaSummary as AreaSummaryRecord,
+  DemoArea,
+  PropertyRecord,
+} from "../../domain/propertyTypes";
+import { fetchExplorerArea, fetchExplorerBootstrap } from "./explorerApi";
 import "./ExplorerScreen.css";
 
 const ExplorerMap = lazy(() =>
@@ -18,8 +18,26 @@ const ExplorerMap = lazy(() =>
   })),
 );
 
+type DataState = "loading" | "ready" | "empty" | "error";
+
+type ExplorerAreaSummary = AreaSummaryRecord & {
+  area_type: DemoArea["area_type"];
+  data_label: string;
+};
+
 export function ExplorerScreen() {
-  const [selectedAreaId, setSelectedAreaId] = useState(defaultArea.area_id);
+  const [availableAreas, setAvailableAreas] = useState<DemoArea[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<DemoArea | null>(null);
+  const [areaSummary, setAreaSummary] = useState<ExplorerAreaSummary | null>(
+    null,
+  );
+  const [visibleProperties, setVisibleProperties] = useState<PropertyRecord[]>(
+    [],
+  );
+  const [dataState, setDataState] = useState<DataState>("loading");
+  const [dataLabel, setDataLabel] = useState("Prototype data");
+  const [dataError, setDataError] = useState<string | null>(null);
   const [highlightedPropertyId, setHighlightedPropertyId] = useState<
     string | null
   >(null);
@@ -30,31 +48,97 @@ export function ExplorerScreen() {
     null,
   );
 
-  const selectedArea =
-    barranquillaDemoAreas.find((area) => area.area_id === selectedAreaId) ??
-    defaultArea;
+  useEffect(() => {
+    const controller = new AbortController();
 
-  const visibleProperties = useMemo(() => {
-    if (selectedArea.area_type === "city") {
-      return barranquillaDemoProperties;
+    async function loadBootstrap() {
+      try {
+        setDataState("loading");
+        setDataError(null);
+        const bootstrap = await fetchExplorerBootstrap(controller.signal);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setAvailableAreas(bootstrap.areas);
+        setDataLabel(bootstrap.data_label);
+        setSelectedAreaId(bootstrap.default_area_id);
+
+        if (bootstrap.default_area_id === null) {
+          setSelectedArea(null);
+          setAreaSummary(null);
+          setVisibleProperties([]);
+          setDataState("empty");
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setDataError(readErrorMessage(error));
+        setDataState("error");
+      }
     }
 
-    return barranquillaDemoProperties.filter(
-      (property) => property.area_id === selectedArea.area_id,
-    );
-  }, [selectedArea]);
+    void loadBootstrap();
 
-  const areaSummary = useMemo(
-    () => ({
-      ...summarizeArea(selectedArea, visibleProperties),
-      area_type: selectedArea.area_type,
-      data_label: "Fake data",
-    }),
-    [selectedArea, visibleProperties],
-  );
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const areaId = selectedAreaId;
+
+    if (areaId === null) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadArea(areaIdForRequest: string) {
+      try {
+        setDataState("loading");
+        setDataError(null);
+        const payload = await fetchExplorerArea(
+          areaIdForRequest,
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setSelectedArea(payload.area);
+        setAreaSummary({
+          ...payload.summary,
+          area_type: payload.summary.area_type,
+          data_label: payload.data_label,
+        });
+        setVisibleProperties(payload.properties);
+        setDataLabel(payload.data_label);
+        setDataState(payload.properties.length === 0 ? "empty" : "ready");
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setDataError(readErrorMessage(error));
+        setDataState("error");
+      }
+    }
+
+    void loadArea(areaId);
+
+    return () => controller.abort();
+  }, [selectedAreaId]);
 
   function handleAreaChange(areaId: string) {
     setSelectedAreaId(areaId);
+    setSelectedArea(
+      availableAreas.find((area) => area.area_id === areaId) ?? null,
+    );
+    setAreaSummary(null);
+    setVisibleProperties([]);
     setHighlightedPropertyId(null);
     setSelectedPropertyId(null);
   }
@@ -73,17 +157,31 @@ export function ExplorerScreen() {
         <div className="explorer-hero__status" aria-label="Prototype status">
           <span>Colombia-first</span>
           <span>Barranquilla-first</span>
-          <span>Fake data</span>
+          <span>{dataLabel}</span>
         </div>
       </header>
 
+      {dataState === "error" ? (
+        <section className="explorer-data-state" role="status">
+          <strong>We could not load the prototype API.</strong>
+          <span>{dataError ?? "Try running the backend and refreshing."}</span>
+        </section>
+      ) : null}
+
+      {dataState === "loading" ? (
+        <section className="explorer-data-state" role="status">
+          Loading Barranquilla prototype data...
+        </section>
+      ) : null}
+
       <section className="area-tabs" aria-label="Barranquilla demo areas">
-        {barranquillaDemoAreas.map((area) => (
+        {availableAreas.map((area) => (
           <button
             key={area.area_id}
             type="button"
             className="area-tabs__button"
-            aria-pressed={area.area_id === selectedArea.area_id}
+            aria-pressed={area.area_id === selectedAreaId}
+            disabled={availableAreas.length === 0}
             onClick={() => handleAreaChange(area.area_id)}
           >
             <span>{area.display_name}</span>
@@ -97,27 +195,33 @@ export function ExplorerScreen() {
         aria-label="Map and rent return ranking"
       >
         <div className="explorer-grid__map">
-          <Suspense
-            fallback={
-              <section
-                className="map-loading"
-                aria-label="Loading property map"
-              >
-                Loading Barranquilla map...
-              </section>
-            }
-          >
-            <ExplorerMap
-              activeArea={selectedArea}
-              activeAreaLabel={`${selectedArea.display_name}, Colombia`}
-              highlightedPropertyId={highlightedPropertyId}
-              properties={visibleProperties}
-              selectedPropertyId={selectedPropertyId}
-              onHighlightProperty={setHighlightedPropertyId}
-              onMoveEnd={setMapViewport}
-              onSelectProperty={setSelectedPropertyId}
-            />
-          </Suspense>
+          {selectedArea == null ? (
+            <section className="map-loading" aria-label="Loading property map">
+              Waiting for Barranquilla area data...
+            </section>
+          ) : (
+            <Suspense
+              fallback={
+                <section
+                  className="map-loading"
+                  aria-label="Loading property map"
+                >
+                  Loading Barranquilla map...
+                </section>
+              }
+            >
+              <ExplorerMap
+                activeArea={selectedArea}
+                activeAreaLabel={`${selectedArea.display_name}, Colombia`}
+                highlightedPropertyId={highlightedPropertyId}
+                properties={visibleProperties}
+                selectedPropertyId={selectedPropertyId}
+                onHighlightProperty={setHighlightedPropertyId}
+                onMoveEnd={setMapViewport}
+                onSelectProperty={setSelectedPropertyId}
+              />
+            </Suspense>
+          )}
         </div>
 
         <aside
@@ -148,4 +252,10 @@ export function ExplorerScreen() {
       </footer>
     </main>
   );
+}
+
+function readErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "The prototype API returned an unexpected response.";
 }

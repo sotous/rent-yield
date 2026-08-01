@@ -8,11 +8,19 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4173",
     trace: "on-first-retry",
   },
-  webServer: {
-    command: "pnpm build && pnpm preview --host 127.0.0.1 --port 4173",
-    reuseExistingServer: !process.env.CI,
-    url: "http://127.0.0.1:4173",
-  },
+  webServer: [
+    {
+      command: "pnpm --filter @rent-yield/backend dev",
+      reuseExistingServer: !process.env.CI,
+      url: "http://127.0.0.1:3001/api/v1/explorer/bootstrap?country_code=CO&city_name=Barranquilla",
+    },
+    {
+      command:
+        "pnpm --filter @rent-yield/frontend exec vite --host 127.0.0.1 --port 4173",
+      reuseExistingServer: !process.env.CI,
+      url: "http://127.0.0.1:4173",
+    },
+  ],
   projects: [
     {
       name: "chromium",
