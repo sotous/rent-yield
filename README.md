@@ -52,6 +52,7 @@ Version one is intentionally narrow.
 - [Frontend Interaction Spec](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md)
 - [Shared Domain Spec](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
 - [Backend API Spec](/Users/soto/Documents/rent-yield/specs/backend-api-spec.md)
+- [Rent Model Specification](specs/rent-model-spec.md)
 - [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
@@ -68,6 +69,7 @@ These specs are the current source of truth for product framing, domain language
 ## Rent Model
 
 - [Rent Model V1 Plan](/Users/soto/Documents/rent-yield/plan/rent-model-v1.md)
+- [Rent Model Specification](specs/rent-model-spec.md)
 - [Rent Model Workbench Guide](/Users/soto/Documents/rent-yield/apps/rent-model/README.md)
 - [Input Workbench Retrospective](/Users/soto/Documents/rent-yield/plan/rent-model-input-workbench-retrospective.md)
 
