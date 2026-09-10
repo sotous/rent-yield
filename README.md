@@ -56,6 +56,11 @@ These specs are the current source of truth for product framing, domain language
 
 - [Prototype v1 Frontend Tech Stack Decision](/Users/soto/Documents/rent-yield/plan/prototype-v1-frontend-tech-stack-decision.md)
 
+## Business Research
+
+- [Business Model and Market Validation Plan](/Users/soto/Documents/rent-yield/plan/business-model-market-validation.md)
+- [Business Model and Market Validation Memo](/Users/soto/Documents/rent-yield/docs/business-model-market-validation.md)
+
 ## Development Approach
 
 This repository is being developed through spec-driven development.
