@@ -41,6 +41,8 @@ Version one is intentionally narrow.
 - `apps/frontend`: frontend application
 - `apps/backend`: backend application
 - `apps/rent-model`: standalone Rent Model input-contract workbench
+- `apps/crawlers`: fixture-only source research and bounded-probe workbench
+- `packages/listing-storage-contracts`: shared runtime contracts and examples
 - `docs`: architecture and implementation notes
 - `specs`: product and technical specifications
 
@@ -50,6 +52,7 @@ Version one is intentionally narrow.
 - [Frontend Interaction Spec](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md)
 - [Shared Domain Spec](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
 - [Backend API Spec](/Users/soto/Documents/rent-yield/specs/backend-api-spec.md)
+- [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
@@ -67,6 +70,24 @@ These specs are the current source of truth for product framing, domain language
 - [Rent Model V1 Plan](/Users/soto/Documents/rent-yield/plan/rent-model-v1.md)
 - [Rent Model Workbench Guide](/Users/soto/Documents/rent-yield/apps/rent-model/README.md)
 - [Input Workbench Retrospective](/Users/soto/Documents/rent-yield/plan/rent-model-input-workbench-retrospective.md)
+
+## Crawler Workbench
+
+Crawler development starts with synthetic and redacted fixtures. The current
+workbench can register source candidates, derive access assessments, and run a
+bounded discovery probe through an injected mock transport. It performs no live
+network access and includes no production HTTP adapter.
+
+Probe commands allow only an HTTPS start URL, exact hosts, path prefixes, and
+explicit budgets. The access gate supplies the assessment identity and caps the
+approved hosts, paths, and budgets. The mock transport must resolve within its
+deadline, connect through the DNS-validated public address set, and enforce the
+remaining response-byte and time limits. Probe receipts retain sanitized
+response metadata and complete or partial body digests, never response bodies.
+
+- [Crawler and ingestion plan](plan/colombian-listing-crawlers-and-ingestion.md)
+- [Crawler foundation contract](docs/architecture/crawler-foundation-contract-agreement.md)
+- [Bounded probe retrospective](plan/crawler-foundation-bounded-probe-retrospective.md)
 
 ## Development Approach
 
@@ -110,9 +131,13 @@ What already exists:
 - backend prototype API contract
 - backend prototype API implementation
 - initial Rent Model input-contract workbench
+- crawler research/runtime contract schemas
+- fixture-only source candidate and access workflow
+- bounded mocked discovery probe with sanitized receipts
 
 What comes next:
 
+- implement crawler fixture redaction and integrity checks
 - review backend API scenarios before frontend integration
 - integrate the frontend explorer with the backend prototype API
 - follow-up frontend ergonomics iteration after backend data needs are clearer
