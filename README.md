@@ -40,6 +40,7 @@ Version one is intentionally narrow.
 
 - `apps/frontend`: frontend application
 - `apps/backend`: backend application
+- `apps/rent-model`: standalone Rent Model input-contract workbench
 - `docs`: architecture and implementation notes
 - `specs`: product and technical specifications
 
@@ -60,6 +61,12 @@ These specs are the current source of truth for product framing, domain language
 
 - [Business Model and Market Validation Plan](/Users/soto/Documents/rent-yield/plan/business-model-market-validation.md)
 - [Business Model and Market Validation Memo](/Users/soto/Documents/rent-yield/docs/business-model-market-validation.md)
+
+## Rent Model
+
+- [Rent Model V1 Plan](/Users/soto/Documents/rent-yield/plan/rent-model-v1.md)
+- [Rent Model Workbench Guide](/Users/soto/Documents/rent-yield/apps/rent-model/README.md)
+- [Input Workbench Retrospective](/Users/soto/Documents/rent-yield/plan/rent-model-input-workbench-retrospective.md)
 
 ## Development Approach
 
@@ -102,6 +109,7 @@ What already exists:
 - prototype v1 ergonomics review
 - backend prototype API contract
 - backend prototype API implementation
+- initial Rent Model input-contract workbench
 
 What comes next:
 
