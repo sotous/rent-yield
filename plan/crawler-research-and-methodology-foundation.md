@@ -143,6 +143,15 @@ timestamps, content metadata, permitted-use/retention class, methodology
 proposal, parser compatibility, expected classification, and successor fixture
 when corrected.
 
+A permitted-source origin requires the canonical HTTPS page URL without
+credentials, query parameters, or a fragment, plus source key, collection time,
+assessment digest, and original entity-body digest. A synthetic origin records
+only its scenario and generation time and cannot claim source provenance.
+Extraction retains a stable canonical listing URL when available; otherwise it
+records `null` and a quality issue. The fixture envelope remains the
+authoritative origin even when the redacted payload contains URL-shaped source
+content.
+
 The foundation does not archive production raw documents or source-policy
 pages. Its durable counterpart retains a full permitted source response only
 for parser replay or evidence audit; it records policy-page URLs, metadata, and
