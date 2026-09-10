@@ -139,6 +139,42 @@ bounded and sanitized:
 Response bodies, credentials, headers, cookies, tokens, and arbitrary source
 content never enter a probe receipt.
 
+## Fixture Product and URL Traceability
+
+A development fixture is a pair of immutable artifacts:
+
+- a fixture envelope containing origin, integrity, retention, compatibility,
+  and expected-classification metadata; and
+- a separate UTF-8 payload containing the redacted HTML, JSON, or text replayed
+  by a parser.
+
+For a permitted-source fixture, `origin.source_url` is required and identifies
+the page whose response produced the fixture. The retained URL must use HTTPS
+and must be canonicalized without credentials, query parameters, or a fragment.
+`origin.source_key`, collection time, the governing assessment digest, and the
+original entity-body digest preserve the rest of the acquisition trace.
+
+A synthetic fixture records only its scenario and generation time. It must not
+claim a real source URL, source key, assessment, or original entity digest. If a
+synthetic scenario needs a URL-shaped value inside its payload, it must use a
+reserved non-source example and remains synthetic evidence.
+
+Extraction produces a separate normalized observation. It retains the
+canonical source listing URL as `listing_url` when the source exposes a stable
+listing locator. If no stable locator exists, `listing_url` is `null`, the
+observation records `missing_stable_listing_url`, and its deterministic quality
+index must be lower than an otherwise identical observation with a stable URL.
+The index uses an explicitly versioned scoring ruleset and cannot conceal
+blocking quality issues. A missing URL alone does not quarantine an observation
+when a stable source-qualified listing ID and immutable capture provenance are
+available. If both the stable URL and stable source listing ID are unavailable,
+the result is quarantined rather than normalized.
+
+The normalized observation also links every model-relevant value to field
+provenance and, through the ingestion boundary, to the immutable fixture or raw
+capture. A URL inside the redacted payload is source content; the envelope
+origin is the authoritative fixture provenance.
+
 ## Shared Contract Boundary
 
 `@rent-yield/listing-storage-contracts` owns the strict runtime schemas,
@@ -164,8 +200,8 @@ behavior only and make no durability claim.
 | CR-008 | Request, byte, time, redirect, source, and concurrency limits     |                4 | `bounded-probe.ts`                                           | boundary, partial-response, and shared-ledger cases   | Implemented |
 | CR-009 | Stop without retry on access, status, auth, or challenge failures |                4 | `bounded-probe.ts`                                           | typed stop-reason cases                               | Implemented |
 | CR-010 | Sanitized receipt with complete or partial body evidence          |                4 | `research.ts`, `bounded-probe.ts`                            | schema and deterministic receipt cases                | Implemented |
-| CR-011 | Redacted fixtures, integrity checks, and immutable successors     |                5 | Pending                                                      | Pending RED tests                                     | Planned     |
-| CR-012 | Offline extraction, provenance, and quarantine semantics          |                6 | Pending                                                      | Pending RED tests                                     | Planned     |
+| CR-011 | Redacted fixtures, source-URL traceability, integrity, successors |                5 | Pending                                                      | Pending RED tests                                     | Planned     |
+| CR-012 | Extraction, URL quality penalty, provenance, and quarantine       |                6 | Pending                                                      | Pending RED tests                                     | Planned     |
 | CR-013 | Manifest proposal, validation, review, lookup, and conformance    |              7–9 | Schemas exist; application behavior pending                  | Schema tests currently; behavior tests pending        | Partial     |
 | CR-014 | Agent research skill, workflow review, and runbook                |            10–12 | Pending                                                      | Workflow review pending                               | Planned     |
 
