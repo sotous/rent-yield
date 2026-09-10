@@ -148,9 +148,12 @@ credentials, query parameters, or a fragment, plus source key, collection time,
 assessment digest, and original entity-body digest. A synthetic origin records
 only its scenario and generation time and cannot claim source provenance.
 Extraction retains a stable canonical listing URL when available; otherwise it
-records `null` and a quality issue. The fixture envelope remains the
-authoritative origin even when the redacted payload contains URL-shaped source
-content.
+records `null`, the `missing_stable_listing_url` issue, and a lower deterministic
+quality index under a versioned scoring ruleset. A missing URL alone is
+non-blocking when stable source identity and immutable capture provenance
+remain available; missing both a stable URL and stable source listing ID
+quarantines the result. The fixture envelope remains the authoritative origin
+even when the redacted payload contains URL-shaped source content.
 
 The foundation does not archive production raw documents or source-policy
 pages. Its durable counterpart retains a full permitted source response only
