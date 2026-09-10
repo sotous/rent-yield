@@ -79,6 +79,11 @@ semantics. The current Rent Model `ResidentialListing` is a consumer projection,
 not a lossless ingestion contract. Live fetching and scheduling need a separate
 production implementation plan.
 
+The first live-source milestone is now defined separately in
+[`plan/crawler-first-real-world-canary.md`](crawler-first-real-world-canary.md).
+It permits only one reviewed, manual, maximum two-request Barranquilla rental
+canary and does not activate scheduled or production crawling.
+
 ## Data Storage handoff
 
 Data Storage owns the durable schema and must provide these crawler-facing

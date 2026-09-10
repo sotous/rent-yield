@@ -24,6 +24,12 @@ gates runnable methodology selection, not offline proposal validation.
 Durable provider implementation remains with Data Storage. Chrome DevTools
 installation and live exploration are not authorized by this breakdown.
 
+The named follow-up is
+[`plan/crawler-first-real-world-canary.md`](crawler-first-real-world-canary.md).
+Its source research may begin independently, while its single live execution
+remains blocked until foundation tickets 5 through 8 and the canary approval
+gate are complete.
+
 ## Goal
 
 Produce consumable source candidates, access assessments, permitted probe
