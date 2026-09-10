@@ -1,0 +1,18 @@
+{
+  "source_name": "fixture",
+  "source_listing_id": "baq-sale-001",
+  "listing_url": "https://example.com/listings/baq-sale-001",
+  "listing_role": "for_sale",
+  "country_code": "CO",
+  "city_name": "Barranquilla",
+  "area_id": "alto-prado",
+  "neighborhood_name": "Alto Prado",
+  "property_type": "apartment",
+  "built_area_sqm": 82,
+  "bedrooms": 2,
+  "bathrooms": 2,
+  "social_stratum": 5,
+  "sale_asking_price_cop": 420000000,
+  "monthly_asking_rent_cop": null,
+  "observed_at": "2026-08-01T00:00:00Z"
+}
