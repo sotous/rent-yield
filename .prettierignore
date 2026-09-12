@@ -1,2 +1,3 @@
 **/.env.template
 **/.last-run.json
+apps/crawlers/fixtures/**/payload.*

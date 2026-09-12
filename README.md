@@ -137,10 +137,11 @@ What already exists:
 - crawler research/runtime contract schemas
 - fixture-only source candidate and access workflow
 - bounded mocked discovery probe with sanitized receipts
+- deterministic redacted fixture capture, integrity checks, and fixture scanner
 
 What comes next:
 
-- implement crawler fixture redaction and integrity checks
+- implement offline fixture extraction, provenance, and URL quality scoring
 - review backend API scenarios before frontend integration
 - integrate the frontend explorer with the backend prototype API
 - follow-up frontend ergonomics iteration after backend data needs are clearer

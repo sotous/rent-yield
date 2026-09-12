@@ -39,6 +39,11 @@ provenance, methodology validation, and approved-effective lookup must be
 complete before the live execution task. Source research and access assessment
 may begin earlier.
 
+The live gate also requires an authorization record from a trusted reviewer;
+caller-supplied findings or the fixture-only homepage-derived scope cannot
+grant live access. The approved methodology must declare allowed content types,
+the exact discovery and detail paths, and whether a query string is permitted.
+
 ## Canary scope
 
 - Geography: Barranquilla, Colombia.
@@ -66,7 +71,10 @@ retention limits. The canary cannot widen them.
    canary methodology for the exact source, city, capability, and listing role.
 3. Implement a canary-only DNS/HTTPS transport behind the existing bounded
    probe port. Bind connections to validated public addresses and enforce all
-   limits while streaming.
+   limits while streaming. Disable automatic redirects, preserve the validated
+   hostname for TLS, enforce the exact remaining byte allowance before every
+   request, and return the received body only through a bounded in-memory
+   handoff to redaction.
 4. Add a manual orchestration command with a dry run, explicit methodology
    identity, fail-closed access checks, and a local kill switch.
 5. Keep received bytes in memory until deterministic redaction and the
@@ -84,8 +92,10 @@ retention limits. The canary cannot widen them.
 - Sanitized probe receipt.
 - Redacted source-derived fixture envelope and separately hashed payload.
 - Canonical source URL without credentials, query parameters, or fragment.
-- Normalized observation with stable `listing_url`, field provenance, and
-  versioned quality assessment; or an explicit quarantine result.
+- Normalized observation with a stable `listing_url` when exposed by the
+  source, field provenance, and versioned quality assessment; otherwise a
+  lower-quality `missing_stable_listing_url` observation when stable source ID
+  remains, or an explicit quarantine result when both are absent.
 - Canary run report containing limits, timestamps, artifacts, failures, and no
   arbitrary response content.
 - Retrospective and updated crawler runbook.
@@ -99,6 +109,7 @@ Stop without retry or evasion on:
 - `401`, `403`, `429`, login, authentication, CAPTCHA, or challenge response;
 - host, path, redirect, DNS, address, byte, duration, or request-budget failure;
 - content type outside the approved methodology;
+- a missing trusted-reviewer authorization or a caller-derived live scope;
 - prohibited data that cannot be deterministically removed; or
 - parser drift that invalidates required fields or provenance.
 

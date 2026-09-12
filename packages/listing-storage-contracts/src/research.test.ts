@@ -57,6 +57,7 @@ const fixture = {
   },
   created_at: instant,
   representation: "redacted_fixture",
+  envelope_sha256: hash,
   payload_sha256: hash,
   content_type: "application/json",
   encoding: "utf-8",
@@ -65,10 +66,10 @@ const fixture = {
   redaction_sha256: hash,
   permitted_use: ["parser_replay"],
   retention_policy_key: "fixture-policy",
-  methodology_proposal_id: "proposal-1",
+  research_session_id: "research-session-1",
   parser_compatibility: ["parser-v1"],
   expected_classification: "quarantined",
-  successor_fixture_id: null,
+  supersedes_fixture_id: null,
 };
 
 describe("research contracts", () => {
@@ -181,6 +182,19 @@ describe("research contracts", () => {
         },
       }).success,
     ).toBe(true);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          kind: "permitted_source",
+          source_key: "sample",
+          source_url: "https://example.com/listing?utm_source=test#contact",
+          collected_at: instant,
+          assessment_sha256: hash,
+          original_entity_sha256: hash,
+        },
+      }).success,
+    ).toBe(false);
     expect(
       fixtureEnvelopeSchema.safeParse({
         ...fixture,
