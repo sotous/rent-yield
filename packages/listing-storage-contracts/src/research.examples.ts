@@ -62,6 +62,7 @@ const fixture = {
   },
   created_at: at,
   representation: "redacted_fixture",
+  envelope_sha256: digest,
   payload_sha256: digest,
   content_type: "application/json",
   encoding: "utf-8",
@@ -70,10 +71,10 @@ const fixture = {
   redaction_sha256: digest,
   permitted_use: ["parser_replay"],
   retention_policy_key: "fixture-policy",
-  methodology_proposal_id: "proposal-1",
+  research_session_id: "research-session-1",
   parser_compatibility: ["parser-v1"],
   expected_classification: "quarantined",
-  successor_fixture_id: null,
+  supersedes_fixture_id: null,
 };
 const extraction = {
   contract_version: "v1",

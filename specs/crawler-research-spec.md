@@ -150,7 +150,7 @@ content never enter a probe receipt.
 A development fixture is a pair of immutable artifacts:
 
 - a fixture envelope containing origin, integrity, retention, compatibility,
-  and expected-classification metadata; and
+  research-session, lineage, and expected-classification metadata; and
 - a separate UTF-8 payload containing the redacted HTML, JSON, or text replayed
   by a parser.
 
@@ -164,6 +164,12 @@ A synthetic fixture records only its scenario and generation time. It must not
 claim a real source URL, source key, assessment, or original entity digest. If a
 synthetic scenario needs a URL-shaped value inside its payload, it must use a
 reserved non-source example and remains synthetic evidence.
+
+Every fixture references the research session that created it. Because fixture
+capture precedes methodology proposal in the lifecycle, the fixture never
+claims a future proposal identity. A later proposal pins the immutable fixture
+digest. Corrections are append-only: the new fixture records
+`supersedes_fixture_id`, while the predecessor remains unchanged.
 
 Extraction produces a separate normalized observation. It retains the
 canonical source listing URL as `listing_url` when the source exposes a stable
@@ -194,22 +200,22 @@ behavior only and make no durability claim.
 
 ## Requirement Traceability
 
-| ID     | Requirement                                                       | Execution ticket | Implementation                                               | Verification                                          | Status      |
-| ------ | ----------------------------------------------------------------- | ---------------: | ------------------------------------------------------------ | ----------------------------------------------------- | ----------- |
-| CR-001 | Fixture/mock-only boundary; no live adapter                       |              1–4 | `apps/crawlers` has only injected ports and memory workflows | `workbench.test.ts`, `bounded-probe.test.ts`          | Implemented |
-| CR-002 | Strict v1 research and methodology envelopes                      |                2 | `packages/listing-storage-contracts/src`                     | package schema, catalog, example, and canonical tests | Implemented |
-| CR-003 | Append-only candidate versions and idempotent retry               |                3 | `source-research.ts`                                         | `source-research.test.ts`                             | Implemented |
-| CR-004 | Candidate-bound, fail-closed access assessment                    |                3 | `source-research.ts`                                         | `source-research.test.ts`                             | Implemented |
-| CR-005 | Trusted assessment, host, path, and budget constraints            |                4 | `source-research.ts`, `bounded-probe.ts`                     | target and budget substitution tests                  | Implemented |
-| CR-006 | HTTPS, path, redirect, credential, and encoded-path validation    |                4 | `bounded-probe.ts`                                           | bounded target and redirect cases                     | Implemented |
-| CR-007 | Deadline-aware DNS and validated-address connection binding       |                4 | `probe-transport.ts`, `bounded-probe.ts`                     | timeout, rebinding, and substituted-address cases     | Implemented |
-| CR-008 | Request, byte, time, redirect, source, and concurrency limits     |                4 | `bounded-probe.ts`                                           | boundary, partial-response, and shared-ledger cases   | Implemented |
-| CR-009 | Stop without retry on access, status, auth, or challenge failures |                4 | `bounded-probe.ts`                                           | typed stop-reason cases                               | Implemented |
-| CR-010 | Sanitized receipt with complete or partial body evidence          |                4 | `research.ts`, `bounded-probe.ts`                            | schema and deterministic receipt cases                | Implemented |
-| CR-011 | Redacted fixtures, source-URL traceability, integrity, successors |                5 | Pending                                                      | Pending RED tests                                     | Planned     |
-| CR-012 | Extraction, URL quality penalty, provenance, and quarantine       |                6 | Pending                                                      | Pending RED tests                                     | Planned     |
-| CR-013 | Manifest proposal, validation, review, lookup, and conformance    |              7–9 | Schemas exist; application behavior pending                  | Schema tests currently; behavior tests pending        | Partial     |
-| CR-014 | Agent research skill, workflow review, and runbook                |            10–12 | Pending                                                      | Workflow review pending                               | Planned     |
+| ID     | Requirement                                                       | Execution ticket | Implementation                                                | Verification                                          | Status      |
+| ------ | ----------------------------------------------------------------- | ---------------: | ------------------------------------------------------------- | ----------------------------------------------------- | ----------- |
+| CR-001 | Fixture/mock-only boundary; no live adapter                       |              1–4 | `apps/crawlers` has only injected ports and memory workflows  | `workbench.test.ts`, `bounded-probe.test.ts`          | Implemented |
+| CR-002 | Strict v1 research and methodology envelopes                      |                2 | `packages/listing-storage-contracts/src`                      | package schema, catalog, example, and canonical tests | Implemented |
+| CR-003 | Append-only candidate versions and idempotent retry               |                3 | `source-research.ts`                                          | `source-research.test.ts`                             | Implemented |
+| CR-004 | Candidate-bound, fail-closed access assessment                    |                3 | `source-research.ts`                                          | `source-research.test.ts`                             | Implemented |
+| CR-005 | Trusted assessment, host, path, and budget constraints            |                4 | `source-research.ts`, `bounded-probe.ts`                      | target and budget substitution tests                  | Implemented |
+| CR-006 | HTTPS, path, redirect, credential, and encoded-path validation    |                4 | `bounded-probe.ts`                                            | bounded target and redirect cases                     | Implemented |
+| CR-007 | Deadline-aware DNS and validated-address connection binding       |                4 | `probe-transport.ts`, `bounded-probe.ts`                      | timeout, rebinding, and substituted-address cases     | Implemented |
+| CR-008 | Request, byte, time, redirect, source, and concurrency limits     |                4 | `bounded-probe.ts`                                            | boundary, partial-response, and shared-ledger cases   | Implemented |
+| CR-009 | Stop without retry on access, status, auth, or challenge failures |                4 | `bounded-probe.ts`                                            | typed stop-reason cases                               | Implemented |
+| CR-010 | Sanitized receipt with complete or partial body evidence          |                4 | `research.ts`, `bounded-probe.ts`                             | schema and deterministic receipt cases                | Implemented |
+| CR-011 | Redacted fixtures, source-URL traceability, integrity, successors |                5 | `fixture-capture.ts`, committed synthetic fixture, CI scanner | fixture capture, directory, and shared-contract tests | Implemented |
+| CR-012 | Extraction, URL quality penalty, provenance, and quarantine       |                6 | Pending                                                       | Pending RED tests                                     | Planned     |
+| CR-013 | Manifest proposal, validation, review, lookup, and conformance    |              7–9 | Schemas exist; application behavior pending                   | Schema tests currently; behavior tests pending        | Partial     |
+| CR-014 | Agent research skill, workflow review, and runbook                |            10–12 | Pending                                                       | Workflow review pending                               | Planned     |
 
 ## Completion Gates
 

@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 4 are complete. Tickets 5 through
+Current execution status: tickets 1 through 5 are complete. Tickets 6 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -144,10 +144,12 @@ storage. Fixture classes are clearly separate:
 - redacted permitted-source fixtures for parser/provenance fidelity;
 - synthetic edge-case fixtures, never represented as source claims.
 
-Each manifest pins payload/redaction digests, source-or-synthetic origin,
+Each fixture envelope pins payload/redaction digests, source-or-synthetic origin,
 timestamps, content metadata, permitted-use/retention class, methodology
-proposal, parser compatibility, expected classification, and successor fixture
-when corrected.
+research session, parser compatibility, expected classification, and the
+superseded fixture when corrected. A fixture cannot reference a methodology
+proposal that is created later in the lifecycle; the eventual proposal pins the
+fixture digest instead.
 
 A permitted-source origin requires the canonical HTTPS page URL without
 credentials, query parameters, or a fragment, plus source key, collection time,

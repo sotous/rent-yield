@@ -31,6 +31,26 @@ bytes received before a budget cutoff. They never carry the response body. An
 assessment reference may be absent on a fail-closed result when no current
 assessment could be resolved.
 
+Fixture envelopes keep the redacted payload separate from its metadata. For a
+permitted source, `origin.source_url` is a canonical HTTPS page URL with no
+credentials, query, or fragment, and `original_entity_sha256` identifies the
+original received bytes without retaining them. Synthetic fixtures cannot
+claim source provenance. `research_session_id` links capture to the research
+lifecycle; a later methodology proposal pins the fixture. Corrections append a
+new envelope whose `supersedes_fixture_id` points to its immutable predecessor.
+
+The integrity preimages are exact:
+
+- `payload_sha256` hashes the retained UTF-8 payload bytes.
+- `redaction_sha256` hashes canonical JSON for the versioned redaction policy.
+- `envelope_sha256` hashes canonical JSON for the validated envelope with only
+  `envelope_sha256` omitted.
+
+The application validates all three values before replay. The original entity
+digest is required for captures made from a permitted source; its nullable
+schema representation is reserved for imported legacy evidence whose original
+bytes were unavailable.
+
 `canonicalJson` serializes validated JSON with UTF-16 key ordering, rejecting
 unsafe integers and invalid Unicode. It preserves ordinary array order.
 `canonicalSet` is only for schema-declared sets and rejects duplicate members.
