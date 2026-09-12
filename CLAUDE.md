@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This repository keeps its canonical agent instructions in [AGENTS.md](/Users/soto/Documents/rent-yield/AGENTS.md).
+This repository keeps its canonical agent instructions in [AGENTS.md](AGENTS.md).
 
 Claude-oriented workflows should follow `AGENTS.md` as the source of truth for:
 

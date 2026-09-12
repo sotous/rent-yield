@@ -309,4 +309,4 @@ Version one does not need:
   calculation, and area aggregation.
 
 The frontend interaction spec now lives at
-[frontend-interaction-spec.md](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md).
+[frontend-interaction-spec.md](frontend-interaction-spec.md).

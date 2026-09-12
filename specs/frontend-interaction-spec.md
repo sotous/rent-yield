@@ -365,11 +365,11 @@ This interaction spec is satisfied when the prototype can demonstrate:
 
 ## Relationship To Other Specs
 
-- [frontend-spec.md](/Users/soto/Documents/rent-yield/specs/frontend-spec.md)
+- [frontend-spec.md](frontend-spec.md)
   defines the product framing and frontend scope.
-- [domain-spec.md](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
+- [domain-spec.md](domain-spec.md)
   defines the metric formulas, entities, and field semantics.
-- [prototype-v1-frontend-tech-stack-decision.md](/Users/soto/Documents/rent-yield/plan/prototype-v1-frontend-tech-stack-decision.md)
+- [prototype-v1-frontend-tech-stack-decision.md](../docs/decisions/prototype-v1-frontend-tech-stack-decision.md)
   selects the frontend scaffold, map, chart, styling, and testing stack for this
   interaction contract.
 - The future backend prototype contract should use this interaction contract to

@@ -89,7 +89,7 @@ Completed on 2026-08-05. The evidence supports continuing with focused validatio
 - Primary blocker: commercial data rights and reliable property-level rental evidence.
 - Next decision: run broker interviews, concierge pilots, and data-rights validation before expanding the product scope.
 
-See the research memo at `docs/business-model-market-validation.md`.
+See the research memo at [docs/research/business-model-market-validation.md](../docs/research/business-model-market-validation.md).
 
 ## Risks and assumptions
 
