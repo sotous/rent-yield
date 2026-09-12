@@ -48,6 +48,12 @@ It does not provide a production HTTP or DNS adapter, live source access,
 credentials, a browser, scheduling, retries, durable storage, source activation,
 or Rent Model execution.
 
+The first planned live-source boundary is the separately gated
+[`crawler-first-real-world-canary`](../plan/crawler-first-real-world-canary.md).
+It may execute once only after fixture redaction, extraction/provenance,
+methodology validation, effective lookup, source assessment, and canary
+preflight requirements pass.
+
 ## Required Research Lifecycle
 
 ```text

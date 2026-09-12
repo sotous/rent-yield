@@ -90,6 +90,7 @@ response metadata and complete or partial body digests, never response bodies.
 - [Crawler and ingestion plan](plan/colombian-listing-crawlers-and-ingestion.md)
 - [Crawler foundation contract](docs/architecture/crawler-foundation-contract-agreement.md)
 - [Bounded probe retrospective](plan/crawler-foundation-bounded-probe-retrospective.md)
+- [First real-world canary plan](plan/crawler-first-real-world-canary.md)
 
 ## Development Approach
 
