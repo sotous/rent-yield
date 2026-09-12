@@ -181,7 +181,7 @@ describe("research contracts", () => {
           original_entity_sha256: null,
         },
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       fixtureEnvelopeSchema.safeParse({
         ...fixture,

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@rent-yield/listing-storage-contracts": "workspace:*",
+    "parse5": "8.0.0",
     "zod": "4.4.3"
   },
   "devDependencies": {

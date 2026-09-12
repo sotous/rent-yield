@@ -8,6 +8,7 @@ import {
   type FixtureEnvelope,
 } from "@rent-yield/listing-storage-contracts";
 import { z } from "zod";
+import { parseFragment, serialize, type DefaultTreeAdapterTypes } from "parse5";
 
 const sha256 = (value: string | Uint8Array): string =>
   createHash("sha256").update(value).digest("hex");
@@ -17,6 +18,8 @@ const supportedContentTypeSchema = z.enum([
   "text/html",
   "text/plain",
 ]);
+const uniqueStrings = (values: readonly string[]) =>
+  new Set(values).size === values.length;
 
 const sourceOriginInputSchema = z.strictObject({
   kind: z.literal("permitted_source"),
@@ -45,10 +48,14 @@ const captureCommandSchema = z.strictObject({
   permitted_use: z
     .array(z.enum(["parser_replay", "evidence_audit"]))
     .min(1)
-    .max(2),
+    .max(2)
+    .refine(uniqueStrings, "Duplicate permitted use"),
   retention_policy_key: identifierSchema,
   research_session_id: identifierSchema,
-  parser_compatibility: z.array(identifierSchema).min(1),
+  parser_compatibility: z
+    .array(identifierSchema)
+    .min(1)
+    .refine(uniqueStrings, "Duplicate parser compatibility"),
   expected_classification: z.enum([
     "normalized",
     "quarantined",
@@ -123,12 +130,28 @@ function decodeUtf8(payload: string | Uint8Array): string | null {
   }
 }
 
-function sanitizeUrl(value: string): string | null {
+function sanitizeOriginUrl(value: string): string | null {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:" || url.username !== "" || url.password !== "")
       return null;
     url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizePayloadUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username !== "" || url.password !== "")
+      return null;
+    for (const key of [...url.searchParams.keys()]) {
+      if (/^(?:utm_.+|gclid|fbclid|token|session|auth)$/iu.test(key))
+        url.searchParams.delete(key);
+    }
     url.hash = "";
     return url.toString();
   } catch {
@@ -186,7 +209,7 @@ function categoryForKey(key: string): string | null {
 
 function redactUrlText(value: string): string {
   return value.replace(/https:\/\/[^\s"'<>]+/giu, (candidate) => {
-    const sanitized = sanitizeUrl(candidate);
+    const sanitized = sanitizePayloadUrl(candidate);
     return sanitized ?? placeholder("url");
   });
 }
@@ -196,6 +219,18 @@ function redactFreeText(value: string): string {
   redacted = redacted.replace(
     /[A-Z0-9._%+-]+(?:&#0*64;|&commat;)[A-Z0-9.-]+\.[A-Z]{2,}/giu,
     placeholder("email"),
+  );
+  redacted = redacted.replace(
+    /\b(?:direcci[oó]n|address)\s*:\s*[^\n,;]+/giu,
+    (label) => `${label.split(":")[0]}: ${placeholder("exact_address")}`,
+  );
+  redacted = redacted.replace(
+    /\b(?:calle|carrera|cra\.?|cl\.?)\s+\d+[a-z]?\s*#\s*\d+[a-z]?(?:\s*-\s*\d+[a-z]?)?/giu,
+    placeholder("exact_address"),
+  );
+  redacted = redacted.replace(
+    /(?:\+?57[\s-]?)?6\d{2}[\s-]?\d{3}[\s-]?\d{4}\b/gu,
+    placeholder("phone"),
   );
   redacted = redacted.replace(
     /mailto:[^\s"'<>]+/giu,
@@ -264,35 +299,107 @@ function redactJson(value: unknown): unknown {
   return typeof value === "string" ? redactFreeText(value) : value;
 }
 
+const removedHtmlTags = new Set([
+  "audio",
+  "canvas",
+  "embed",
+  "iframe",
+  "img",
+  "link",
+  "object",
+  "picture",
+  "script",
+  "source",
+  "style",
+  "svg",
+  "video",
+]);
+
+function htmlSensitiveCategory(
+  element: DefaultTreeAdapterTypes.Element,
+): string | null {
+  for (const attribute of element.attrs) {
+    const direct = categoryForKey(attribute.name);
+    if (direct !== null) return direct;
+    if (attribute.name === "class" || attribute.name === "id") {
+      const tokens = attribute.value.toLowerCase().split(/[-_\s]+/u);
+      if (
+        tokens.some((token) =>
+          [
+            "agent",
+            "broker",
+            "owner",
+            "contact",
+            "email",
+            "phone",
+            "address",
+            "apartment",
+          ].includes(token),
+        )
+      )
+        return "contact";
+    }
+  }
+  return null;
+}
+
+function sanitizeHtmlAttributes(
+  element: DefaultTreeAdapterTypes.Element,
+): void {
+  element.attrs = element.attrs.flatMap((attribute) => {
+    const name = attribute.name.toLowerCase();
+    if (
+      name.startsWith("on") ||
+      name === "style" ||
+      name === "src" ||
+      name === "srcset" ||
+      name === "poster"
+    )
+      return [];
+    const category = categoryForKey(name);
+    if (category !== null)
+      return [{ ...attribute, value: placeholder(category) }];
+    if (name !== "href") return [attribute];
+    if (attribute.value.toLowerCase().startsWith("mailto:"))
+      return [{ ...attribute, value: `mailto:${placeholder("email")}` }];
+    const url = sanitizePayloadUrl(attribute.value);
+    return url === null ? [] : [{ ...attribute, value: url }];
+  });
+}
+
+function sanitizeHtmlChildren(
+  parent:
+    DefaultTreeAdapterTypes.DocumentFragment | DefaultTreeAdapterTypes.Element,
+  inheritedCategory: string | null = null,
+): void {
+  parent.childNodes =
+    parent.childNodes.flatMap<DefaultTreeAdapterTypes.ChildNode>((node) => {
+      if (node.nodeName === "#comment") return [];
+      if ("value" in node) {
+        node.value =
+          inheritedCategory === null
+            ? redactFreeText(node.value)
+            : placeholder(inheritedCategory);
+        return [node];
+      }
+      if (!("tagName" in node)) return [];
+      const element = node;
+      if (removedHtmlTags.has(element.tagName)) return [];
+      sanitizeHtmlAttributes(element);
+      sanitizeHtmlChildren(
+        element,
+        htmlSensitiveCategory(element) ?? inheritedCategory,
+      );
+      if ("content" in element)
+        sanitizeHtmlChildren(element.content, inheritedCategory);
+      return [element];
+    });
+}
+
 function redactHtml(value: string): string {
-  let redacted = value.replace(
-    /<!--[\s\S]*?-->/gu,
-    "<!-- [REDACTED:comment] -->",
-  );
-  redacted = redacted.replace(
-    /<script\b([^>]*)>[\s\S]*?<\/script\s*>/giu,
-    `<script$1>${placeholder("script")}</script>`,
-  );
-  redacted = redacted.replace(
-    /<style\b([^>]*)>[\s\S]*?<\/style\s*>/giu,
-    `<style$1>${placeholder("style")}</style>`,
-  );
-  redacted = redacted.replace(
-    /(<img\b[^>]*\bsrc\s*=\s*)(["'])(?!data:)(.*?)\2/giu,
-    (_match, prefix: string, quote: string) =>
-      `${prefix}${quote}${placeholder("image")}${quote}`,
-  );
-  redacted = redacted.replace(
-    /(\b(?:data-)?(?:agent|broker|owner|contact|phone|email|token|cookie|session|unit|apartment|exact-address)[a-z0-9_-]*\s*=\s*)(["'])(.*?)\2/giu,
-    (_match, prefix: string, quote: string) =>
-      `${prefix}${quote}${placeholder(categoryForKey(prefix) ?? "contact")}${quote}`,
-  );
-  redacted = redacted.replace(
-    /(<([a-z][a-z0-9:-]*)\b[^>]*(?:class|id)=["'][^"']*(?:agent|broker|owner|contact|phone|email|unit|exact-address)[^"']*["'][^>]*>)([^<]*)(<\/\2\s*>)/giu,
-    (_match, open: string, _tag: string, _content: string, close: string) =>
-      `${open}${placeholder("contact")}${close}`,
-  );
-  return redactFreeText(redacted);
+  const fragment = parseFragment(value);
+  sanitizeHtmlChildren(fragment);
+  return serialize(fragment);
 }
 
 function redactPayload(
@@ -312,9 +419,14 @@ function redactPayload(
 }
 
 const prohibitedPatterns: ReadonlyArray<[string, RegExp]> = [
-  ["embedded_binary", /(?:data:image\/|<img\b[^>]*\bsrc=["']data:)/iu],
+  ["embedded_binary", /\bdata:[a-z]+\/[a-z0-9.+-]+(?:;|,)/iu],
   ["email", /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/iu],
   ["phone", /(?:\+?57[\s-]?)?3\d{2}[\s-]?\d{3}[\s-]?\d{4}\b/u],
+  ["phone", /(?:\+?57[\s-]?)?6\d{2}[\s-]?\d{3}[\s-]?\d{4}\b/u],
+  [
+    "exact_address",
+    /\b(?:direcci[oó]n|address)\s*:(?!\s*\[REDACTED:)\s*[^\n,;]+|\b(?:calle|carrera|cra\.?|cl\.?)\s+\d+[a-z]?\s*#\s*\d+[a-z]?(?:\s*-\s*\d+[a-z]?)?/iu,
+  ],
   ["token", /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/u],
   [
     "tracking_parameter",
@@ -322,7 +434,7 @@ const prohibitedPatterns: ReadonlyArray<[string, RegExp]> = [
   ],
   [
     "exact_unit",
-    /\b(?:apartamento|apto\.?|unidad|unit)\s*(?:#|n[oº°.]*)?\s*(?!\[REDACTED:)[A-Z0-9-]+\b/iu,
+    /\b(?:apartamento|apto\.?|unidad|unit(?![-_]))\s*(?:#|n[oº°.]*)?\s*(?!\[REDACTED:)[A-Z0-9-]+\b/iu,
   ],
 ];
 
@@ -368,7 +480,13 @@ export function scanProhibitedFixtureData(payload: string): string[] {
 function envelopeSha256(
   envelope: Omit<FixtureEnvelope, "envelope_sha256">,
 ): string {
-  return sha256(canonicalJson(envelope));
+  return sha256(
+    canonicalJson({
+      ...envelope,
+      permitted_use: canonicalSet(envelope.permitted_use),
+      parser_compatibility: canonicalSet(envelope.parser_compatibility),
+    }),
+  );
 }
 
 function artifactFingerprint(
@@ -451,6 +569,10 @@ export class MemoryFixtureCapture {
         error: { code: "invalid_input", issues: inputIssues(parsed.error) },
       };
     const command = parsed.data;
+    const originalBytes =
+      typeof command.payload === "string"
+        ? new TextEncoder().encode(command.payload)
+        : command.payload;
     const decoded = decodeUtf8(command.payload);
     if (decoded === null)
       return { ok: false, error: { code: "invalid_encoding" } };
@@ -463,7 +585,7 @@ export class MemoryFixtureCapture {
         error: { code: "prohibited_data", issues: unsafeOriginal },
       };
 
-    const originalSha256 = sha256(new TextEncoder().encode(decoded));
+    const originalSha256 = sha256(originalBytes);
     const fingerprint = artifactFingerprint(command, originalSha256);
     const existing = this.#fixtures.get(command.fixture_id);
     if (existing)
@@ -477,7 +599,7 @@ export class MemoryFixtureCapture {
 
     let origin: FixtureEnvelope["origin"];
     if (command.origin.kind === "permitted_source") {
-      const sourceUrl = sanitizeUrl(command.origin.source_url);
+      const sourceUrl = sanitizeOriginUrl(command.origin.source_url);
       if (sourceUrl === null)
         return {
           ok: false,

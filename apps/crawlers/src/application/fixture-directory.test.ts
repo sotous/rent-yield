@@ -35,4 +35,22 @@ describe("fixture directory scanner", () => {
     );
     expect(JSON.stringify(result.issues)).not.toContain("private@example.com");
   });
+
+  it("rejects orphan payloads outside a complete fixture bundle", async () => {
+    const root = await mkdtemp(join(tmpdir(), "crawler-fixtures-"));
+    await mkdir(join(root, "orphan"));
+    await writeFile(
+      join(root, "orphan", "payload.json"),
+      '{"email":"private@example.com"}',
+      "utf8",
+    );
+
+    const result = await scanFixtureDirectory(root);
+    expect(result).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        { code: "invalid_layout", path: "orphan" },
+      ]),
+    });
+  });
 });

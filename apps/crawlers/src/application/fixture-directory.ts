@@ -42,28 +42,29 @@ const prohibitedExtensions = new Set([
 ]);
 const maximumPayloadBytes = 1024 * 1024;
 
-async function directoriesWithEnvelopes(
+async function fixtureDirectories(
   root: string,
-  directory: string,
   issues: FixtureDirectoryIssue[],
 ): Promise<string[]> {
-  const entries = await readdir(directory, { withFileTypes: true });
+  const entries = await readdir(root, { withFileTypes: true });
   const found: string[] = [];
-  if (entries.some((entry) => entry.name === "envelope.json"))
-    found.push(directory);
   for (const entry of entries) {
-    const absolute = join(directory, entry.name);
+    const absolute = join(root, entry.name);
     const path = relative(root, absolute) || ".";
     if (entry.isSymbolicLink()) {
       issues.push({ code: "symlink_not_allowed", path });
       continue;
     }
     if (entry.isDirectory()) {
-      found.push(...(await directoriesWithEnvelopes(root, absolute, issues)));
+      found.push(absolute);
       continue;
     }
-    if (prohibitedExtensions.has(extname(entry.name).toLowerCase()))
-      issues.push({ code: "prohibited_file", path });
+    issues.push({
+      code: prohibitedExtensions.has(extname(entry.name).toLowerCase())
+        ? "prohibited_file"
+        : "invalid_layout",
+      path,
+    });
   }
   return found;
 }
@@ -88,18 +89,33 @@ export async function scanFixtureDirectory(
   } catch {
     return { ok: false, issues: [{ code: "invalid_layout", path: "." }] };
   }
-  const directories = await directoriesWithEnvelopes(root, root, issues);
+  const directories = await fixtureDirectories(root, issues);
   if (directories.length === 0)
     issues.push({ code: "fixture_set_empty", path: "." });
 
   for (const directory of directories) {
     const entries = await readdir(directory, { withFileTypes: true });
+    if (entries.some((entry) => entry.isDirectory() || entry.isSymbolicLink())) {
+      issues.push({
+        code: "invalid_layout",
+        path: relative(root, directory) || ".",
+      });
+      continue;
+    }
     const files = entries
       .filter((entry) => entry.isFile())
       .map(({ name }) => name);
+    for (const name of files) {
+      if (prohibitedExtensions.has(extname(name).toLowerCase()))
+        issues.push({
+          code: "prohibited_file",
+          path: relative(root, join(directory, name)),
+        });
+    }
     const payloadFiles = files.filter((name) => payloadNames.has(name));
     const permitted = new Set(["envelope.json", ...payloadFiles]);
     if (
+      !files.includes("envelope.json") ||
       payloadFiles.length !== 1 ||
       files.some((name) => !permitted.has(name))
     ) {

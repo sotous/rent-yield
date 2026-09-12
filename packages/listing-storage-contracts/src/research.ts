@@ -165,7 +165,7 @@ export const fixtureOriginSchema = z.discriminatedUnion("kind", [
     source_url: fixtureSourceUrlSchema,
     collected_at: instantSchema,
     assessment_sha256: sha256Schema,
-    original_entity_sha256: sha256Schema.nullable(),
+    original_entity_sha256: sha256Schema,
   }),
   z.strictObject({
     kind: z.literal("synthetic"),

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { canonicalJson } from "@rent-yield/listing-storage-contracts";
 import {
   MemoryFixtureCapture,
   scanProhibitedFixtureData,
@@ -12,6 +13,8 @@ const assessmentHash = "a".repeat(64);
 
 const sha256 = (value: string) =>
   createHash("sha256").update(value, "utf8").digest("hex");
+const sha256Bytes = (value: Uint8Array) =>
+  createHash("sha256").update(value).digest("hex");
 
 function command(overrides: Record<string, unknown> = {}) {
   return {
@@ -139,6 +142,60 @@ describe("fixture capture", () => {
     ).toEqual({ ok: false, error: { code: "identifier_conflict" } });
   });
 
+  it("hashes the exact received UTF-8 bytes before decoding", () => {
+    const payload = new Uint8Array([0xef, 0xbb, 0xbf, 0x7b, 0x7d]);
+    const result = new MemoryFixtureCapture().captureRedactedFixture(
+      command({ fixture_id: "fixture-bom", payload }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.artifact.envelope.origin.kind !== "permitted_source")
+      return;
+    expect(result.artifact.envelope.origin.original_entity_sha256).toBe(
+      sha256Bytes(payload),
+    );
+  });
+
+  it("returns typed validation errors for duplicate declared-set values", () => {
+    expect(() =>
+      new MemoryFixtureCapture().captureRedactedFixture(
+        command({ permitted_use: ["parser_replay", "parser_replay"] }),
+      ),
+    ).not.toThrow();
+    expect(
+      new MemoryFixtureCapture().captureRedactedFixture(
+        command({ parser_compatibility: ["parser-v1", "parser-v1"] }),
+      ),
+    ).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+  });
+
+  it("verifies envelope hashes with declared set fields in canonical order", () => {
+    const result = new MemoryFixtureCapture().captureRedactedFixture(
+      command({ permitted_use: ["evidence_audit", "parser_replay"] }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const preimage = Object.fromEntries(
+      Object.entries(result.artifact.envelope).filter(
+        ([key]) => key !== "envelope_sha256",
+      ),
+    ) as Omit<typeof result.artifact.envelope, "envelope_sha256">;
+    const reordered = {
+      ...preimage,
+      permitted_use: [...preimage.permitted_use].reverse(),
+    };
+    const forged = {
+      ...reordered,
+      envelope_sha256: sha256(canonicalJson(reordered)),
+    };
+    expect(
+      validateFixtureArtifact({
+        ...result.artifact,
+        envelope: forged,
+      }),
+    ).toEqual({ ok: false, error: { code: "integrity_mismatch" } });
+  });
+
   it("creates immutable successor fixtures by pointing the new fixture to its predecessor", () => {
     const repository = new MemoryFixtureCapture();
     const first = repository.captureRedactedFixture(command());
@@ -225,6 +282,28 @@ describe("fixture capture", () => {
     expect(scanProhibitedFixtureData(result.artifact.payload)).toEqual([]);
   });
 
+  it("sanitizes nested sensitive HTML without corrupting safe parser selectors", () => {
+    const result = new MemoryFixtureCapture().captureRedactedFixture(
+      command({
+        fixture_id: "fixture-structured-html",
+        content_type: "text/html",
+        payload:
+          '<article><span class="community">El Prado</span><span class="unit-price">1800000 COP</span><span class="agent-name"><strong>Ana Pérez</strong></span><img src=https://images.example/private.jpg><source srcset="https://images.example/a.jpg 1x"><button onclick="sendContact()">Llamar</button><div>Dirección: Carrera 53 # 80-67</div></article>',
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.artifact.payload).toContain('class="community"');
+    expect(result.artifact.payload).toContain("El Prado");
+    expect(result.artifact.payload).toContain('class="unit-price"');
+    expect(result.artifact.payload).toContain("1800000 COP");
+    expect(result.artifact.payload).not.toContain("Ana Pérez");
+    expect(result.artifact.payload).not.toContain("images.example");
+    expect(result.artifact.payload).not.toContain("onclick");
+    expect(result.artifact.payload).not.toContain("Carrera 53 # 80-67");
+  });
+
   it("redacts contact and exact-unit PII in plain text while preserving rent semantics", () => {
     const result = new MemoryFixtureCapture().captureRedactedFixture(
       command({
@@ -243,6 +322,28 @@ describe("fixture capture", () => {
     expect(result.artifact.payload).not.toContain("300 123 4567");
     expect(result.artifact.payload).not.toContain("401");
     expect(scanProhibitedFixtureData(result.artifact.payload)).toEqual([]);
+  });
+
+  it("redacts free-text addresses and landlines while retaining meaningful URL query parameters", () => {
+    const result = new MemoryFixtureCapture().captureRedactedFixture(
+      command({
+        fixture_id: "fixture-address",
+        payload: JSON.stringify({
+          listing: {
+            url: "https://example.com/listing?id=123&bedrooms=2&utm_source=mail",
+            description:
+              "Dirección: Carrera 53 # 80-67. Teléfono: +57 605 123 4567.",
+          },
+        }),
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.artifact.payload).toContain("id=123&bedrooms=2");
+    expect(result.artifact.payload).not.toContain("utm_source");
+    expect(result.artifact.payload).not.toContain("Carrera 53 # 80-67");
+    expect(result.artifact.payload).not.toContain("605 123 4567");
   });
 
   it("redacts nested alternate keys, description PII, exact addresses, identity numbers, and image URLs", () => {
