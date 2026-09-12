@@ -19,6 +19,8 @@ Do not infer a status from a plan's age. A plan enters `plan/archive/` only
 after its `completed` or `superseded` status has been verified against the
 implementation and tracker.
 
+Verified historical plans live in [archive/](archive/).
+
 ## Related documentation
 
 - [Documentation navigation](../docs/README.md)

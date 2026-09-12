@@ -1,6 +1,6 @@
 # Repository organization
 
-Status: approved for execution. User-requested removal of duplicate `.agents/` directory completed.
+Status: completed. User-requested removal of duplicate `.agents/` directory completed.
 
 ## Purpose
 
@@ -82,6 +82,15 @@ rent-yield/
 - `docs/reviews/` contains the completed crawler and rent-model retrospectives.
 - Completed plans remain in `plan/` unless their status is verified as completed or superseded before archival.
 
+## Main merge adaptation
+
+The merged crawler fixture-redaction work added a fixture-redaction
+retrospective, a crawler project status review, and a completed remediation
+plan. The retrospective and review were classified under `docs/reviews/`.
+The remediation plan was marked completed and moved to `plan/archive/` because
+the merged implementation and retrospective verify its delivery. The current
+canary plan remains in `plan/` because it describes future work.
+
 ## Delivery approach
 
 1. Consolidate agent configuration around `.codex/` and validate the existing Claude symlinks and portable Markdown definitions.
@@ -105,4 +114,10 @@ The delivered structure matches the approved plan: `.codex/` is the maintained a
 
 The implementation stayed within organizational scope. Markdown agent definitions use portable `name` and `description` frontmatter, while Codex-only TOML definitions remain alongside them. The worktree validated that both Claude symlinks resolve, all 47 tracked Markdown files have resolvable local link targets, no checkout-specific paths remain in tracked Markdown or TOML, and both staged and unstaged diffs pass `git diff --check`.
 
-No plans were archived because their completion status was not verified. A future fresh Claude session should confirm its runtime discovery behavior; the repository-level compatibility evidence validates paths and portable content but cannot prove an external tool's session behavior.
+After merging `origin/main` at `654f2d1`, the fixture-redaction retrospective
+and crawler project status review were placed under `docs/reviews/`. The
+fixture-remediation plan was archived only after the merged implementation and
+its retrospective established completion. A future fresh Claude session should
+confirm its runtime discovery behavior; the repository-level compatibility
+evidence validates paths and portable content but cannot prove an external
+tool's session behavior.

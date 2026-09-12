@@ -2,9 +2,10 @@
 
 ## Status
 
-Proposed on 2026-09-12 after review of PR #6. This plan repairs ticket 5
-before merge. It does not begin ticket 6, enable live transport, or expand the
-canary scope.
+Completed on 2026-09-12. This plan repaired ticket 5 before merge and is
+archived after the merged implementation and fixture-redaction retrospective
+verified its outcome. It did not begin ticket 6, enable live transport, or
+expand the canary scope.
 
 ## Goal
 
