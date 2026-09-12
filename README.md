@@ -43,15 +43,20 @@ Version one is intentionally narrow.
 - `apps/rent-model`: standalone Rent Model input-contract workbench
 - `apps/crawlers`: fixture-only source research and bounded-probe workbench
 - `packages/listing-storage-contracts`: shared runtime contracts and examples
-- `docs`: architecture and implementation notes
+- `docs`: architecture, API contracts, implementation reviews, and documentation navigation
+- `plan`: scoped delivery plans and planning navigation
 - `specs`: product and technical specifications
+
+Start with [documentation navigation](docs/README.md) for implementation
+references, or [plan navigation](plan/README.md) for delivery work and plan
+status.
 
 ## Specs
 
-- [Frontend Product Spec](/Users/soto/Documents/rent-yield/specs/frontend-spec.md)
-- [Frontend Interaction Spec](/Users/soto/Documents/rent-yield/specs/frontend-interaction-spec.md)
-- [Shared Domain Spec](/Users/soto/Documents/rent-yield/specs/domain-spec.md)
-- [Backend API Spec](/Users/soto/Documents/rent-yield/specs/backend-api-spec.md)
+- [Frontend Product Spec](specs/frontend-spec.md)
+- [Frontend Interaction Spec](specs/frontend-interaction-spec.md)
+- [Shared Domain Spec](specs/domain-spec.md)
+- [Backend API Spec](specs/backend-api-spec.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
 - [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
 
@@ -59,19 +64,19 @@ These specs are the current source of truth for product framing, domain language
 
 ## Active Decisions
 
-- [Prototype v1 Frontend Tech Stack Decision](/Users/soto/Documents/rent-yield/plan/prototype-v1-frontend-tech-stack-decision.md)
+- [Prototype v1 Frontend Tech Stack Decision](docs/decisions/prototype-v1-frontend-tech-stack-decision.md)
 
 ## Business Research
 
-- [Business Model and Market Validation Plan](/Users/soto/Documents/rent-yield/plan/business-model-market-validation.md)
-- [Business Model and Market Validation Memo](/Users/soto/Documents/rent-yield/docs/business-model-market-validation.md)
+- [Business Model and Market Validation Plan](plan/business-model-market-validation.md)
+- [Business Model and Market Validation Memo](docs/research/business-model-market-validation.md)
 
 ## Rent Model
 
-- [Rent Model V1 Plan](/Users/soto/Documents/rent-yield/plan/rent-model-v1.md)
+- [Rent Model V1 Plan](plan/rent-model-v1.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
-- [Rent Model Workbench Guide](/Users/soto/Documents/rent-yield/apps/rent-model/README.md)
-- [Input Workbench Retrospective](/Users/soto/Documents/rent-yield/plan/rent-model-input-workbench-retrospective.md)
+- [Rent Model Workbench Guide](apps/rent-model/README.md)
+- [Input Workbench Retrospective](docs/reviews/rent-model-input-workbench-retrospective.md)
 
 ## Crawler Workbench
 
@@ -89,7 +94,9 @@ response metadata and complete or partial body digests, never response bodies.
 
 - [Crawler and ingestion plan](plan/colombian-listing-crawlers-and-ingestion.md)
 - [Crawler foundation contract](docs/architecture/crawler-foundation-contract-agreement.md)
-- [Bounded probe retrospective](plan/crawler-foundation-bounded-probe-retrospective.md)
+- [Bounded probe retrospective](docs/reviews/crawler-foundation-bounded-probe-retrospective.md)
+- [Fixture redaction retrospective](docs/reviews/crawler-fixture-redaction-retrospective.md)
+- [Crawler project status review](docs/reviews/crawler-project-status-review-2026-09-12.md)
 - [First real-world canary plan](plan/crawler-first-real-world-canary.md)
 
 ## Development Approach

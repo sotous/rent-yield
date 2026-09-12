@@ -49,6 +49,6 @@ The next ticket implements redacted fixture envelopes, deterministic redaction,
 prohibited-data scanning, and immutable fixture successors.
 
 The normative requirements and requirement-to-test mapping are recorded in
-[`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md). The
+[`specs/crawler-research-spec.md`](../../specs/crawler-research-spec.md). The
 crawler and shared-contract READMEs document the mock transport obligations,
 temporary gate defaults, receipt evidence, and production boundary.
