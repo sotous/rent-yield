@@ -28,6 +28,14 @@ The first version is exploratory, not transactional.
 - Monthly rent should be represented as a monetary amount in `COP`
 - Interior area should be represented in square meters
 
+### Rent Model Area Convention
+
+The standalone Rent Model uses `built_area_sqm` as its only area input for
+comparable matching and rent-per-square-meter normalization. It must not
+substitute `interior_area_sqm`, private area, or another area measurement
+without a separately documented conversion rule. See
+[Rent Model Specification](./rent-model-spec.md).
+
 ## Canonical Metrics
 
 ### 1. Annual Rent

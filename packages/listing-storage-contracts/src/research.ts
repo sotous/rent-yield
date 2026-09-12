@@ -21,6 +21,10 @@ const httpsUrlSchema = z.url({ protocol: /^https$/ }).refine((value) => {
     return false;
   }
 }, "URL credentials are not permitted");
+const fixtureSourceUrlSchema = httpsUrlSchema.refine((value) => {
+  const url = new URL(value);
+  return url.search === "" && url.hash === "";
+}, "Fixture source URL must not contain query parameters or a fragment");
 const uniqueStrings = (values: readonly string[]) =>
   new Set(values).size === values.length;
 const positiveIntegerSchema = safeNonNegativeIntegerSchema.min(1);
@@ -158,10 +162,10 @@ export const fixtureOriginSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("permitted_source"),
     source_key: identifierSchema,
-    source_url: httpsUrlSchema,
+    source_url: fixtureSourceUrlSchema,
     collected_at: instantSchema,
     assessment_sha256: sha256Schema,
-    original_entity_sha256: sha256Schema.nullable(),
+    original_entity_sha256: sha256Schema,
   }),
   z.strictObject({
     kind: z.literal("synthetic"),
@@ -175,6 +179,7 @@ export const fixtureEnvelopeSchema = z.strictObject({
   origin: fixtureOriginSchema,
   created_at: instantSchema,
   representation: z.literal("redacted_fixture"),
+  envelope_sha256: sha256Schema,
   payload_sha256: sha256Schema,
   content_type: z.enum(["application/json", "text/html", "text/plain"]),
   encoding: z.literal("utf-8"),
@@ -187,7 +192,7 @@ export const fixtureEnvelopeSchema = z.strictObject({
     .max(2)
     .refine(uniqueStrings, "Duplicate permitted use"),
   retention_policy_key: identifierSchema,
-  methodology_proposal_id: identifierSchema,
+  research_session_id: identifierSchema,
   parser_compatibility: z
     .array(identifierSchema)
     .min(1)
@@ -198,7 +203,7 @@ export const fixtureEnvelopeSchema = z.strictObject({
     "parse_failed",
     "capture_only",
   ]),
-  successor_fixture_id: identifierSchema.nullable(),
+  supersedes_fixture_id: identifierSchema.nullable(),
 });
 
 export const extractionMappingSchema = z.strictObject({

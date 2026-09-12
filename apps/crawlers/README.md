@@ -124,3 +124,32 @@ The transport used by tests is an in-process fake. This module supplies no HTTP
 client, DNS client, browser, proxy, scheduler, credentials, or live-site access.
 Its response classification fields stand in for later adapter behavior; they do
 not prove that a real source has a compatible response shape.
+
+## Redacted fixture capture
+
+`MemoryFixtureCapture` converts a permitted UTF-8 JSON, HTML, or text response
+into a deterministic, replayable fixture. It hashes the original bytes for
+provenance, removes prohibited content in memory, and retains only the redacted
+payload and its strict envelope. It rejects malformed encodings, embedded
+binaries, unsupported content types, identifier conflicts, and invalid
+successor chains.
+
+The envelope records a canonical HTTPS source URL for permitted-source
+fixtures, or a synthetic scenario with no source claim. It links to the
+research session that produced it. A correction receives a new fixture ID and
+points backward through `supersedes_fixture_id`; existing artifacts are never
+rewritten. The later methodology proposal pins the completed fixture rather
+than requiring the fixture to predict a proposal ID.
+
+Committed fixture bundles live under `fixtures/<fixture-id>/` with exactly one
+`envelope.json` and one `payload.json`, `payload.html`, or `payload.txt`. Payload
+files are excluded from automatic formatting because their exact bytes are
+content-addressed. Run the sanitized repository check with:
+
+```sh
+pnpm --filter @rent-yield/crawlers test:fixtures
+```
+
+The check rejects invalid envelopes, mismatched hashes and sizes, prohibited
+data, binaries, symlinks, oversized payloads, and unexpected bundle layouts.
+Its diagnostics contain only paths and reason codes.

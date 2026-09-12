@@ -1,0 +1,24 @@
+{
+  "contract_version": "v1",
+  "fixture_id": "synthetic-rent-separate-admin-v1",
+  "origin": {
+    "kind": "synthetic",
+    "scenario": "monthly COP rent with a separate administration fee and redacted contact fields",
+    "generated_at": "2026-09-12T12:00:00.000Z"
+  },
+  "created_at": "2026-09-12T12:00:00.000Z",
+  "representation": "redacted_fixture",
+  "payload_sha256": "acb01e33f851a433ec496b98b30c5057ce2559fe01a2ce0aafbe71e520389ad3",
+  "content_type": "application/json",
+  "encoding": "utf-8",
+  "byte_length": 304,
+  "redaction_version": "redaction-v1",
+  "redaction_sha256": "96360c90a0b0bfd4a94cbb732aa5833ee8cd4c94ce77b7db3ab2ba232c530ccb",
+  "permitted_use": ["parser_replay"],
+  "retention_policy_key": "synthetic-fixture",
+  "research_session_id": "research-session-synthetic-corpus",
+  "parser_compatibility": ["parser-v1"],
+  "expected_classification": "normalized",
+  "supersedes_fixture_id": null,
+  "envelope_sha256": "2c99bbff7cda6c82fdf97e886ea5841c49054a7e809ab945d571c1101f832f70"
+}

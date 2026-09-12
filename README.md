@@ -57,6 +57,7 @@ status.
 - [Frontend Interaction Spec](specs/frontend-interaction-spec.md)
 - [Shared Domain Spec](specs/domain-spec.md)
 - [Backend API Spec](specs/backend-api-spec.md)
+- [Rent Model Specification](specs/rent-model-spec.md)
 - [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
@@ -73,6 +74,7 @@ These specs are the current source of truth for product framing, domain language
 ## Rent Model
 
 - [Rent Model V1 Plan](plan/rent-model-v1.md)
+- [Rent Model Specification](specs/rent-model-spec.md)
 - [Rent Model Workbench Guide](apps/rent-model/README.md)
 - [Input Workbench Retrospective](docs/reviews/rent-model-input-workbench-retrospective.md)
 
@@ -93,6 +95,7 @@ response metadata and complete or partial body digests, never response bodies.
 - [Crawler and ingestion plan](plan/colombian-listing-crawlers-and-ingestion.md)
 - [Crawler foundation contract](docs/architecture/crawler-foundation-contract-agreement.md)
 - [Bounded probe retrospective](docs/reviews/crawler-foundation-bounded-probe-retrospective.md)
+- [First real-world canary plan](plan/crawler-first-real-world-canary.md)
 
 ## Development Approach
 
@@ -139,10 +142,11 @@ What already exists:
 - crawler research/runtime contract schemas
 - fixture-only source candidate and access workflow
 - bounded mocked discovery probe with sanitized receipts
+- deterministic redacted fixture capture, integrity checks, and fixture scanner
 
 What comes next:
 
-- implement crawler fixture redaction and integrity checks
+- implement offline fixture extraction, provenance, and URL quality scoring
 - review backend API scenarios before frontend integration
 - integrate the frontend explorer with the backend prototype API
 - follow-up frontend ergonomics iteration after backend data needs are clearer

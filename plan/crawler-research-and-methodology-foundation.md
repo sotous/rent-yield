@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 4 are complete. Tickets 5 through
+Current execution status: tickets 1 through 5 are complete. Tickets 6 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -23,6 +23,12 @@ Offline fixture parsers are developed before methodology approval; approval
 gates runnable methodology selection, not offline proposal validation.
 Durable provider implementation remains with Data Storage. Chrome DevTools
 installation and live exploration are not authorized by this breakdown.
+
+The named follow-up is
+[`plan/crawler-first-real-world-canary.md`](crawler-first-real-world-canary.md).
+Its source research may begin independently, while its single live execution
+remains blocked until foundation tickets 5 through 8 and the canary approval
+gate are complete.
 
 ## Goal
 
@@ -138,10 +144,24 @@ storage. Fixture classes are clearly separate:
 - redacted permitted-source fixtures for parser/provenance fidelity;
 - synthetic edge-case fixtures, never represented as source claims.
 
-Each manifest pins payload/redaction digests, source-or-synthetic origin,
+Each fixture envelope pins payload/redaction digests, source-or-synthetic origin,
 timestamps, content metadata, permitted-use/retention class, methodology
-proposal, parser compatibility, expected classification, and successor fixture
-when corrected.
+research session, parser compatibility, expected classification, and the
+superseded fixture when corrected. A fixture cannot reference a methodology
+proposal that is created later in the lifecycle; the eventual proposal pins the
+fixture digest instead.
+
+A permitted-source origin requires the canonical HTTPS page URL without
+credentials, query parameters, or a fragment, plus source key, collection time,
+assessment digest, and original entity-body digest. A synthetic origin records
+only its scenario and generation time and cannot claim source provenance.
+Extraction retains a stable canonical listing URL when available; otherwise it
+records `null`, the `missing_stable_listing_url` issue, and a lower deterministic
+quality index under a versioned scoring ruleset. A missing URL alone is
+non-blocking when stable source identity and immutable capture provenance
+remain available; missing both a stable URL and stable source listing ID
+quarantines the result. The fixture envelope remains the authoritative origin
+even when the redacted payload contains URL-shaped source content.
 
 The foundation does not archive production raw documents or source-policy
 pages. Its durable counterpart retains a full permitted source response only
