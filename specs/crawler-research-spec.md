@@ -13,9 +13,8 @@ development.
 
 ## Status
 
-Foundation tickets 1 through 4 are complete. Fixture capture,
-extraction, methodology resolution, storage conformance, the research skill,
-and production adapters remain later work.
+Foundation tickets 1 through 6 are complete. Methodology resolution, storage
+conformance, the research skill, and production adapters remain later work.
 
 The approved execution plan is
 [`plan/crawler-research-and-methodology-foundation.md`](../plan/crawler-research-and-methodology-foundation.md).
@@ -43,6 +42,10 @@ The current foundation provides:
 - bounded listing-discovery simulation through an injected mock transport;
 - sanitized probe receipts containing metadata and body digests rather than
   response bodies.
+- deterministic JSON-fixture extraction with field-level provenance, immutable
+  fixture traceability, a versioned listing-quality score, and typed outcomes;
+- a restricted rental-evidence projection that admits only observed, active,
+  long-term residential base monthly COP rents with explicit built area.
 
 It does not provide a production HTTP or DNS adapter, live source access,
 credentials, a browser, scheduling, retries, durable storage, source activation,
@@ -213,7 +216,7 @@ behavior only and make no durability claim.
 | CR-009 | Stop without retry on access, status, auth, or challenge failures |                4 | `bounded-probe.ts`                                            | typed stop-reason cases                               | Implemented |
 | CR-010 | Sanitized receipt with complete or partial body evidence          |                4 | `research.ts`, `bounded-probe.ts`                             | schema and deterministic receipt cases                | Implemented |
 | CR-011 | Redacted fixtures, source-URL traceability, integrity, successors |                5 | `fixture-capture.ts`, committed synthetic fixture, CI scanner | fixture capture, directory, and shared-contract tests | Implemented |
-| CR-012 | Extraction, URL quality penalty, provenance, and quarantine       |                6 | Pending                                                       | Pending RED tests                                     | Planned     |
+| CR-012 | Extraction, URL quality penalty, provenance, and quarantine       |                6 | `fixture-extraction.ts`, extraction outcome contracts         | `fixture-extraction.test.ts`, contract tests          | Implemented |
 | CR-013 | Manifest proposal, validation, review, lookup, and conformance    |              7–9 | Schemas exist; application behavior pending                   | Schema tests currently; behavior tests pending        | Partial     |
 | CR-014 | Agent research skill, workflow review, and runbook                |            10–12 | Pending                                                       | Workflow review pending                               | Planned     |
 

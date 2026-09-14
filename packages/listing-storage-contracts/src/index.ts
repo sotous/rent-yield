@@ -118,3 +118,4 @@ export * from "./methodology.js";
 export * from "./catalog.js";
 export * from "./research.examples.js";
 export * from "./methodology.examples.js";
+export * from "./extraction.js";

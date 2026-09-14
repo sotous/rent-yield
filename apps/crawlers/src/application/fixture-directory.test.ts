@@ -9,7 +9,7 @@ describe("fixture directory scanner", () => {
     const result = await scanFixtureDirectory(
       new URL("../../fixtures", import.meta.url).pathname,
     );
-    expect(result).toEqual({ ok: true, artifacts: 1 });
+    expect(result).toEqual({ ok: true, artifacts: 2 });
   });
 
   it("fails closed with sanitized diagnostics for an unsafe fixture directory", async () => {

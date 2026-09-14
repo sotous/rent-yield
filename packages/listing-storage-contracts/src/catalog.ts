@@ -15,12 +15,16 @@ import {
   sourceHealthEventSchema,
 } from "./methodology.js";
 
+import { extractionOutcomeSchema, rentalEvidenceSchema } from "./extraction.js";
+
 export const contractSchemas = {
   source_candidate: sourceCandidateSchema,
   access_assessment: accessAssessmentSchema,
   probe_result: probeResultSchema,
   fixture_envelope: fixtureEnvelopeSchema,
   extraction_contract: extractionContractSchema,
+  extraction_outcome: extractionOutcomeSchema,
+  rental_evidence: rentalEvidenceSchema,
   methodology_manifest: methodologyManifestSchema,
   validation_report: methodologyValidationReportSchema,
   review_decision: methodologyReviewDecisionSchema,
