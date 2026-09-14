@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 8 are complete. Tickets 9 through
+Current execution status: tickets 1 through 9 are complete. Tickets 10 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -31,6 +31,25 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 9 execution refinement — 2026-09-14
+
+Define the agreed v1 ingestion submission, immutable receipt, receipt-status,
+and sanitized failure schemas in the shared contract package, then implement an
+offline memory provider in Crawlers. Submission identity will bind source,
+capture event, immutable capture metadata/body digest, methodology and adapter
+identity, and normalized outcome; it excludes the idempotency key and receipt
+state. The provider will keep idempotency source-scoped, preserve the original
+receipt on exact retry, reject changed payloads under the same key, and retain
+distinct capture events when new keys carry matching bytes.
+
+Publish contract-owned reusable conformance vectors for lookup, ingestion,
+receipt lifecycle, and typed failures. Crawler runs them against its memory
+provider; Data Storage can import the same vectors for a durable provider later.
+Start with failing vector tests for replay, conflict, distinct captures,
+quarantine, failure sanitization, and source-health behavior. This remains
+fixture-only: no database, object store, scheduler, real credentials, or source
+access is introduced.
 
 ### Ticket 8 execution refinement — 2026-09-14
 

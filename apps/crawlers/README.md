@@ -112,6 +112,15 @@ approvals, and later error-level source-health events all fail closed. A later
 approval can resume a methodology after a health block. This in-memory service
 does not authenticate a reviewer, persist a review log, or make source requests.
 
+## Memory ingestion conformance
+
+`MemoryIngestion` is the offline reference provider for the shared v1 ingestion
+contract. It scopes idempotency keys by source, returns the original immutable
+receipt for an exact retry, rejects changed payloads and reused capture-event
+IDs, and keeps distinct capture events even when their body digests match.
+Receipt progress is separate from the immutable receipt. The shared
+`ingestionConformanceVectors` can be reused by Data Storage's durable provider.
+
 The existing unversioned storage DTO exports remain draft compatibility types.
 They are not aliases for these v1 research contracts. Ingestion receipts,
 provider implementations, and model evidence schemas are introduced in their
