@@ -71,6 +71,14 @@ always deducts ten points, including where other penalties saturate; missing
 both URL and source ID is a blocking issue. The schemas validate this relation
 so callers cannot forge a higher index or hide a blocking issue.
 
+## Methodology artifact identity
+
+`methodologyManifestDigest` validates a v1 manifest and canonicalizes its
+declared sets before calculating its SHA-256. `methodologyValidationReportDigest`
+does the same for a validation report's fixture set. Neither digest incorporates
+review or lifecycle state, which prevents approval changes from changing the
+immutable methodology identity.
+
 ## Draft storage compatibility
 
 Existing `SourceMethodology`, `RawCapture`, `NormalizedListingObservation`, and

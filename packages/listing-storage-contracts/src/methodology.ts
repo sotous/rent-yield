@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
+import { canonicalJson, canonicalSet } from "./canonical.js";
 import {
   capabilitySchema,
   contractVersionSchema,
@@ -261,3 +263,50 @@ export const methodologyProposalSchema = z
     }
   });
 export type MethodologyProposalV1 = z.infer<typeof methodologyProposalSchema>;
+
+const sha256 = (value: unknown): string =>
+  createHash("sha256").update(canonicalJson(value)).digest("hex");
+
+/** Canonicalizes only the set-valued manifest paths agreed by the v1 contract. */
+export function canonicalMethodologyManifest(
+  input: unknown,
+): MethodologyManifestV1 {
+  const manifest = methodologyManifestSchema.parse(input);
+  return {
+    ...manifest,
+    scope: {
+      ...manifest.scope,
+      listing_roles: canonicalSet(manifest.scope.listing_roles),
+    },
+    evidence_hashes: canonicalSet(manifest.evidence_hashes),
+    access_scope: {
+      ...manifest.access_scope,
+      hosts: canonicalSet(manifest.access_scope.hosts),
+      path_prefixes: canonicalSet(manifest.access_scope.path_prefixes),
+    },
+    permitted_operations: canonicalSet(manifest.permitted_operations),
+    circuit_breaker: {
+      ...manifest.circuit_breaker,
+      stop_on: canonicalSet(manifest.circuit_breaker.stop_on),
+    },
+    fixture_hashes: canonicalSet(manifest.fixture_hashes),
+    retention: {
+      ...manifest.retention,
+      permitted_uses: canonicalSet(manifest.retention.permitted_uses),
+    },
+  };
+}
+
+/** The immutable manifest digest never includes a review, report, or self hash. */
+export function methodologyManifestDigest(input: unknown): string {
+  return sha256(canonicalMethodologyManifest(input));
+}
+
+/** Validation reports canonicalize their declared fixture-hash set before hashing. */
+export function methodologyValidationReportDigest(input: unknown): string {
+  const report = methodologyValidationReportSchema.parse(input);
+  return sha256({
+    ...report,
+    fixture_hashes: canonicalSet(report.fixture_hashes),
+  });
+}

@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 6 are complete. Tickets 7 through
+Current execution status: tickets 1 through 7 are complete. Tickets 8 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -31,6 +31,22 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 7 execution refinement — 2026-09-14
+
+Build the existing immutable-manifest and fixture-validation task as a pure,
+offline application slice. It accepts only declarative, schema-valid v1
+manifests; canonicalizes declared sets before hashing; validates adapter identity
+against an injected registry; and replays only integrity-checked, manifest-pinned
+fixtures through their exact extraction contracts. Results are sanitized reports
+that pin the manifest, adapter, fixture, and extraction hashes.
+
+Proposal production has no approval, publication, persistence, clock, or
+transport capability. A failed report remains reviewable evidence but cannot be
+used by the later approval lookup. Tests will begin RED-first with semantic-set
+hash stability, immutable hash inputs, registry mismatches, pin mismatches,
+fixture replay outcomes, and failure sanitization. No live source, browser,
+credential, storage-provider, or review-decision work is in scope.
 
 ### Ticket 6 execution refinement — 2026-09-12
 

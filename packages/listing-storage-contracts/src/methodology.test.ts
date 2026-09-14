@@ -5,7 +5,9 @@ import {
   methodologyValidationReportSchema,
   methodologyReviewDecisionSchema,
   methodologyLookupSchema,
+  methodologyManifestDigest,
   sourceHealthEventSchema,
+  methodologyValidationReportDigest,
   methodologyProposalSchema,
 } from "./methodology.js";
 import {
@@ -52,6 +54,24 @@ describe("methodology v1 declarative contracts", () => {
         ],
       }).success,
     ).toBe(false);
+  });
+  it("hashes semantic manifest and report sets independently of their input order", () => {
+    expect(methodologyManifestDigest(manifest)).toBe(
+      methodologyManifestDigest({
+        ...manifest,
+        evidence_hashes: [...manifest.evidence_hashes].reverse(),
+        fixture_hashes: [...manifest.fixture_hashes].reverse(),
+      }),
+    );
+    expect(methodologyValidationReportDigest(report)).toBe(
+      methodologyValidationReportDigest({
+        ...report,
+        fixture_hashes: [...report.fixture_hashes].reverse(),
+      }),
+    );
+    expect(
+      methodologyManifestDigest({ ...manifest, methodology_key: "changed" }),
+    ).not.toBe(methodologyManifestDigest(manifest));
   });
   it("requires artifact identity and positive bounded validation checks", () => {
     expect(methodologyValidationReportSchema.safeParse(report).success).toBe(
