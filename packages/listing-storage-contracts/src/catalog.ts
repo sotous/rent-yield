@@ -16,6 +16,11 @@ import {
 } from "./methodology.js";
 
 import { extractionOutcomeSchema, rentalEvidenceSchema } from "./extraction.js";
+import {
+  ingestionReceiptSchema,
+  ingestionSubmissionSchema,
+  receiptProgressSchema,
+} from "./ingestion.js";
 
 export const contractSchemas = {
   source_candidate: sourceCandidateSchema,
@@ -31,6 +36,9 @@ export const contractSchemas = {
   methodology_lookup: methodologyLookupSchema,
   methodology_proposal: methodologyProposalSchema,
   source_health: sourceHealthEventSchema,
+  ingestion_submission: ingestionSubmissionSchema,
+  ingestion_receipt: ingestionReceiptSchema,
+  receipt_progress: receiptProgressSchema,
 } as const;
 
 export type ContractName = keyof typeof contractSchemas;
