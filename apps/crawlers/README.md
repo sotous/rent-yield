@@ -81,6 +81,21 @@ offers, and ambiguous claims remain replay output but never enter that DTO.
 The envelope origin remains authoritative; a URL in fixture content cannot
 replace it.
 
+## Methodology proposal and fixture validation
+
+`proposeMethodology` accepts a strict declarative manifest and an injected
+adapter registry. It canonicalizes only contract-declared set fields before
+computing the immutable manifest digest, and it rejects adapters whose key,
+artifact, parser, normalizer, contract version, or strategy does not match the
+registry. It has no approval, publication, storage, clock, or network behavior.
+
+`validateMethodologyFixtures` checks the proposal digest, adapter registration,
+fixture pinning, redaction and retention references, extraction-contract digest,
+and deterministic replay classification. Its report pins each relevant digest
+and returns only typed issue codes. A failed report can be retained as review
+evidence but cannot be assembled into an approval-eligible proposal. The later
+review-lifecycle task is solely responsible for any approval decision.
+
 The existing unversioned storage DTO exports remain draft compatibility types.
 They are not aliases for these v1 research contracts. Ingestion receipts,
 provider implementations, and model evidence schemas are introduced in their
