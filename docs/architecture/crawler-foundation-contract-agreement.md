@@ -60,6 +60,14 @@ return typed failure. Decisions recorded after the cutoff cannot influence an
 as-of result. Production callers must use a current governance cutoff rather
 than historic replay to evade a pause. Clock input is explicit and testable.
 
+The fixture-only reference repository assigns review sequence numbers itself and
+does not expose approval through proposal intake. It retains failed validation
+reports as review evidence, but an approval can cite only the exact hash of a
+passed report for the corresponding manifest. At lookup, error-level source
+health after an approval's effective time blocks that approval through both
+caller clocks. A later approval can restore eligibility; durable providers must
+preserve the same ordering and fail-closed behavior.
+
 ## Ingestion and receipts
 
 The caller supplies an opaque capture-event key, not a database identifier.

@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 7 are complete. Tickets 8 through
+Current execution status: tickets 1 through 8 are complete. Tickets 9 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -31,6 +31,25 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 8 execution refinement — 2026-09-14
+
+Implement the existing review-lifecycle and effective-methodology lookup task as
+an append-only, in-memory fixture-workbench boundary. Proposal intake verifies
+the canonical manifest and report hashes and adapter registration; it never
+approves or activates a proposal. Failed reports remain review evidence, while
+an approval requires the exact hash of a passed report. A separate trusted review
+input receives a repository-assigned sequence. Resolver inputs supply both
+effective and recorded-as-of clocks and require an exact v1 scope.
+
+The resolver must fail closed for invalid or missing proposal pins, expired
+rechecks, incompatible adapters, no eligible approval, competing approved
+manifests, non-approval lifecycle states, and later health blocks. A later
+trusted approval may resume a health-paused methodology. Tests begin RED-first
+for event ordering, interval boundaries, recorded cutoffs, ambiguity, hash and
+adapter substitution, validation-report mismatch, health pause/reactivation,
+and input-order determinism. This does not provide real reviewer identity,
+durable storage, policy authorization, or network execution.
 
 ### Ticket 7 execution refinement — 2026-09-14
 

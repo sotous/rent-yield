@@ -96,6 +96,22 @@ and returns only typed issue codes. A failed report can be retained as review
 evidence but cannot be assembled into an approval-eligible proposal. The later
 review-lifecycle task is solely responsible for any approval decision.
 
+## Trusted review and effective lookup
+
+`MemoryMethodologyReview` is the fixture-only reference for that later lifecycle.
+It retains hash-valid proposals, including failed validations, but only a trusted
+review entry can approve a proposal and that approval must cite its exact passed
+validation report. The repository assigns append-only sequences; callers cannot
+set them. Resolution requires the full source, geography, capability, and
+listing-role scope plus explicit `effective_at` and `recorded_as_of` clocks.
+
+It returns a methodology only when exactly one compatible, hash-valid approval
+is effective. Missing decisions, interval endings, rejected/paused/revoked/
+retired state, expired rechecks, invalid pins, adapter drift, overlapping
+approvals, and later error-level source-health events all fail closed. A later
+approval can resume a methodology after a health block. This in-memory service
+does not authenticate a reviewer, persist a review log, or make source requests.
+
 The existing unversioned storage DTO exports remain draft compatibility types.
 They are not aliases for these v1 research contracts. Ingestion receipts,
 provider implementations, and model evidence schemas are introduced in their
