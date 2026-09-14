@@ -57,6 +57,30 @@ fixture fidelity, or methodology approval. Those workflows are later tickets.
 JSON Schema describes structural constraints; the Zod runtime additionally
 checks refinements such as real calendar dates and review intervals.
 
+## Offline extraction and provenance replay
+
+`inferExtractionContract` proposes only the mappings supported by the frozen
+JSON fixture vocabulary. `replayFixture` then verifies fixture integrity and
+pinning before it parses a fixture: no transport, clock, approval, or storage
+is involved. It supports one listing, a bounded listing array, and separate
+sale/rent offers. An explicitly ended empty discovery page is `capture_only`;
+shape drift is `parse_failed`.
+
+Each extracted observation preserves raw scalar value and JSON path, transform
+version, source dates without invented precision, source identity candidates,
+separate fees, distinct built/private/interior area claims, and an immutable
+fixture trace. The `listing-quality-v1` rules deduct ten points when a stable
+detail URL is unavailable. A stable source ID still permits normalization;
+missing both stable URL and source ID produces a typed quarantine.
+
+Rental evidence is stricter than an extracted fact. It is created only from a
+permitted-source fixture for an active long-term residential `for_rent` offer
+with positive base monthly COP amount, explicit positive built area, and stable
+identity. Synthetic fixtures, sale offers, bundled or unknown fees, inactive
+offers, and ambiguous claims remain replay output but never enter that DTO.
+The envelope origin remains authoritative; a URL in fixture content cannot
+replace it.
+
 The existing unversioned storage DTO exports remain draft compatibility types.
 They are not aliases for these v1 research contracts. Ingestion receipts,
 provider implementations, and model evidence schemas are introduced in their

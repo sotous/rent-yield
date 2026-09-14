@@ -208,6 +208,12 @@ export const fixtureEnvelopeSchema = z.strictObject({
 
 export const extractionMappingSchema = z.strictObject({
   field: z.enum([
+    "listing_url",
+    "rental_basis",
+    "built_area_sqm",
+    "private_area_sqm",
+    "interior_area_sqm",
+    "alias",
     "asking_amount",
     "currency",
     "frequency",

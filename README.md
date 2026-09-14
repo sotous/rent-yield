@@ -145,6 +145,8 @@ What already exists:
 - fixture-only source candidate and access workflow
 - bounded mocked discovery probe with sanitized receipts
 - deterministic redacted fixture capture, integrity checks, and fixture scanner
+- offline fixture extraction with field provenance, quality scoring, and typed
+  quarantine; restricted observed-rental evidence projection
 
 What comes next:
 

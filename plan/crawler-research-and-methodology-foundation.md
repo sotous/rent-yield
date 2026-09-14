@@ -9,7 +9,7 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 5 are complete. Tickets 6 through
+Current execution status: tickets 1 through 6 are complete. Tickets 7 through
 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
@@ -31,6 +31,45 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 6 execution refinement — 2026-09-12
+
+Continue the existing [offline extraction task](https://app.notion.com/p/3d5dd7022740810f9cf6f9a5a79889f9)
+from the clean PR #6 merge (`654f2d1`). This is an implementation refinement of
+the approved slice, not a new task or live-source authorization.
+
+- Add additive v1 observation, field-provenance, rental-evidence, and extraction
+  outcome schemas under the existing joint contract agreement. Preserve legacy
+  draft DTOs. Storage providers and model execution remain separate.
+- Infer declarative mappings for the representative JSON fixture vocabulary;
+  replay only JSON pointers and allowlisted transforms. Unsupported HTML/text
+  locators fail explicitly until representative fixtures justify an adapter.
+- Support one listing, listing arrays, and separate offers on a listing. Empty
+  discovery with an explicit pagination end is capture-only; shape drift is a
+  parse failure. No dynamic code, source requests, or implicit approval.
+- Preserve raw scalar values and absolute paths, transform/parser versions,
+  immutable fixture links, source dates, collection time, identity candidates,
+  separate fees, and built/private/interior area claims. Never invent dates or
+  infer base rent from a separate administration fee alone.
+- Admit rental evidence only for permitted-source, active, long-term residential
+  offers with positive base monthly COP rent and explicit positive built area.
+  Keep synthetic replay distinct from observed evidence. Sale observations never
+  enter the rental DTO, including in dual-offer fixtures.
+- Canonical stable listing URLs must be explicit HTTPS detail locators (no
+  query/fragment/credentials); envelope origin is not a fallback listing URL.
+  Versioned quality rules deduct for missing URLs and keep blocking issues
+  explicit. Stable source ID plus fixture provenance permits a missing URL;
+  absence of both identifiers quarantines.
+- Work primarily in `apps/crawlers/src/application`, shared contracts, focused
+  synthetic fixtures/tests, crawler README/spec, and a ticket retrospective.
+- Validate through repeated RED/GREEN cycles for contracts, replay/provenance,
+  URL/identity, ambiguity, rental isolation, drift, and integrity. Finish with
+  repository checks and a reviewable PR targeting `main`.
+
+Risks: source wording is not universal; inference is fixture-vocabulary-specific
+and never asserts source permission. Decimal parsing must preserve precision
+and reject ambiguous locale formatting. Mixed-quality payloads must retain
+rejected claims without letting clean offers conceal quarantine.
 
 Produce consumable source candidates, access assessments, permitted probe
 results, redacted fixtures, extraction contracts, approved methodology

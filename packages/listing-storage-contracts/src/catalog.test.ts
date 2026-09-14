@@ -6,11 +6,13 @@ describe("shared v1 schema catalog", () => {
     expect(Object.keys(contractSchemas).sort()).toEqual([
       "access_assessment",
       "extraction_contract",
+      "extraction_outcome",
       "fixture_envelope",
       "methodology_lookup",
       "methodology_manifest",
       "methodology_proposal",
       "probe_result",
+      "rental_evidence",
       "review_decision",
       "source_candidate",
       "source_health",

@@ -56,6 +56,21 @@ unsafe integers and invalid Unicode. It preserves ordinary array order.
 `canonicalSet` is only for schema-declared sets and rejects duplicate members.
 Neither helper performs source hashing, authorization, or persistence.
 
+## Offline extraction contracts
+
+`extraction_outcome` carries the replay result, immutable fixture trace,
+normalized source claims, field provenance, versioned quality issues, and typed
+`normalized`, `quarantined`, `parse_failed`, or `capture_only` disposition.
+`rental_evidence` is intentionally narrower: it accepts only a clean observed
+long-term, active, base monthly COP rental offer with positive amount and built
+area. The runtime schemas reject synthetic origins, sale roles, modeled-rent
+fields, ambiguous fee scope, and missing stable source identity.
+
+`listing-quality-v1` derives its score from the issue list. Missing stable URL
+always deducts ten points, including where other penalties saturate; missing
+both URL and source ID is a blocking issue. The schemas validate this relation
+so callers cannot forge a higher index or hide a blocking issue.
+
 ## Draft storage compatibility
 
 Existing `SourceMethodology`, `RawCapture`, `NormalizedListingObservation`, and
