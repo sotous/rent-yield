@@ -9,8 +9,8 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 10 are complete. Ticket 11 is in
-progress; ticket 12 has not started. Normative crawler behavior and requirement traceability now live in
+Current execution status: all 12 tickets are complete. Normative crawler
+behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
 Execution begins with [scope reconciliation and shared-contract agreement](https://app.notion.com/p/3d5dd702274081c09d9dccb38b5c537d).
@@ -31,6 +31,15 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 12 execution refinement — 2026-09-16
+
+Close the foundation documentation with the delivered fixture-only workflow:
+the memory review resolver and ingestion provider now pass the shared crawler
+checks, while Data Storage durable-provider conformance remains unimplemented.
+Update the runbook, architecture agreement, requirement traceability, and
+downstream crawler plan without implying that a live adapter, browser,
+scheduler, credentials, durable store, or source permission exists.
 
 ### Ticket 11 execution refinement — 2026-09-16
 

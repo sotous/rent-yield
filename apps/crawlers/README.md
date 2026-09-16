@@ -51,9 +51,11 @@ pnpm --filter @rent-yield/crawlers typecheck
 ```
 
 Tests use in-process synthetic examples; no source requests, credentials,
-database, or object storage are required. Passing schema validation proves the
-shape of an input, not source permission, successful redaction, valid hashes,
-fixture fidelity, or methodology approval. Those workflows are later tickets.
+database, or object storage are required. Passing schema validation alone proves
+only the shape of an input; fixture capture, replay, validation, trusted review,
+and effective lookup provide the separate checks for redaction, hashes, fixture
+fidelity, and approval eligibility. None of them establishes source permission
+or enables a live adapter.
 JSON Schema describes structural constraints; the Zod runtime additionally
 checks refinements such as real calendar dates and review intervals.
 
