@@ -9,8 +9,8 @@ using Plan Slug `crawler-research-and-methodology-foundation`.
 This prerequisite supplies safe, versioned inputs to the fixture-backed
 crawler workbench; it does not activate a real crawler.
 
-Current execution status: tickets 1 through 9 are complete. Tickets 10 through
-12 have not started. Normative crawler behavior and requirement traceability now live in
+Current execution status: tickets 1 through 9 are complete. Ticket 10 is in
+progress; tickets 11 and 12 have not started. Normative crawler behavior and requirement traceability now live in
 [`specs/crawler-research-spec.md`](../specs/crawler-research-spec.md).
 
 Execution begins with [scope reconciliation and shared-contract agreement](https://app.notion.com/p/3d5dd702274081c09d9dccb38b5c537d).
@@ -31,6 +31,16 @@ remains blocked until foundation tickets 5 through 8 and the canary approval
 gate are complete.
 
 ## Goal
+
+### Ticket 10 execution refinement — 2026-09-14
+
+Create the portable `.codex/skills/crawler-research/SKILL.md` as a runbook for
+the already-tested fixture-only runtime tools in `apps/crawlers/src/`. It routes
+candidate, assessment, fixture, extraction, validation, proposal, review, and
+handoff work without replacing the runtime or creating duplicate skills under
+other agent directories. It must stop on typed failures, preserve provenance,
+keep raw sensitive captures out of prompts, and explicitly prohibit live source
+access, permission declarations, and methodology activation.
 
 ### Ticket 9 execution refinement — 2026-09-14
 
