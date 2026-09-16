@@ -2,31 +2,31 @@
 
 ## Status and scope
 
-Contract design for foundation ticket 1, 2026-09-08. Data Storage agreed to
-the directions and assigned Crawlers sole authorship of shared package edits in
-this worktree, with Storage reviewing and owning durable providers. Storage
+Contract design began in foundation ticket 1 on 2026-09-08. Data Storage agreed
+to the directions and assigned Crawlers sole authorship of shared-package edits
+in this worktree, with Storage reviewing and owning durable providers. Storage
 approved the concrete defaults below after four corrections to serialization,
-lifecycle, capture identity, and receipt semantics. Tickets 2 through 4 now
-implement runtime schemas, candidate-bound access, and bounded mock probes.
-Fixture, methodology-service, ingestion, and durable-provider behavior remains
-scheduled in later tickets. Existing unversioned storage exports remain a draft
-compatibility surface and are not equivalent to the v1 research contracts.
-The approved product scope is fixture/mock-only research tooling. Production
-fetching, scheduling, and durable infrastructure are separate work.
+lifecycle, capture identity, and receipt semantics. All 12 crawler foundation
+tickets now implement the v1 schemas, fixture workbench, methodology lifecycle,
+and memory-ingestion conformance. Existing unversioned storage exports remain a
+draft compatibility surface and are not equivalent to the v1 research
+contracts. The approved product scope is fixture/mock-only research tooling.
+Production fetching, scheduling, and durable infrastructure remain separate
+work.
 
 ## Contract matrix
 
-| Boundary          | Producer / consumer                           | Current gap                                                                      | Proposed contract / owner                                                                                                                                   |
-| ----------------- | --------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Research evidence | Crawler tools / methodology review            | Candidate, assessment, and probe contracts implemented; fixture workflow pending | Versioned runtime schemas, candidate-version-bound assessments, evidence hashes, source/synthetic origin, unknowns; jointly defined, crawler implementation |
-| Proposal intake   | Research tools / methodology repository       | No proposal port                                                                 | Immutable declarative manifest plus validation references; no approval capability; joint schema, memory crawler/provider storage                            |
-| Review decision   | Authorized reviewer / resolver                | Status is embedded in methodology                                                | Append-only decision referencing manifest and validation report; Data Storage durable owner                                                                 |
-| Effective lookup  | Repository / crawler                          | Only source, city and capability query                                           | Listing role, effective time, recorded cutoff and accepted contract version; verified payload/hash and decision; joint schema                               |
-| Ingestion         | Crawler / storage                             | No event identity, idempotency key, payload hash or build identity               | Source-scoped key, opaque capture-event key, body and payload digests, manifest/adapter/parser identity; joint schema                                       |
-| Receipt progress  | Storage / crawler                             | stored/already_stored/quarantined only                                           | Immutable initial receipt plus separate progress lookup; joint schema, storage persistence                                                                  |
-| Observation       | Parser / storage and curated model evidence   | Incomplete ambiguity, area-kind and alias representation                         | Decimal strings, explicit source claims and quality issues; joint schema; storage owns curation                                                             |
-| Source health     | Crawler / methodology governance              | No health port                                                                   | Sanitized typed events with policy/methodology references; joint schema                                                                                     |
-| Conformance       | Shared vectors / memory and durable providers | Schema and crawler-memory vectors exist; provider suite pending                  | Same contract suite, crawler memory tests and Data Storage provider tests                                                                                   |
+| Boundary          | Producer / consumer                           | Current gap                                                              | Proposed contract / owner                                                                                                                                   |
+| ----------------- | --------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Research evidence | Crawler tools / methodology review            | Fixture-only implementation complete; no durable evidence repository     | Versioned runtime schemas, candidate-version-bound assessments, evidence hashes, source/synthetic origin, unknowns; jointly defined, crawler implementation |
+| Proposal intake   | Research tools / methodology repository       | Memory implementation complete; no durable proposal port                 | Immutable declarative manifest plus validation references; no approval capability; joint schema, memory crawler/provider storage                            |
+| Review decision   | Authorized reviewer / resolver                | Memory lifecycle complete; no durable reviewer identity or review log    | Append-only decision referencing manifest and validation report; Data Storage durable owner                                                                 |
+| Effective lookup  | Repository / crawler                          | Memory resolver complete; no durable lookup provider                     | Listing role, effective time, recorded cutoff and accepted contract version; verified payload/hash and decision; joint schema                               |
+| Ingestion         | Crawler / storage                             | Memory provider complete; no durable ingestion provider                  | Source-scoped key, opaque capture-event key, body and payload digests, manifest/adapter/parser identity; joint schema                                       |
+| Receipt progress  | Storage / crawler                             | Memory receipt progress complete; no durable persistence                 | Immutable initial receipt plus separate progress lookup; joint schema, storage persistence                                                                  |
+| Observation       | Parser / storage and curated model evidence   | Incomplete ambiguity, area-kind and alias representation                 | Decimal strings, explicit source claims and quality issues; joint schema; storage owns curation                                                             |
+| Source health     | Crawler / methodology governance              | No health port                                                           | Sanitized typed events with policy/methodology references; joint schema                                                                                     |
+| Conformance       | Shared vectors / memory and durable providers | Crawler memory vectors pass; Data Storage provider suite remains pending | Same contract suite, crawler memory tests and Data Storage provider tests                                                                                   |
 
 Crawlers owns edits to `packages/listing-storage-contracts`, schemas, helpers,
 examples and conformance vectors; Storage will not edit that package concurrently. Existing exports are a preliminary
@@ -215,7 +215,7 @@ and validation `issues` are sequences. Adding another set requires a contract
 change plus canonicalization vectors; callers must never infer set semantics
 from the element type alone.
 
-## Required executable vector seeds (ticket 2 and later)
+## Executable vector coverage
 
 - Differently inserted object keys canonicalize identically; reversed semantic
   arrays differ; reversed declared sets match; duplicate set members reject.
@@ -229,8 +229,9 @@ from the element type alone.
 - Two distinct capture events with identical bodies remain distinct; discovery,
   parse failure and multi-listing payloads need no fabricated observation IDs.
 
-These are contract specifications, not claims of passing tests. Executable
-vectors and schemas must be introduced RED-first in the approved build tickets.
+These contract specifications were introduced RED-first in the approved build
+tickets. Crawler memory tests now exercise them; Data Storage must run the same
+vectors against its durable provider before claiming provider conformance.
 
 ## Storage review corrections and closure
 
@@ -252,6 +253,6 @@ Storage approved closure after the four corrections above were incorporated on
 
 Ticket 1 met its scope through plan reconciliation, the ownership/contract
 matrix and joint semantic agreement. The storage review improved byte identity,
-non-reactivating suspensions and replay semantics. No executable behavior was
-changed. The next iteration is ticket 2's RED-first schema/vector work; durable
-provider execution remains a later Storage responsibility.
+non-reactivating suspensions and replay semantics. The crawler foundation is
+now complete through its fixture-only memory reference implementation. Durable
+provider execution and validation remain Data Storage responsibilities.

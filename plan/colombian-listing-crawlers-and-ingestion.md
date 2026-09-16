@@ -6,10 +6,11 @@ Re-scoped on 2026-09-04. This plan owns a fixture-backed crawler workbench and
 mocked storage ports. The **Data Storage** task owns all database, object
 storage, migrations, durable persistence, and Rent Model snapshot storage.
 
-The approved `plan/crawler-research-and-methodology-foundation.md` owns the
-prerequisite research tools, fixture validation, and methodology lifecycle.
-This downstream plan consumes those tools rather than implementing them twice.
-Its execution scope is offline fixture replay and memory adapters only.
+The completed `plan/crawler-research-and-methodology-foundation.md` owns the
+prerequisite research tools, fixture validation, methodology lifecycle, and
+memory-ingestion conformance. This downstream plan consumes those tools rather
+than implementing them twice. Its execution scope is offline fixture replay and
+memory adapters only until a separately approved plan expands it.
 
 ## Goal
 
@@ -231,8 +232,8 @@ AI-guided research -> deterministic evidence tools -> proposed methodology
 
 ## Delivery phases and TDD
 
-1. Complete the approved research foundation and joint contract agreement;
-   approve a downstream breakdown before creating its execution tasks.
+1. The approved research foundation and joint contract agreement are complete.
+   Approve a downstream breakdown before creating its execution tasks.
 2. Reuse the foundation's `apps/crawlers` TypeScript/Vitest harness, fixture
    conventions, research contracts, and mocked storage ports.
 3. RED/GREEN: consume the foundation's research, access assessment, probe,
