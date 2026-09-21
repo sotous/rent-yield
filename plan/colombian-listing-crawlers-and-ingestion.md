@@ -92,7 +92,8 @@ ports: approved methodology lookup, raw-capture/normalized-observation ingest,
 and source-health reporting. The crawler supplies a methodology version, raw
 fixture/capture metadata, parsed source fields, normalized sale/rent records,
 field-level provenance, quality issues, and source-qualified identity
-candidates. The detailed storage requirements are delegated in
+candidates. The ecosystem storage requirements are defined in
+`specs/data-storage-spec.md`; detailed crawler-ingestion design remains in
 `docs/architecture/crawler-ingestion-data-lake.md`.
 
 ### Durable-storage decisions
@@ -120,8 +121,10 @@ candidates. The detailed storage requirements are delegated in
   therefore uses a request idempotency key, canonical payload hash, staged
   state (`pending_blob`, `stored`, `committed`, `failed`), transactional outbox
   or finalizer, integrity verification, and reconciliation/quarantine for
-  orphaned blobs or rows. The crawler sees only accepted, duplicate, or
-  quarantined outcomes.
+  orphaned blobs or rows. The crawler receives one immutable `accepted`
+  receipt only after Storage can recover the submission. Duplicate delivery is
+  metadata on the original receipt or interpretation. Later append-only events
+  report `committed`, `quarantined`, or terminal `failed` finalization.
 - “Append-only” is the default evidence rule, not an exemption from law or
   source obligations. Retention, licensing, and privacy events use a governed
   redaction/tombstone process that records scope, reason, authorizer, time,

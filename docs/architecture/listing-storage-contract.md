@@ -2,11 +2,12 @@
 
 ## Status and boundary
 
-This is the authoritative durable-storage contract for the Colombian
-residential-listings initiative. The crawler package remains fixture/mock-only:
-it must not add migrations, database clients, object-storage clients, or
-persistence adapters. It calls the two ports exported by
-`@rent-yield/listing-storage-contracts` and may provide in-memory fakes.
+The authoritative ecosystem requirements now live in the
+[Data Storage System Specification](../../specs/data-storage-spec.md). This
+document is its detailed listing-ingestion architecture companion. The crawler
+package remains fixture/mock-only: it must not add migrations, database
+clients, object-storage clients, or persistence adapters. It uses versioned
+storage ports and may provide in-memory fakes.
 
 ## Recommended implementation
 
@@ -66,9 +67,10 @@ must enforce expiry, encryption, private access, and audit logging.
 - `(source_provider_id, source_listing_id)` is source identity. Cross-source
   decisions never destroy either record; V1 auto-matches only strong
   address/unit or source-reference evidence.
-- `for_sale` and `for_rent` are distinct offer records. Only an observed,
-  positive, base, monthly `for_rent` COP offer can enter Rent Model evidence.
-  Sale price never crosses that boundary.
+- `for_sale` and `for_rent` are distinct offer records. Rent Model evidence is
+  limited to observed, positive monthly long-term COP rent that excludes
+  administration, utilities, and variable fees; explicitly bundled parking
+  may remain. Sale price never crosses that boundary.
 - Monetary and calculated database values use `numeric`; application ports use
   decimal strings. Timestamps are UTC ISO-8601; source-declared text remains
   separate.
@@ -79,7 +81,7 @@ must enforce expiry, encryption, private access, and audit logging.
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Source governance     | `source_provider`, `source_assessment`, `source_methodology_version`, `permitted_probe`, `source_fixture`                                                                                       | Access/terms/robots/API/privacy/retention assessments and methodology approval are versioned.            |
 | Raw evidence          | `crawl_run`, `source_fetch`, `raw_capture`, `raw_blob`                                                                                                                                          | SHA-256-addressed permitted raw documents and each distinct acquisition event are retained under policy. |
-| Source claims         | `source_listing`, `source_listing_identifier`, `source_listing_observation`                                                                                                                     | Source-qualified identity and recrawl history are retained.                                              |
+| Source claims         | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Source-qualified identity and aliases are retained.                                                      |
 | Canonical facts       | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `observation_quality_issue`, `geographic_area`, `observation_geography_assignment`               | Every model-relevant normalized field has raw-artifact provenance.                                       |
 | Identity/dedupe       | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`, `deduplication_selection`                                                                      | Decisions, including non-matches and ambiguous results, are auditable.                                   |
 | Model reproducibility | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Snapshots, output, and canonical membership never mutate.                                                |
@@ -97,35 +99,42 @@ derived-data invalidation; it is never a silent deletion.
 
 `rent_model_input_snapshot` stores a canonical JSON manifest plus SHA-256. Its
 manifest includes ordered member observation IDs and content digests, member
-roles/exclusions, as-of date, identity and dedupe decisions, benchmark
-versions, model definition/code hash, and configuration hash. The membership
-sort key is stored and deterministic rather than dependent on insertion or
-query order.
+roles, referenced exclusions and identity/deduplication decisions, as-of date,
+benchmark versions, model definition/code hash, and configuration hash. The
+membership sort key is stored and deterministic rather than dependent on
+insertion or query order.
 
 The evidence read model excludes subject identity and duplicates and admits
-only valid observed base monthly rent. It returns a dedicated rental-evidence
-DTO containing no sale-price field. Recrawls, normalizer changes, corrected
-identity decisions, and model re-runs create a new snapshot and assessment.
+only rent allowed by the Rent Model specification. It returns a dedicated
+rental-evidence DTO containing no sale-price field. Recrawls, normalizer
+changes, corrected identity decisions, or version changes create a new
+snapshot. An identical rerun reuses that snapshot and creates a separate
+immutable assessment occurrence.
 
 ## Crawler-facing ports
 
-First call `SourceMethodologyRepository.findApproved` by source, city, and
-role; it must resolve one approved, effective, non-revoked methodology version.
-Without one, do no work. Then submit raw capture and normalized outcome through
-`ListingIngestionSink.ingest`:
+The crawler first uses an approved-methodology lookup by source, country, city,
+capability, listing role, effective time, recorded-as-of time, and accepted
+contract version. Without exactly one compatible, approved, unblocked result,
+it does no work.
 
-```ts
-await ingestionSink.ingest({ capture, observation });
-```
+It then uses a versioned durable-ingestion port. The submission must contain
+the complete normalized or quarantined outcome and field provenance, not only
+their hashes. For version one, any bounded permitted fixture bytes cross that
+port and the storage provider owns staging, digest verification, and object
+placement. Crawlers never precompute database IDs or object keys.
 
-`capture.response.body` accepts a string or `Uint8Array`, so crawler tests can
-remain fixture-only. PostgreSQL and object storage cannot share one transaction:
-the durable adapter uses an idempotency key, staged blob state, a transactional
-outbox/finalizer, integrity verification, and reconciliation for orphaned blobs
-or rows before recording the capture as committed. Crawlers must not precompute
-database IDs, write object keys, mutate prior results, or call a Rent Model
-endpoint. Exact exported shapes live in
-`packages/listing-storage-contracts/src/index.ts`.
+The currently exported `SourceMethodologyRepository` and
+`ListingIngestionSink` shapes in `packages/listing-storage-contracts` are
+fixture-only reference contracts. They require the versioned evolution defined
+by the data storage specification before they can be implemented as durable
+ports.
+
+PostgreSQL and object storage cannot share one transaction. The durable adapter
+therefore uses immutable acceptance receipts, append-only progress events,
+staged objects, a transactional outbox/finalizer, integrity verification, and
+reconciliation. Crawlers must not mutate prior results or call a Rent Model
+endpoint.
 
 ## Source governance
 

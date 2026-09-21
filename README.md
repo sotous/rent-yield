@@ -59,6 +59,7 @@ status.
 - [Backend API Spec](specs/backend-api-spec.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
 - [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
+- [Data Storage System Specification](specs/data-storage-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
