@@ -26,39 +26,51 @@ or other operational details.
 
 ## Runtime command and modes
 
-A command supplies source, Colombian city, capability, listing role, effective
-time, recorded-as-of time, and an injected clock. The runtime owns methodology
-lookup through a port; callers cannot supply a methodology object or substitute
-its artifacts.
+A command supplies source, country, Colombian city, capability, listing role,
+effective time, recorded-as-of time, accepted contract version, and an injected
+clock. The runtime owns methodology lookup through a port. Candidate and access
+assessment provenance remain behind that resolver: callers cannot supply a
+methodology object, candidate or assessment binding, or substitute artifacts.
 
 Fixture mode is the default. It accepts only frozen fixtures and injected fakes;
 it cannot use a live transport.
 
 Canary mode is available only to the separately approved
-`crawler-first-real-world-canary` plan. It requires a current,
-candidate-version-bound `allowed_for_probe` assessment and a trusted-review
-canary authorization after runtime preflight. Its limits intersect methodology
-limits: one manual invocation, one source, one discovery and one detail request,
-one concurrent request, no retry, no pagination harvesting, and no schedule.
+`crawler-first-real-world-canary` plan. It requires a current resolver result
+that records an upstream `allowed_for_probe` decision and a trusted-review canary
+authorization after runtime preflight. Its limits intersect methodology limits:
+one manual invocation, one source, one discovery and one detail request, one
+concurrent request, no retry, no pagination harvesting, and no schedule.
 
 ## Methodology V2 requirements
 
-The runtime requires a jointly versioned `MethodologyManifestV2`. In addition
-to pinned artifacts, hosts, paths, and budgets, V2 declares:
+The runtime requires the separately versioned `MethodologyManifestV2` contract.
+It is an immutable policy envelope returned only by the resolver; it deliberately
+contains no candidate or assessment identity. In addition to pinned artifacts,
+fixture hashes, scope, and budgets, V2 declares:
 
-- allowed request methods and media types;
-- explicit path policy;
-- a query policy of `forbid`, declared exact non-secret key/value pairs, or
-  declared no-value keys;
-- redirect policy: HTTPS-only, maximum hops, allowed hosts or same-host rule,
-  and revalidation on every hop;
-- public-address DNS and connection/response-limit policy; and
-- credentials/cookies forbidden plus an approved named non-secret header profile
-  only when explicitly declared.
+- `GET` as the only request method and an explicit safe media-type allowlist
+  (`application/json`, `text/html`, or `text/plain`);
+- declared hosts and path prefixes;
+- a query policy of `forbid` or a nonempty declared set of exact non-secret
+  key/value pairs and no-value keys; a key cannot be both forms;
+- HTTPS-only redirect policy with maximum hops and either same-host or declared
+  host routing; the policy cannot exceed the approved budget;
+- globally routable address binding, TLS hostname verification, and bounded
+  connection and response timeouts; and
+- credentials and cookies permanently forbidden, plus a nullable named
+  non-secret header profile reference; and
+- a default `redacted_fixture` retention representation, or an explicit
+  `original_source_body` approval limited to declared `text/html` or
+  `application/json` media types and replay/audit use.
 
-Only declared non-secret query values may be retained. Every other query value,
-credential, and fragment is rejected or removed before any artifact, health
-event, or storage handoff.
+The runtime holds original bytes in memory unless that explicit retention policy
+is in force. The first live canary still permits only redacted fixtures and
+always discards originals. The manifest hash is calculated from a canonical form: every semantic set is
+sorted, including hosts, paths, media types, operations, fixtures, and declared
+query pairs. Only declared non-secret query values may be retained. Every other
+query value, credential, and fragment is rejected or removed before any
+artifact, health event, or storage handoff.
 
 ## Runtime lifecycle
 
