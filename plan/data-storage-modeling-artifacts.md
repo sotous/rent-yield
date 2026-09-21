@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress on 2026-09-18. The execution breakdown is tracked in the
+Completed on 2026-09-21. The execution breakdown is tracked in the
 `Prototype v1 Tasks` Notion database under plan slug
 `data-storage-modeling-artifacts`.
 
@@ -41,6 +41,7 @@ physical tables or implementation details.
 - `docs/architecture/data-storage-erd.md`
 - `docs/architecture/data-storage-port-contracts.md`, only if the ERD review
   identifies port relationships that a diagram clarifies
+- `docs/architecture/data-storage-modeling-review.md`
 
 ## Success criteria
 

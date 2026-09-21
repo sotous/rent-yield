@@ -79,6 +79,14 @@ These specs are the current source of truth for product framing, domain language
 - [Rent Model Workbench Guide](apps/rent-model/README.md)
 - [Input Workbench Retrospective](docs/reviews/rent-model-input-workbench-retrospective.md)
 
+## Data Storage
+
+- [Data Storage System Specification](specs/data-storage-spec.md)
+- [Conceptual Storage Model](docs/architecture/data-storage-conceptual-model.md)
+- [Logical Storage ERD](docs/architecture/data-storage-erd.md)
+- [Shared Storage Port Contracts](docs/architecture/data-storage-port-contracts.md)
+- [Storage-Modeling Review](docs/architecture/data-storage-modeling-review.md)
+
 ## Crawler Workbench
 
 Crawler development starts with synthetic and redacted fixtures. The current

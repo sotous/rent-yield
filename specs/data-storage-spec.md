@@ -14,6 +14,24 @@ PostgreSQL/PostGIS database. Private object storage is an optional companion
 for a small set of permitted source documents; it is not a second application
 database.
 
+## Supporting architecture artifacts
+
+Use this specification for the storage requirements and these documents for
+their progressively more detailed views:
+
+- [Conceptual storage model](../docs/architecture/data-storage-conceptual-model.md)
+  explains the durable concepts and why they exist.
+- [Logical storage ERD](../docs/architecture/data-storage-erd.md) defines the
+  entities, relationships, cardinalities, and immutable boundaries.
+- [Shared storage port contracts](../docs/architecture/data-storage-port-contracts.md)
+  defines the four caller boundaries without exposing implementation details.
+- [Storage-modeling review](../docs/architecture/data-storage-modeling-review.md)
+  records cross-consumer traceability and the boundary checks performed.
+
+The use-case diagram below remains the simplest entry point for readers who
+need to understand Storage's responsibilities before reading the detailed
+artifacts.
+
 ## Who the system serves
 
 | Consumer                | What storage provides                                                                                                              | Why                                                                                               |
