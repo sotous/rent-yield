@@ -1,8 +1,9 @@
 # Crawler and ingestion data lake architecture
 
-> The authoritative schema, governance, and crawler-facing port definition is
-> [the durable-storage contract](listing-storage-contract.md). This document
-> remains the high-level architectural companion.
+> The authoritative ecosystem requirements are in the
+> [Data Storage System Specification](../../specs/data-storage-spec.md). The
+> [detailed listing contract](listing-storage-contract.md) and this document are
+> supporting architecture notes.
 
 ## Ownership
 
@@ -22,7 +23,7 @@ Model assessments; it is not the current in-memory backend persistence layer.
 ```text
 approved source adapter
   -> crawl run -> source fetch -> raw capture -> raw blob (immutable, policy-retained)
-  -> source listing observation -> normalized listing observation (immutable)
+  -> source listing identity -> normalized listing observation (immutable)
   -> offer, provenance, geography, identity decisions
   -> model snapshot manifest (immutable) -> rent assessment (immutable)
 ```
@@ -44,7 +45,7 @@ payloads may be retained as `jsonb` when policy permits.
 | Group             | Tables                                                                                                                                                                                          | Responsibility                                                                                  |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Source operations | `source_provider`, `crawl_run`, `source_fetch`, `raw_capture`, `raw_blob`                                                                                                                       | Permission metadata, run history, distinct capture events, and retained raw-document integrity. |
-| Source identity   | `source_listing`, `source_listing_identifier`, `source_listing_observation`                                                                                                                     | Stable portal manifestation, changing IDs/URLs, extracted appearance history.                   |
+| Source identity   | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Stable portal manifestation and changing IDs/URLs.                                              |
 | Canonical facts   | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `geographic_area`, `observation_geography_assignment`                                            | Versioned Colombian interpretation, sale/rent terms, per-field lineage, canonical geography.    |
 | Deduplication     | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`                                                                                                 | Conservative cross-source links; candidates and non-matches stay auditable.                     |
 | Model evidence    | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Dated benchmark facts, exact reproducible inputs, model output, and selected-comparable trace.  |
@@ -58,13 +59,8 @@ collapsed into one historical event. A full raw document is retained only for
 parser replay or evidence audit and only where the applicable source policy
 allows it. It is immutable.
 
-`source_listing_observation` stores source-shaped extraction output linked to a
-raw capture/blob, extraction version, the source claim date(s), collection date,
-and warnings. Its uniqueness key is `(raw_capture_id, extraction_version,
-source_listing_id)`.
-
 `normalized_listing_observation` is one versioned canonical interpretation of
-a source observation. It stores `country_code = CO`, labels and canonical IDs
+a captured source listing. It stores `country_code = CO`, labels and canonical IDs
 for Colombian geography, residential type, title/address labels, built/private/
 interior areas with an explicit area kind, beds/baths/stratum, coordinates and
 precision, status, and content/normalizer versions. Unknown values remain
@@ -74,7 +70,9 @@ null—normalization must not fabricate them.
 price: it records `for_sale` or `for_rent`, original amount/currency/frequency,
 canonical COP value, and amount scope (`base`, `includes_admin`, `unknown`).
 Administration, utilities, and parking charges are separate when disclosed.
-Only observed, positive, base monthly rent can qualify as Rent Model evidence.
+Only observed, positive monthly long-term rent that excludes administration,
+utilities, and variable fees can qualify as Rent Model evidence; explicitly
+bundled parking may remain.
 
 `observation_field_provenance` links each canonical field to its raw capture/blob,
 source path/label, raw value, transform version, extraction method, and any
@@ -117,13 +115,15 @@ observation.
 - benchmark version(s);
 - `model_id`, model version, code artifact hash, and configuration hash.
 
-`rent_model_input_snapshot_member` records membership roles such as subject
-candidate, rental evidence, or benchmark and its deterministic sort key. A
-`rent_assessment` references one snapshot and stores its output. Ordered
+`rent_model_input_snapshot_member` records subject, rental-evidence, and
+benchmark membership with its deterministic sort key. Exclusions and
+identity/deduplication decisions are referenced separately. A `rent_assessment`
+references one snapshot and stores its output. Ordered
 `rent_assessment_comparable` rows record the actual selection/calculations.
 
-The system creates, rather than mutates, a snapshot and assessment after any
-later correction, recrawl, normalization change, or model re-run. This is how
+The system creates, rather than mutates, a snapshot after any later correction,
+recrawl, normalization change, or version change. An identical rerun reuses the
+snapshot and creates a new immutable assessment occurrence. This is how
 the Rent Model's deterministic, immutable-snapshot contract is enforced.
 
 ## Constraints and indexes
