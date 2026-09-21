@@ -168,7 +168,8 @@ Notes:
 
 - `viewport` is reserved for future map-driven area selection.
 - v1 can start with named Barranquilla areas.
-- `geometry_reference` may point to a future geometry asset or storage key.
+- `geometry_reference` may point to a future publication-scoped geometry asset
+  or reference. It must never expose an internal object-storage key.
 
 ### `AreaSummary`
 

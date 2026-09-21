@@ -80,9 +80,11 @@ flowchart LR
 
 An artifact disposition can say that no body is retained, include bounded
 permitted bytes, or use a Storage-issued staged reference. A redacted fixture is
-the default for fixture mode and the first canary. An original HTML or JSON
-source body is allowed only when an approved retention policy explicitly permits
-the representation and purpose (parser replay or evidence audit). Images remain
+the default for fixture mode and the first canary. An original source document
+is allowed only when an approved retention policy explicitly permits the
+representation and purpose (parser replay or evidence audit). The current
+Crawler V2 manifest limits original-body retention to HTML or JSON; adding
+other source-document types requires a versioned contract change. Images remain
 out of scope by default.
 
 ## 3. Rental-evidence read
@@ -96,26 +98,29 @@ flowchart LR
   blocked[Sale offers and sale-price derivatives]
 
   model -->|as-of date, subject/context, model/configuration selection rules| port
-  port -->|apply eligibility, identity, deduplication, and freshness rules| evidence
+  port -->|apply storage admission rules; return identity and deduplication decisions| evidence
   port --> result
   blocked -. never crosses .-> port
 ```
 
-| Contract aspect | Requirement                                                                                                                                                         |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Caller          | Rent Model                                                                                                                                                          |
-| Request         | As-of date and the subject/context plus the versioned selection rules needed to construct a snapshot                                                                |
-| Result          | Eligible observed rental evidence, permitted benchmarks, relevant identity/deduplication decisions, and field-level provenance needed for reproducibility           |
-| Eligibility     | Only active, long-term, residential, positive base monthly asking rent in COP with the required built-area and provenance evidence                                  |
-| Exclusions      | Administration, utilities, variable fees, ambiguous values, stale/ineligible evidence, duplicate selections, sale offers, sale price, and any sale-price derivative |
-| Boundary        | The port may return a reason/exclusion summary. It must never add a sale-price field or a value derived from one to its result                                      |
-| ERD trace       | Identity decision/membership, deduplication selection, benchmark version, input snapshot/member, assessment, and comparable                                         |
-| Use-case trace  | Build frozen model input; create an explainable rent assessment                                                                                                     |
+| Contract aspect    | Requirement                                                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Caller             | Rent Model                                                                                                                                                  |
+| Request            | As-of date and the subject/context plus the versioned selection rules needed to construct a snapshot                                                        |
+| Result             | Rental-admissible observed evidence, permitted benchmarks, relevant identity/deduplication decisions, and field-level provenance needed for reproducibility |
+| Storage admission  | Only active, long-term, residential, positive base monthly asking rent in COP with the required built-area and provenance evidence                          |
+| Storage exclusions | Administration, utilities, variable fees, unproven or ambiguous core rent facts, sale offers, sale price, and any sale-price derivative                     |
+| Model selection    | The supplied model configuration filters dated evidence for freshness, subject exclusion, identity ambiguity, and duplicate/comparable selection            |
+| Boundary           | The port may return a reason/exclusion summary. It must never add a sale-price field or a value derived from one to its result                              |
+| ERD trace          | Identity decision/membership, deduplication selection, benchmark version, input snapshot/member, assessment, and comparable                                 |
+| Use-case trace     | Build frozen model input; create an explainable rent assessment                                                                                             |
 
-Storage, not the Rent Model, decides whether a stored observation qualifies as
-rental evidence according to the supplied versioned rules. The Rent Model then
-records the selected canonical membership in an immutable input snapshot before
-writing an assessment.
+Storage enforces the rental-only admission boundary and provides the dated
+evidence plus identity/deduplication decisions. The Rent Model's versioned
+configuration owns model selection rules, including the inclusive 180-day
+freshness rule, subject exclusion, matching, and final comparable selection.
+It records the selected canonical membership in an immutable input snapshot
+before writing an assessment.
 
 ## 4. Explorer publication and current read
 
