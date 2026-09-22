@@ -105,7 +105,7 @@ export const durableSubmissionV2Schema = z
       collected_at: instantSchema,
       request: z.strictObject({
         method: z.literal("GET"),
-        canonical_url: z.string().url(),
+        canonical_url: z.string().url().refine((value) => { const url = new URL(value); return url.protocol === "https:" && url.username === "" && url.password === "" && url.hash === ""; }, "Canonical URL must be credential-free HTTPS without fragment"),
       }),
       response: z.strictObject({
         status_code: safeNonNegativeIntegerSchema.max(599),
@@ -152,6 +152,15 @@ export const durableSubmissionV2Schema = z
       ctx.addIssue({
         code: "custom",
         message: "Outcome reference hash mismatch",
+      });
+    if (
+      (value.artifact.kind === "verified_immutable_reference" ||
+        value.artifact.kind === "staged_reference") &&
+      value.artifact.referenced_artifact_hash !== value.artifact.body_sha256
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Artifact reference hash mismatch",
       });
   });
 export const acceptedReceiptV2Schema = z.strictObject({
