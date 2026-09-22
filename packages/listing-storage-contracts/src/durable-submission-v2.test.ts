@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   acceptedSubmissionDigestV2,
   durableSubmissionV2Schema,
+  type DurableSubmissionV2,
 } from "./durable-submission-v2.js";
 import {
   runDurableSubmissionV2Conformance,
@@ -17,7 +18,7 @@ const interpretation = {
   canonical_outcome_hash: "1".repeat(64),
 };
 
-const submission = {
+const submission: DurableSubmissionV2 = {
   contract_version: "v2",
   source_key: "synthetic-source",
   submission_id: "submission-1",
@@ -230,8 +231,10 @@ describe("DurableSubmissionV2 contract", () => {
       acceptedSubmissionDigestV2({
         ...submission,
         outcome: {
-          ...submission.outcome,
+          kind: "complete",
+          outcome_kind: "capture_only",
           typed_outcome: { reason_code: "different_complete_outcome" },
+          provenance: { extraction_trace_hash: "2".repeat(64) },
         },
       }),
     ).not.toBe(acceptedSubmissionDigestV2(submission));
@@ -239,7 +242,9 @@ describe("DurableSubmissionV2 contract", () => {
       acceptedSubmissionDigestV2({
         ...submission,
         outcome: {
-          ...submission.outcome,
+          kind: "complete",
+          outcome_kind: "capture_only",
+          typed_outcome: { reason_code: "no_listing_found" },
           provenance: { extraction_trace_hash: "5".repeat(64) },
         },
       }),
