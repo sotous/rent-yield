@@ -269,3 +269,38 @@ describe("DurableSubmissionV2 contract", () => {
     ).rejects.toThrow("accepted_submission_hash");
   });
 });
+
+describe("DurableSubmissionV2 review regressions", () => {
+  it("rejects unsafe canonical capture URLs and artifact hash mismatches", () => {
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        capture: {
+          ...submission.capture,
+          request: {
+            method: "GET",
+            canonical_url: "http://fixtures.example/a",
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        artifact: {
+          ...storageReference,
+          referenced_artifact_hash: "9".repeat(64),
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("makes submitted_at deliberately excluded from accepted submission identity", () => {
+    expect(
+      acceptedSubmissionDigestV2({
+        ...submission,
+        submitted_at: "2026-09-22T12:01:00.000Z",
+      }),
+    ).toBe(acceptedSubmissionDigestV2(submission));
+  });
+});
