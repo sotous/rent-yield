@@ -137,3 +137,39 @@ require joint agreement with Data Storage before implementation.
 - Tests use frozen fixtures and injected fakes; no test contacts a live source
   or needs a database.
 - The manual canary executes only after its own explicit gates pass.
+
+## Milestone 1: V2 durable-submission contract freeze
+
+Status: active on 2026-09-22. This milestone is limited to the shared package
+`@rent-yield/listing-storage-contracts`; it does not create a crawler runtime,
+a transport, a database, or a durable Storage provider.
+
+### Deliverables
+
+- Strict V2 schemas for `DurableSubmissionV2`, `AcceptedReceiptV2`,
+  `ReceiptProgressV2`, artifact representations, and sanitized typed errors.
+- Normative rules for source-scoped idempotency, capture and interpretation
+  conflicts, and the canonical accepted-submission hash preimage.
+- Canonical test vectors and a provider-neutral conformance runner.
+
+### Agreed boundary
+
+- Idempotency is keyed by `(source_key, submission_id)`; an exact retry returns
+  the original immutable receipt.
+- Every artifact disposition includes immutable body digest and byte length,
+  including `no_retained_bytes`.
+- Any staged or verified immutable reference is opaque and Storage-issued. It is
+  bound to contract version, capture identity, interpretation identity, and its
+  outcome or artifact hash.
+- The accepted-submission hash includes command context, capture fingerprint,
+  interpretation identity, outcome/provenance or its verified reference, and
+  artifact disposition/metadata. It excludes submission ID, receipts,
+  provider-generated fields, duplicate-delivery metadata, and progress state.
+
+### Test-first validation
+
+Focused contract tests must first fail for each schema, hash inclusion/exclusion,
+artifact variant, source-scoped replay/conflict, capture conflict,
+interpretation conflict, and ordered receipt progress. The provider-neutral
+runner then executes the same vectors against a fake provider. Data Storage
+owns provider CI; Crawlers owns producer conformance and fakes.
