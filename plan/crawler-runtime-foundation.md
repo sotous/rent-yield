@@ -193,3 +193,24 @@ references, immutable receipt shape, sanitized errors, and ordered receipt
 progress. The provider-neutral runner parses strict receipts and progress and
 then executes the same vectors against a fake provider. Data Storage owns
 provider CI; Crawlers owns producer conformance and fakes.
+
+## Milestone 2: Fixture runtime preflight
+
+Status: active on 2026-09-23. This slice introduces no acquisition transport
+and performs no live or canary work. It defines the fixture-only runtime input,
+trusted methodology resolver and artifact-verification ports, runtime-owned
+opaque capture-event allocation, and the preflight boundary that rejects every
+invalid run before a fixture can be read.
+
+The command contains only an exact V2 lookup scope and a fixture identifier.
+It deliberately has no field for a methodology manifest, candidate, assessment,
+approval, artifact binding, or transport. The resolver supplies the approved
+effective manifest from trusted state. Preflight validates the manifest digest,
+the exact lookup scope, expiry, the declared fixture hash, and its pinned
+adapter/extraction/redaction/retention artifacts. It allocates a source-scoped
+opaque capture event only after all checks pass.
+
+Focused RED tests cover successful fixture preflight and invalid input,
+resolver failure, scope mismatch, expiration, artifact verification failure,
+and attempts to inject a methodology or candidate binding. The tests prove the
+allocator is never called on a failed preflight and use only injected fakes.
