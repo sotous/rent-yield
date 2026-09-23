@@ -76,17 +76,21 @@ separate plan and approval gate; all normal development remains fixture-backed.
 
 Capture identity is the runtime-allocated source-scoped pair of `source_key` and
 opaque `capture_event_id`; fixture identity is a derivative artifact and cannot
-replace it. An interpretation identity is the tuple of capture identity,
-methodology manifest hash, adapter artifact hash, parser version, normalizer
-version, and extraction-contract hash. The outcome hash is a result, not part
-of that identity.
+replace it. For durable-submission V2, interpretation identity is the six-field
+tuple of methodology manifest hash, adapter artifact hash, parser version,
+normalizer version, extraction-contract hash, and canonical outcome hash. It
+is always bound to the separate source-scoped capture identity. The accepted-
+submission hash additionally binds the complete typed outcome and provenance,
+so those values cannot silently change while retaining the same outcome hash.
 
-- Same interpretation identity and outcome hash: return existing interpretation
-  with duplicate-delivery metadata.
-- Same interpretation identity and different outcome hash: fail closed with
-  `interpretation_conflict`.
-- Changed interpretation identity for the same immutable capture: append a new
-  interpretation.
+- Exact replay under the same `(source_key, submission_id)` returns the
+  original immutable receipt.
+- A changed submission under that pair fails closed with
+  `submission_conflict`; a changed capture fingerprint under the same capture
+  identity fails closed with `capture_event_conflict`; and an incompatible
+  interpretation fails closed with `interpretation_conflict`.
+- A changed durable-submission interpretation identity for the same immutable
+  capture is a distinct submission candidate, subject to Storage conflict rules.
 
 Fixture payloads, methodologies, and declared artifacts remain hash-pinned to
 make replay and drift detection verifiable. Hashes are internal provenance
@@ -159,17 +163,33 @@ a transport, a database, or a durable Storage provider.
 - Every artifact disposition includes immutable body digest and byte length,
   including `no_retained_bytes`.
 - Any staged or verified immutable reference is opaque and Storage-issued. It is
-  bound to contract version, capture identity, interpretation identity, and its
-  outcome or artifact hash.
-- The accepted-submission hash includes command context, capture fingerprint,
-  interpretation identity, outcome/provenance or its verified reference, and
-  artifact disposition/metadata. It excludes submission ID, receipts,
-  provider-generated fields, duplicate-delivery metadata, and progress state.
+  bound to contract version, source key, capture event ID, the complete
+  six-field interpretation identity, and its outcome or artifact hash. Artifact
+  references additionally bind their declared body digest.
+- The artifact union is `inline_redacted`, `no_retained_bytes`,
+  `staged_reference`, or `verified_immutable_reference`. Every variant carries
+  media type, encoding, body SHA-256, and byte length; `no_retained_bytes`
+  omits retained bytes, never acquisition evidence. Outcomes are either the
+  complete typed outcome plus provenance or a distinct verified immutable
+  outcome reference.
+- The accepted-submission hash is the canonical durable submission after
+  validation. It includes command context, capture fingerprint, interpretation
+  identity, complete typed outcome/provenance or their verified reference, and
+  artifact disposition/metadata. It deliberately excludes `submission_id` and
+  `submitted_at`, as well as receipt/provider-generated fields,
+  duplicate-delivery metadata, and progress state. `submitted_at` records
+  delivery time and must not make an otherwise exact retry a new submission.
+- Acceptance produces an immutable `accepted` receipt. Later receipt progress
+  is append-only, ordered by a positive sequence, and has only `committed`,
+  `quarantined`, or `failed` state plus nullable sanitized code and reason.
 
 ### Test-first validation
 
-Focused contract tests must first fail for each schema, hash inclusion/exclusion,
-artifact variant, source-scoped replay/conflict, capture conflict,
-interpretation conflict, and ordered receipt progress. The provider-neutral
-runner then executes the same vectors against a fake provider. Data Storage
-owns provider CI; Crawlers owns producer conformance and fakes.
+Focused contract tests must first fail for each schema, hash inclusion/exclusion
+(including deliberate `submitted_at` exclusion), all four artifact variants,
+complete and verified-reference outcomes, source-scoped replay/conflict,
+capture conflict, interpretation conflict, rejected mismatched or untrusted
+references, immutable receipt shape, sanitized errors, and ordered receipt
+progress. The provider-neutral runner parses strict receipts and progress and
+then executes the same vectors against a fake provider. Data Storage owns
+provider CI; Crawlers owns producer conformance and fakes.

@@ -118,7 +118,7 @@ and fixture identities when they exist. A changed fingerprint for the same
 capture identity is `capture_event_conflict`. A new event ID is a new historical
 capture even when bytes are identical.
 
-Interpretation identity is:
+The durable-submission V2 interpretation identity is:
 
 ```text
 capture identity
@@ -127,17 +127,22 @@ capture identity
 + parser version
 + normalizer version
 + extraction-contract hash
++ canonical outcome hash
 ```
 
-The canonical outcome hash verifies the result and is not part of interpretation
-identity. A methodology-only change creates a distinct interpretation.
+It is bound to the separate source-scoped capture identity. The canonical
+outcome hash identifies the declared outcome. The accepted-submission hash also
+binds complete typed outcome and provenance, so neither can change silently
+while retaining the same canonical outcome hash. A methodology-only change
+creates a distinct interpretation.
 
-| Existing interpretation        | Incoming outcome       | Required behavior                                                    |
-| ------------------------------ | ---------------------- | -------------------------------------------------------------------- |
-| No matching identity           | Any valid outcome      | Append a new interpretation.                                         |
-| Same identity                  | Same outcome hash      | Return the existing interpretation with duplicate-delivery metadata. |
-| Same identity                  | Different outcome hash | Fail closed with `interpretation_conflict`.                          |
-| Same capture, changed identity | Any valid outcome      | Append a distinct interpretation.                                    |
+| Existing durable submission                              | Incoming submission | Required behavior                                                   |
+| -------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| Same `(source_key, submission_id)` and canonical payload | Exact replay        | Return the original immutable receipt.                              |
+| Same `(source_key, submission_id)` and changed payload   | Any change          | Fail closed with `submission_conflict`.                             |
+| Same capture identity and changed capture fingerprint    | Any submission      | Fail closed with `capture_event_conflict`.                          |
+| Incompatible interpretation binding                      | Any submission      | Fail closed with `interpretation_conflict`.                         |
+| Same capture and changed V2 interpretation identity      | Valid submission    | A distinct submission candidate, subject to Storage conflict rules. |
 
 ## Runtime outcomes and health
 
@@ -165,27 +170,58 @@ and never claims that the event was delivered.
 
 ## Data Storage boundary
 
-The runtime does not directly write databases or objects. It submits a versioned
-durable-ingestion submission containing:
+The runtime does not directly write databases or objects. It submits a strict
+`DurableSubmissionV2` containing command context; the complete source-scoped
+capture fingerprint; the six-field V2 interpretation identity; and an outcome
+and artifact variant.
 
-- context and capture identity/fingerprint;
-- all six interpretation-identity fields and canonical outcome hash;
-- runtime outcome kind plus either complete typed outcome/provenance or a
-  verified immutable Storage reference; and
-- fixture/artifact representation and retention disposition, with permitted
-  bytes or a Storage-issued staged-artifact reference plus media, encoding,
-  digest, and length.
+The outcome is either a complete typed outcome plus provenance or a
+`verified_immutable_outcome_reference`. The artifact is exactly one of:
 
-A staged reference is opaque and cannot be invented by the runtime. Original
-bytes require explicit policy approval; the first canary supplies only a
-redacted fixture and discards originals.
+- `inline_redacted`, carrying bounded permitted redacted bytes;
+- `no_retained_bytes`, carrying an explicit disposition but no retained bytes;
+- `staged_reference`, an opaque Storage-issued reference; or
+- `verified_immutable_reference`, an opaque Storage-issued artifact reference.
+
+Every artifact variant, including `no_retained_bytes`, carries media type,
+encoding, immutable body SHA-256, and body byte length. The absent bytes in
+`no_retained_bytes` never excuse omission of the capture evidence used for
+conflict detection. Original bytes require explicit policy approval; the first
+canary supplies only a redacted fixture and discards originals.
+
+All outcome and artifact references are Storage-issued and opaque. They bind
+the V2 contract version, `source_key`, `capture_event_id`, the complete
+interpretation identity, and their relevant canonical outcome or artifact hash.
+An artifact reference must also bind the same body SHA-256 declared by the
+artifact. The runtime cannot substitute an external reference, object key, or a
+reference bound to another source, capture, interpretation, contract, or hash.
+
+Idempotency is scoped to `(source_key, submission_id)`. An exact retry returns
+the original immutable `AcceptedReceiptV2`; a changed payload under that pair
+is `submission_conflict`. A changed fingerprint for the same capture is
+`capture_event_conflict`, and incompatible interpretation binding is
+`interpretation_conflict`.
+
+The canonical accepted-submission hash is computed after strict validation. Its
+preimage includes command context, complete capture fingerprint, interpretation
+identity, complete typed outcome/provenance or their verified outcome reference,
+and artifact disposition/metadata. It deliberately excludes `submission_id`
+and `submitted_at`: `submitted_at` records delivery time and must not turn an
+otherwise exact retry into a new accepted submission. Receipt IDs, acceptance
+time, duplicate-delivery status, provider-generated fields, and all progress
+are also outside the preimage.
 
 Storage issues an immutable `accepted` receipt only when it can recover the
-submission. Later append-only storage progress is separate: `normalized`
-typically becomes `committed`; `quarantined` and `parse_failed` become storage
-`quarantined`; `capture_only` may become `committed` but is never model evidence;
-and finalization failure becomes `failed`. A post-acceptance storage failure
-does not create a second runtime outcome.
+submission. The receipt binds contract version, receipt ID, source and
+submission identities, capture event ID, accepted-submission hash, acceptance
+time, and duplicate-delivery status. Later `ReceiptProgressV2` is separate and
+append-only: each event has a strictly increasing positive sequence and one of
+`committed`, `quarantined`, or `failed`, with nullable sanitized code and
+reason. `normalized` typically becomes `committed`; `quarantined` and
+`parse_failed` become storage `quarantined`; `capture_only` may become
+`committed` but is never model evidence; and finalization failure becomes
+`failed`. A post-acceptance storage failure does not create a second runtime
+outcome.
 
 ## Validation
 
@@ -198,10 +234,15 @@ prove:
   handoff, and originals are discarded on every terminal path;
 - identical explicit inputs produce identical derived artifact, interpretation,
   provenance, and outcome hashes;
-- capture conflict, duplicate delivery, changed outcome under the same identity,
-  and every changed interpretation-identity component have specified outcomes;
-- receipt acceptance/progress, pre-acceptance `storage_unavailable`, artifact
-  representation, and retention disposition conform to shared vectors;
+- source-scoped exact replay, changed-payload `submission_conflict`, capture
+  conflict, interpretation conflict, and every changed interpretation-identity
+  component have specified outcomes;
+- all four artifact variants, outcome-reference and artifact-reference binding,
+  untrusted/mismatched-reference rejection, receipt acceptance/progress, and
+  pre-acceptance `storage_unavailable` conform to shared vectors;
+- receipt/progress and typed errors are strictly parsed; progress ordering and
+  sanitized nullable code/reason are enforced; and accepted-submission hash
+  vectors prove its required inclusions and deliberate `submitted_at` exclusion;
 - sale/rent separation, fee/area/date ambiguity, and rental-evidence quarantine
   remain intact; and
 - no fixture test performs live access or requires a database.
