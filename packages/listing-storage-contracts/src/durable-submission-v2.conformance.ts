@@ -33,7 +33,10 @@ export interface DurableSubmissionV2Provider {
 const isError = (value: unknown): value is DurableSubmissionV2Error =>
   typeof value === "object" && value !== null && "code" in value;
 
-function parseAccepted(value: unknown, input: DurableSubmissionV2): AcceptedReceiptV2 {
+function parseAccepted(
+  value: unknown,
+  input: DurableSubmissionV2,
+): AcceptedReceiptV2 {
   if (isError(value)) {
     const error = durableSubmissionV2ErrorSchema.parse(value);
     throw new Error(`unexpected provider error: ${error.code}`);
@@ -51,7 +54,10 @@ function parseAccepted(value: unknown, input: DurableSubmissionV2): AcceptedRece
   return receipt;
 }
 
-function rekey(input: DurableSubmissionV2, suffix: string): DurableSubmissionV2 {
+function rekey(
+  input: DurableSubmissionV2,
+  suffix: string,
+): DurableSubmissionV2 {
   const capture_event_id = `capture-${suffix}`;
   const updateBinding = <T extends Record<string, unknown>>(binding: T): T => ({
     ...binding,
@@ -83,7 +89,8 @@ async function expectError(
   const value = await provider.accept(input);
   if (!isError(value)) throw new Error(`expected ${code}`);
   const error = durableSubmissionV2ErrorSchema.parse(value);
-  if (error.code !== code) throw new Error(`expected ${code}, got ${error.code}`);
+  if (error.code !== code)
+    throw new Error(`expected ${code}, got ${error.code}`);
 }
 
 async function assertProgress(
@@ -96,7 +103,9 @@ async function assertProgress(
   for (const event of raw) {
     const parsed: ReceiptProgressV2 = receiptProgressV2Schema.parse(event);
     if (parsed.receipt_id !== receipt.receipt_id || parsed.sequence <= previous)
-      throw new Error("receipt progress must be ordered and bound to its receipt");
+      throw new Error(
+        "receipt progress must be ordered and bound to its receipt",
+      );
     previous = parsed.sequence;
   }
 }
@@ -113,7 +122,8 @@ export async function runDurableSubmissionV2Conformance(
   for (const [index, vector] of acceptanceVectors.entries()) {
     const input = rekey(vector, `artifact-${index + 1}`);
     const first = parseAccepted(await provider.accept(input), input);
-    if (first.duplicate_delivery) throw new Error("first acceptance marked duplicate");
+    if (first.duplicate_delivery)
+      throw new Error("first acceptance marked duplicate");
     const retry = parseAccepted(await provider.accept(input), input);
     if (
       retry.receipt_id !== first.receipt_id ||

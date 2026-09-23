@@ -93,7 +93,8 @@ function memoryProvider(): DurableSubmissionV2Provider {
       const key = `${input.source_key}:${input.submission_id}`;
       const hash = acceptedSubmissionDigestV2(input);
       const existing = receipts.get(key);
-      if (existing && existing.hash !== hash) return { code: "submission_conflict" };
+      if (existing && existing.hash !== hash)
+        return { code: "submission_conflict" };
       const captureKey = `${input.source_key}:${input.capture.capture_event_id}`;
       const captureFingerprint = JSON.stringify({
         request: input.capture.request,
@@ -109,13 +110,17 @@ function memoryProvider(): DurableSubmissionV2Provider {
       const interpretationKey = `${captureKey}:${JSON.stringify(input.interpretation)}`;
       if (
         [...interpretations].some(
-          (known) => known.startsWith(`${captureKey}:`) && known !== interpretationKey,
+          (known) =>
+            known.startsWith(`${captureKey}:`) && known !== interpretationKey,
         )
       )
         return { code: "interpretation_conflict" };
       captures.set(captureKey, captureFingerprint);
       interpretations.add(interpretationKey);
-      const receipt = existing ?? { hash, receipt_id: `receipt-${receipts.size + 1}` };
+      const receipt = existing ?? {
+        hash,
+        receipt_id: `receipt-${receipts.size + 1}`,
+      };
       receipts.set(key, receipt);
       return {
         contract_version: "v2",
