@@ -279,3 +279,16 @@ export const acceptedSubmissionDigestV2Vectors = {
   included_interpretation:
     durableSubmissionV2IdempotencyVectors.interpretation_conflict,
 } as const;
+
+export const durableSubmissionV2RejectedInlineArtifactVector: DurableSubmissionV2 =
+  {
+    ...durableSubmissionV2ArtifactVectors[1]!,
+    artifact: {
+      kind: "inline_redacted",
+      bytes: "{}",
+      media_type: "application/json",
+      encoding: "utf-8",
+      body_sha256: "a".repeat(64),
+      body_byte_length: 120,
+    },
+  };

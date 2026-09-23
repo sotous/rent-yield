@@ -99,6 +99,7 @@ async function assertProgress(
 ): Promise<void> {
   const raw = await provider.progress(receipt.receipt_id);
   if (!Array.isArray(raw)) throw new Error("receipt progress must be an array");
+  if (raw.length > 1) throw new Error("receipt progress is terminal");
   let previous = 0;
   for (const event of raw) {
     const parsed: ReceiptProgressV2 = receiptProgressV2Schema.parse(event);
@@ -175,14 +176,23 @@ export async function runDurableSubmissionV2Conformance(
     }),
     "capture_event_conflict",
   );
+  const reinterpretation = durableSubmissionV2Schema.parse({
+    ...base,
+    submission_id: "submission-reinterpretation",
+    interpretation: { ...base.interpretation, parser_version: "parser-v3" },
+  });
+  parseAccepted(await provider.accept(reinterpretation), reinterpretation);
   await expectError(
     provider,
     durableSubmissionV2Schema.parse({
       ...base,
       submission_id: "submission-interpretation-conflict",
-      interpretation: {
-        ...base.interpretation,
-        parser_version: "parser-v3",
+      outcome: {
+        kind: "complete",
+        canonical_outcome_hash: "9".repeat(64),
+        outcome_kind: "capture_only",
+        typed_outcome: { reason_code: "changed-hash" },
+        provenance: { extraction_trace_hash: "2".repeat(64) },
       },
     }),
     "interpretation_conflict",
