@@ -307,5 +307,66 @@ describe("DurableSubmissionV2 review regressions", () => {
 
 import { durableSubmissionV2ArtifactVectors } from "./durable-submission-v2.vectors.js";
 it("accepts all canonical artifact vectors", () => {
-  for (const vector of durableSubmissionV2ArtifactVectors) expect(durableSubmissionV2Schema.safeParse(vector).success).toBe(true);
+  for (const vector of durableSubmissionV2ArtifactVectors)
+    expect(durableSubmissionV2Schema.safeParse(vector).success).toBe(true);
+});
+
+import {
+  acceptedReceiptV2Schema,
+  durableSubmissionV2ErrorSchema,
+  receiptProgressV2Schema,
+} from "./durable-submission-v2.js";
+describe("DurableSubmissionV2 canonical rejection vectors", () => {
+  it("rejects untrusted and mismatched references", () => {
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        artifact: { ...storageReference, issuer: "external" },
+      }).success,
+    ).toBe(false);
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        artifact: { ...storageReference, source_key: "other-source" },
+      }).success,
+    ).toBe(false);
+  });
+  it("requires strict accepted receipts and ordered sanitized progress", () => {
+    expect(
+      acceptedReceiptV2Schema.safeParse({
+        contract_version: "v2",
+        receipt_id: "r",
+        source_key: "s",
+        submission_id: "i",
+        capture_event_id: "c",
+        accepted_submission_hash: "a".repeat(64),
+        accepted_at: "2026-09-23T00:00:00.000Z",
+        state: "accepted",
+        duplicate_delivery: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      receiptProgressV2Schema.safeParse({
+        contract_version: "v2",
+        receipt_id: "r",
+        sequence: 1,
+        occurred_at: "2026-09-23T00:00:00.000Z",
+        state: "committed",
+        code: null,
+        reason: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      durableSubmissionV2ErrorSchema.safeParse({
+        code: "submission_conflict",
+        message: "sanitized",
+      }).success,
+    ).toBe(true);
+    expect(
+      durableSubmissionV2ErrorSchema.safeParse({
+        code: "submission_conflict",
+        body: "leak",
+      }).success,
+    ).toBe(false);
+  });
 });
