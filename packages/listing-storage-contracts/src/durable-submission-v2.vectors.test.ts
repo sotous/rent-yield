@@ -89,3 +89,12 @@ describe("DurableSubmissionV2 canonical vectors", () => {
       expect(acceptedSubmissionDigestV2(vector)).not.toBe(baseline);
   });
 });
+
+import { durableSubmissionV2RejectedInlineArtifactVector } from "./durable-submission-v2.vectors.js";
+it("rejects inline bytes whose digest and length do not match metadata", () => {
+  expect(
+    durableSubmissionV2Schema.safeParse(
+      durableSubmissionV2RejectedInlineArtifactVector,
+    ).success,
+  ).toBe(false);
+});

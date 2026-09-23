@@ -87,7 +87,7 @@ const storageReference = {
 function memoryProvider(): DurableSubmissionV2Provider {
   const receipts = new Map<string, { hash: string; receipt_id: string }>();
   const captures = new Map<string, string>();
-  const interpretations = new Set<string>();
+  const interpretations = new Map<string, string>();
   return {
     accept: async (input) => {
       const key = `${input.source_key}:${input.submission_id}`;
@@ -108,15 +108,15 @@ function memoryProvider(): DurableSubmissionV2Provider {
       if (knownCapture && knownCapture !== captureFingerprint)
         return { code: "capture_event_conflict" };
       const interpretationKey = `${captureKey}:${JSON.stringify(input.interpretation)}`;
-      if (
-        [...interpretations].some(
-          (known) =>
-            known.startsWith(`${captureKey}:`) && known !== interpretationKey,
-        )
-      )
+      const outcomeHash =
+        input.outcome.kind === "complete"
+          ? input.outcome.canonical_outcome_hash
+          : input.outcome.reference.referenced_outcome_hash;
+      const knownOutcome = interpretations.get(interpretationKey);
+      if (knownOutcome && knownOutcome !== outcomeHash)
         return { code: "interpretation_conflict" };
       captures.set(captureKey, captureFingerprint);
-      interpretations.add(interpretationKey);
+      interpretations.set(interpretationKey, outcomeHash);
       const receipt = existing ?? {
         hash,
         receipt_id: `receipt-${receipts.size + 1}`,
