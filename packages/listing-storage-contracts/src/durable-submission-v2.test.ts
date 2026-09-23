@@ -86,18 +86,36 @@ const storageReference = {
 
 function memoryProvider(): DurableSubmissionV2Provider {
   const receipts = new Map<string, { hash: string; receipt_id: string }>();
+  const captures = new Map<string, string>();
+  const interpretations = new Set<string>();
   return {
     accept: async (input) => {
       const key = `${input.source_key}:${input.submission_id}`;
       const hash = acceptedSubmissionDigestV2(input);
       const existing = receipts.get(key);
-      if (existing && existing.hash !== hash) {
-        return { code: "submission_conflict" };
-      }
-      const receipt = existing ?? {
-        hash,
-        receipt_id: `receipt-${receipts.size + 1}`,
-      };
+      if (existing && existing.hash !== hash) return { code: "submission_conflict" };
+      const captureKey = `${input.source_key}:${input.capture.capture_event_id}`;
+      const captureFingerprint = JSON.stringify({
+        request: input.capture.request,
+        response: input.capture.response,
+        methodology_manifest_hash: input.capture.methodology_manifest_hash,
+        policy_hash: input.capture.policy_hash,
+        retention_policy_hash: input.capture.retention_policy_hash,
+        redaction_policy_hash: input.capture.redaction_policy_hash,
+      });
+      const knownCapture = captures.get(captureKey);
+      if (knownCapture && knownCapture !== captureFingerprint)
+        return { code: "capture_event_conflict" };
+      const interpretationKey = `${captureKey}:${JSON.stringify(input.interpretation)}`;
+      if (
+        [...interpretations].some(
+          (known) => known.startsWith(`${captureKey}:`) && known !== interpretationKey,
+        )
+      )
+        return { code: "interpretation_conflict" };
+      captures.set(captureKey, captureFingerprint);
+      interpretations.add(interpretationKey);
+      const receipt = existing ?? { hash, receipt_id: `receipt-${receipts.size + 1}` };
       receipts.set(key, receipt);
       return {
         contract_version: "v2",
