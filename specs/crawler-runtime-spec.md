@@ -129,11 +129,12 @@ capture identity
 + extraction-contract hash
 ```
 
-It is bound to the separate source-scoped capture identity. The canonical
-outcome hash identifies the declared outcome. The accepted-submission hash also
-binds complete typed outcome and provenance, so neither can change silently
-while retaining the same canonical outcome hash. A methodology-only change
-creates a distinct interpretation.
+It is bound to the separate source-scoped capture identity. For a complete
+outcome, the canonical outcome hash is derived from outcome kind, typed outcome,
+and provenance; it cannot be supplied independently. The accepted-submission
+hash also binds that verified outcome, so neither typed outcome nor provenance
+can change silently. A methodology-only change creates a distinct
+interpretation.
 
 | Existing durable submission                              | Incoming submission | Required behavior                                                   |
 | -------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
@@ -177,7 +178,8 @@ and artifact variant.
 The outcome is either a complete typed outcome plus provenance or a
 `verified_immutable_outcome_reference`. The artifact is exactly one of:
 
-- `inline_redacted`, carrying bounded permitted redacted bytes;
+- `inline_redacted`, carrying at most 65,536 UTF-8 bytes of permitted redacted
+  material;
 - `no_retained_bytes`, carrying an explicit disposition but no retained bytes;
 - `staged_reference`, an opaque Storage-issued reference; or
 - `verified_immutable_reference`, an opaque Storage-issued artifact reference.
@@ -189,11 +191,12 @@ conflict detection. Original bytes require explicit policy approval; the first
 canary supplies only a redacted fixture and discards originals.
 
 All outcome and artifact references are Storage-issued and opaque. They bind
-the V2 contract version, `source_key`, `capture_event_id`, the complete
-interpretation identity, and their relevant canonical outcome or artifact hash.
-An artifact reference must also bind the same body SHA-256 declared by the
-artifact. The runtime cannot substitute an external reference, object key, or a
-reference bound to another source, capture, interpretation, contract, or hash.
+the V2 contract version, `source_key`, `capture_event_id`, retention-policy
+hash, the complete interpretation identity, and their relevant canonical outcome
+or artifact hash. An artifact reference also binds body SHA-256, byte length,
+media type, and encoding. The runtime cannot substitute an external reference,
+object key, or a reference bound to another source, capture, retention policy,
+interpretation, contract, hash, or artifact-evidence value.
 
 Idempotency is scoped to `(source_key, submission_id)`. An exact retry returns
 the original immutable `AcceptedReceiptV2`; a changed payload under that pair
@@ -236,9 +239,11 @@ prove:
 - source-scoped exact replay, changed-payload `submission_conflict`, capture
   conflict, interpretation conflict, and every changed interpretation-identity
   component have specified outcomes;
-- all four artifact variants, outcome-reference and artifact-reference binding,
-  untrusted/mismatched-reference rejection, receipt acceptance/progress, and
-  pre-acceptance `storage_unavailable` conform to shared vectors;
+- all four artifact variants, the 65,536-byte UTF-8 inline boundary,
+  outcome-reference and artifact-reference binding, and unknown, stale, or
+  mismatched-reference rejection conform to shared vectors; conformance-only
+  fixtures seed and invalidate provider-owned references without extending the
+  production provider port;
 - receipt/progress and typed errors are strictly parsed; progress ordering and
   sanitized nullable code/reason are enforced; and accepted-submission hash
   vectors prove its required inclusions and deliberate `submitted_at` exclusion;

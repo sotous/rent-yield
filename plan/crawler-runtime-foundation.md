@@ -144,7 +144,7 @@ require joint agreement with Data Storage before implementation.
 
 ## Milestone 1: V2 durable-submission contract freeze
 
-Status: active on 2026-09-22. This milestone is limited to the shared package
+Status: completed on 2026-09-23. This milestone is limited to the shared package
 `@rent-yield/listing-storage-contracts`; it does not create a crawler runtime,
 a transport, a database, or a durable Storage provider.
 
@@ -162,13 +162,18 @@ a transport, a database, or a durable Storage provider.
   the original immutable receipt.
 - Every artifact disposition includes immutable body digest and byte length,
   including `no_retained_bytes`.
+- A complete outcome hash is derived canonically from outcome kind, typed outcome,
+  and provenance; a caller cannot retain a hash while changing those values.
 - Any staged or verified immutable reference is opaque and Storage-issued. It is
-  bound to contract version, source key, capture event ID, the complete
-  five-field interpretation identity, and its outcome or artifact hash. Artifact
-  references additionally bind their declared body digest.
+  bound to contract version, source key, capture event ID, retention-policy hash,
+  the complete five-field interpretation identity, and its outcome or artifact
+  hash. Artifact references additionally bind body digest, byte length, media
+  type, and encoding.
 - The artifact union is `inline_redacted`, `no_retained_bytes`,
   `staged_reference`, or `verified_immutable_reference`. Every variant carries
-  media type, encoding, body SHA-256, and byte length; `no_retained_bytes`
+  media type, encoding, body SHA-256, and byte length. `inline_redacted` is
+  limited to 65,536 UTF-8 bytes; larger safe material uses an opaque reference.
+  `no_retained_bytes`
   omits retained bytes, never acquisition evidence. Outcomes are either the
   complete typed outcome plus provenance or a distinct verified immutable
   outcome reference.
@@ -191,8 +196,21 @@ complete and verified-reference outcomes, source-scoped replay/conflict,
 capture conflict, interpretation conflict, rejected mismatched or untrusted
 references, immutable receipt shape, sanitized errors, and ordered receipt
 progress. The provider-neutral runner parses strict receipts and progress and
-then executes the same vectors against a fake provider. Data Storage owns
-provider CI; Crawlers owns producer conformance and fakes.
+then executes the same vectors against a fake provider. Reference vectors use a
+conformance-only fixture adapter that seeds and invalidates exact provider-owned
+bindings; it proves unknown, stale, and metadata-mismatched references fail
+closed without adding issuance to the production provider port. Data Storage
+owns provider CI; Crawlers owns producer conformance and fakes.
+
+### Retrospective
+
+The shared V2 boundary is complete without introducing a durable provider or
+live acquisition. Joint review tightened the outcome and reference integrity
+rules beyond schema shape alone: outcomes are derived, references are seeded
+and binding-verified, and inline artifacts have a wire-size ceiling. The runner
+now proves provider-neutral contract behavior only; it is not evidence that a
+database, object store, or live canary is ready. The next iteration remains the
+separately scoped fixture runtime and provider-harness work.
 
 ## Milestone 2: Fixture runtime preflight
 
