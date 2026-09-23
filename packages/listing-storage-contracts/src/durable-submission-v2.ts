@@ -11,6 +11,7 @@ import {
 } from "./primitives.js";
 
 const v2 = z.literal("v2");
+export const MAX_INLINE_REDACTED_BYTES_V2 = 65_536;
 const identitySchema = z.strictObject({
   source_key: identifierSchema,
   capture_event_id: identifierSchema,
@@ -33,6 +34,7 @@ const referenceBindingSchema = z.strictObject({
   contract_version: v2,
   source_key: identifierSchema,
   capture_event_id: identifierSchema,
+  retention_policy_hash: sha256Schema,
   interpretation: interpretationIdentityV2Schema,
 });
 const artifactReferenceSchema = z.strictObject({
@@ -86,6 +88,22 @@ const outcomeSchema = z.discriminatedUnion("kind", [
     reference: outcomeReferenceSchema,
   }),
 ]);
+export function canonicalOutcomeDigestV2(input: {
+  outcome_kind: "normalized" | "quarantined" | "parse_failed" | "capture_only";
+  typed_outcome: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+}): string {
+  return createHash("sha256")
+    .update(
+      canonicalJson({
+        outcome_kind: input.outcome_kind,
+        typed_outcome: input.typed_outcome,
+        provenance: input.provenance,
+      }),
+      "utf8",
+    )
+    .digest("hex");
+}
 export const durableSubmissionV2Schema = z
   .strictObject({
     contract_version: v2,
@@ -151,6 +169,8 @@ export const durableSubmissionV2Schema = z
         binding &&
         (binding.source_key !== value.source_key ||
           binding.capture_event_id !== value.capture.capture_event_id ||
+          binding.retention_policy_hash !==
+            value.capture.retention_policy_hash ||
           canonicalJson(binding.interpretation) !==
             canonicalJson(value.interpretation))
       )
@@ -158,6 +178,19 @@ export const durableSubmissionV2Schema = z
           code: "custom",
           message: "Storage reference binding mismatch",
         });
+    if (
+      (value.artifact.kind === "verified_immutable_reference" ||
+        value.artifact.kind === "staged_reference") &&
+      (value.artifact.media_type !== value.capture.response.media_type ||
+        value.artifact.encoding !== value.capture.response.content_encoding ||
+        value.artifact.body_sha256 !== value.capture.response.body_sha256 ||
+        value.artifact.body_byte_length !==
+          value.capture.response.body_byte_length)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Artifact reference evidence mismatch",
+      });
     if (value.artifact.kind === "inline_redacted") {
       const bytes = Buffer.from(value.artifact.bytes, "utf8");
       const digest = createHash("sha256").update(bytes).digest("hex");
@@ -169,7 +202,24 @@ export const durableSubmissionV2Schema = z
           code: "custom",
           message: "Inline artifact metadata mismatch",
         });
+      if (
+        bytes.byteLength > MAX_INLINE_REDACTED_BYTES_V2 ||
+        value.artifact.body_byte_length > MAX_INLINE_REDACTED_BYTES_V2
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Inline artifact exceeds maximum byte length",
+        });
     }
+    if (
+      value.outcome.kind === "complete" &&
+      value.outcome.canonical_outcome_hash !==
+        canonicalOutcomeDigestV2(value.outcome)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Complete outcome hash mismatch",
+      });
     if (
       (value.artifact.kind === "verified_immutable_reference" ||
         value.artifact.kind === "staged_reference") &&

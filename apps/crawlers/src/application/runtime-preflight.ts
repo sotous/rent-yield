@@ -63,12 +63,14 @@ export type FixturePreflightError =
   | { code: "invalid_command" }
   | { code: "methodology_not_found" }
   | { code: "methodology_not_approved" }
+  | { code: "methodology_resolution_unavailable" }
   | { code: "methodology_ambiguous" }
   | { code: "methodology_integrity_mismatch" }
   | { code: "methodology_scope_mismatch" }
   | { code: "methodology_expired" }
   | { code: "fixture_not_approved" }
   | { code: "artifact_verification_failed" }
+  | { code: "artifact_verification_unavailable" }
   | { code: "capture_event_allocation_failed" };
 
 export type FixturePreflightResult =
@@ -122,9 +124,15 @@ export async function preflightFixtureRun(
   const parsed = fixtureRunCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: { code: "invalid_command" } };
   const command = parsed.data;
-  const resolution = await dependencies.methodologyResolver.resolve(
-    command.lookup,
-  );
+  let resolution: MethodologyResolution;
+  try {
+    resolution = await dependencies.methodologyResolver.resolve(command.lookup);
+  } catch {
+    return {
+      ok: false,
+      error: { code: "methodology_resolution_unavailable" },
+    };
+  }
   if (resolution.kind !== "resolved") return resolverFailure(resolution);
 
   if (!methodologyManifestV2Schema.safeParse(resolution.manifest).success)
@@ -141,11 +149,16 @@ export async function preflightFixtureRun(
   if (!resolution.manifest.fixture_hashes.includes(command.fixture_hash))
     return { ok: false, error: { code: "fixture_not_approved" } };
 
-  const artifacts = await dependencies.artifactVerifier.verify({
-    manifest_hash: resolution.manifest_hash,
-    manifest: resolution.manifest,
-    fixture_hash: command.fixture_hash,
-  });
+  let artifacts: Awaited<ReturnType<RuntimeArtifactVerifier["verify"]>>;
+  try {
+    artifacts = await dependencies.artifactVerifier.verify({
+      manifest_hash: resolution.manifest_hash,
+      manifest: resolution.manifest,
+      fixture_hash: command.fixture_hash,
+    });
+  } catch {
+    return { ok: false, error: { code: "artifact_verification_unavailable" } };
+  }
   if (!artifacts.ok)
     return { ok: false, error: { code: "artifact_verification_failed" } };
 

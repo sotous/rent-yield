@@ -1,5 +1,6 @@
 import {
   acceptedSubmissionDigestV2,
+  canonicalOutcomeDigestV2,
   acceptedReceiptV2Schema,
   durableSubmissionV2ErrorSchema,
   durableSubmissionV2Schema,
@@ -152,7 +153,11 @@ export async function runDurableSubmissionV2Conformance(
       ...base,
       outcome: {
         kind: "complete",
-        canonical_outcome_hash: "1".repeat(64),
+        canonical_outcome_hash: canonicalOutcomeDigestV2({
+          outcome_kind: "capture_only",
+          typed_outcome: { reason_code: "changed" },
+          provenance: { extraction_trace_hash: "3".repeat(64) },
+        }),
         outcome_kind: "capture_only",
         typed_outcome: { reason_code: "changed" },
         provenance: { extraction_trace_hash: "3".repeat(64) },
@@ -189,7 +194,11 @@ export async function runDurableSubmissionV2Conformance(
       submission_id: "submission-interpretation-conflict",
       outcome: {
         kind: "complete",
-        canonical_outcome_hash: "9".repeat(64),
+        canonical_outcome_hash: canonicalOutcomeDigestV2({
+          outcome_kind: "capture_only",
+          typed_outcome: { reason_code: "changed-hash" },
+          provenance: { extraction_trace_hash: "2".repeat(64) },
+        }),
         outcome_kind: "capture_only",
         typed_outcome: { reason_code: "changed-hash" },
         provenance: { extraction_trace_hash: "2".repeat(64) },

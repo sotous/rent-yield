@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   acceptedSubmissionDigestV2,
+  canonicalOutcomeDigestV2,
   durableSubmissionV2Schema,
+  MAX_INLINE_REDACTED_BYTES_V2,
   type DurableSubmissionV2,
 } from "./durable-submission-v2.js";
 import {
@@ -16,6 +19,15 @@ const interpretation = {
   normalizer_version: "normalizer-v2",
   extraction_contract_hash: "0".repeat(64),
 };
+const completeOutcomeHash = (
+  typed_outcome: Record<string, unknown>,
+  provenance: Record<string, unknown>,
+) =>
+  canonicalOutcomeDigestV2({
+    outcome_kind: "capture_only",
+    typed_outcome,
+    provenance,
+  });
 
 const submission: DurableSubmissionV2 = {
   contract_version: "v2",
@@ -54,7 +66,10 @@ const submission: DurableSubmissionV2 = {
   interpretation,
   outcome: {
     kind: "complete",
-    canonical_outcome_hash: "1".repeat(64),
+    canonical_outcome_hash: completeOutcomeHash(
+      { reason_code: "no_listing_found" },
+      { extraction_trace_hash: "2".repeat(64) },
+    ),
     outcome_kind: "capture_only",
     typed_outcome: { reason_code: "no_listing_found" },
     provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -76,6 +91,7 @@ const storageReference = {
   contract_version: "v2",
   source_key: "synthetic-source",
   capture_event_id: "capture-1",
+  retention_policy_hash: "d".repeat(64),
   interpretation,
   referenced_artifact_hash: "a".repeat(64),
   media_type: "application/json",
@@ -139,6 +155,52 @@ function memoryProvider(): DurableSubmissionV2Provider {
 }
 
 describe("DurableSubmissionV2 contract", () => {
+  it("derives complete outcome identity and bounds inline UTF-8 bytes", () => {
+    const outcome = submission.outcome;
+    if (outcome.kind !== "complete") throw new Error("expected complete");
+    expect(canonicalOutcomeDigestV2(outcome)).toBe(
+      outcome.canonical_outcome_hash,
+    );
+    const emoji = "é".repeat(Math.floor(MAX_INLINE_REDACTED_BYTES_V2 / 2));
+    const bytes = Buffer.byteLength(emoji, "utf8");
+    expect(bytes).toBe(MAX_INLINE_REDACTED_BYTES_V2);
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        artifact: {
+          kind: "inline_redacted",
+          bytes: emoji,
+          media_type: "text/plain",
+          encoding: "utf-8",
+          body_sha256: createHash("sha256").update(emoji).digest("hex"),
+          body_byte_length: bytes,
+        },
+      }).success,
+    ).toBe(true);
+    const tooLarge = `${emoji}x`;
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        artifact: {
+          kind: "inline_redacted",
+          bytes: tooLarge,
+          media_type: "text/plain",
+          encoding: "utf-8",
+          body_sha256: createHash("sha256").update(tooLarge).digest("hex"),
+          body_byte_length: Buffer.byteLength(tooLarge, "utf8"),
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      durableSubmissionV2Schema.safeParse({
+        ...submission,
+        outcome: {
+          ...outcome,
+          typed_outcome: { reason_code: "mutated-with-old-hash" },
+        },
+      }).success,
+    ).toBe(false);
+  });
   it("uses source-scoped submission idempotency", () => {
     expect(durableSubmissionV2Schema.safeParse(submission).success).toBe(true);
     expect(
@@ -205,6 +267,7 @@ describe("DurableSubmissionV2 contract", () => {
       contract_version: "v2",
       source_key: "synthetic-source",
       capture_event_id: "capture-1",
+      retention_policy_hash: "d".repeat(64),
       interpretation,
       referenced_outcome_hash: "1".repeat(64),
     };
@@ -252,7 +315,10 @@ describe("DurableSubmissionV2 contract", () => {
         ...submission,
         outcome: {
           kind: "complete",
-          canonical_outcome_hash: "1".repeat(64),
+          canonical_outcome_hash: completeOutcomeHash(
+            { reason_code: "different_complete_outcome" },
+            { extraction_trace_hash: "2".repeat(64) },
+          ),
           outcome_kind: "capture_only",
           typed_outcome: { reason_code: "different_complete_outcome" },
           provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -264,7 +330,10 @@ describe("DurableSubmissionV2 contract", () => {
         ...submission,
         outcome: {
           kind: "complete",
-          canonical_outcome_hash: "1".repeat(64),
+          canonical_outcome_hash: completeOutcomeHash(
+            { reason_code: "no_listing_found" },
+            { extraction_trace_hash: "5".repeat(64) },
+          ),
           outcome_kind: "capture_only",
           typed_outcome: { reason_code: "no_listing_found" },
           provenance: { extraction_trace_hash: "5".repeat(64) },

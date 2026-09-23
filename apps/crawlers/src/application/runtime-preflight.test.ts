@@ -201,4 +201,29 @@ describe("fixture runtime preflight", () => {
     });
     expect(allocate).not.toHaveBeenCalled();
   });
+
+  it("returns sanitized resolver and verifier outage failures before allocation", async () => {
+    const { dependencies, allocate } = runtimeDependencies();
+    dependencies.methodologyResolver.resolve = async () => {
+      throw new Error("database password: secret");
+    };
+    await expect(preflightFixtureRun(command, dependencies)).resolves.toEqual({
+      ok: false,
+      error: { code: "methodology_resolution_unavailable" },
+    });
+
+    dependencies.methodologyResolver.resolve = async () => ({
+      kind: "resolved",
+      manifest,
+      manifest_hash: methodologyManifestDigestV2(manifest),
+    });
+    dependencies.artifactVerifier.verify = async () => {
+      throw new Error("object key: raw-body-1");
+    };
+    await expect(preflightFixtureRun(command, dependencies)).resolves.toEqual({
+      ok: false,
+      error: { code: "artifact_verification_unavailable" },
+    });
+    expect(allocate).not.toHaveBeenCalled();
+  });
 });

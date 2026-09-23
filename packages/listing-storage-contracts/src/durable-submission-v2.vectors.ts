@@ -1,3 +1,4 @@
+import { canonicalOutcomeDigestV2 } from "./durable-submission-v2.js";
 import type {
   AcceptedReceiptV2,
   DurableSubmissionV2,
@@ -12,6 +13,20 @@ export const durableSubmissionV2Interpretation = {
   normalizer_version: "normalizer-v2",
   extraction_contract_hash: "0".repeat(64),
 } as const;
+const completeOutcome = (
+  typed_outcome: Record<string, unknown>,
+  provenance: Record<string, unknown>,
+) => ({
+  kind: "complete" as const,
+  outcome_kind: "capture_only" as const,
+  typed_outcome,
+  provenance,
+  canonical_outcome_hash: canonicalOutcomeDigestV2({
+    outcome_kind: "capture_only",
+    typed_outcome,
+    provenance,
+  }),
+});
 
 /** A complete fixture-backed submission used as the canonical V2 baseline. */
 export const durableSubmissionV2Vector: DurableSubmissionV2 = {
@@ -49,13 +64,10 @@ export const durableSubmissionV2Vector: DurableSubmissionV2 = {
     fixture_id: "fixture-1",
   },
   interpretation: durableSubmissionV2Interpretation,
-  outcome: {
-    kind: "complete",
-    canonical_outcome_hash: "1".repeat(64),
-    outcome_kind: "capture_only",
-    typed_outcome: { reason_code: "no_listing_found" },
-    provenance: { extraction_trace_hash: "2".repeat(64) },
-  },
+  outcome: completeOutcome(
+    { reason_code: "no_listing_found" },
+    { extraction_trace_hash: "2".repeat(64) },
+  ),
   artifact: {
     kind: "no_retained_bytes",
     disposition: "policy_forbids_retention",
@@ -71,6 +83,7 @@ const artifactBinding = {
   contract_version: "v2" as const,
   source_key: "synthetic-source",
   capture_event_id: "capture-1",
+  retention_policy_hash: "d".repeat(64),
   interpretation: durableSubmissionV2Interpretation,
   referenced_artifact_hash: "a".repeat(64),
   media_type: "application/json" as const,
@@ -120,8 +133,12 @@ const outcomeReference = {
   contract_version: "v2" as const,
   source_key: "synthetic-source",
   capture_event_id: "capture-1",
+  retention_policy_hash: "d".repeat(64),
   interpretation: durableSubmissionV2Interpretation,
-  referenced_outcome_hash: "1".repeat(64),
+  referenced_outcome_hash:
+    durableSubmissionV2Vector.outcome.kind === "complete"
+      ? durableSubmissionV2Vector.outcome.canonical_outcome_hash
+      : "",
 };
 
 export const durableSubmissionV2OutcomeReferenceVector: DurableSubmissionV2 = {
@@ -141,13 +158,10 @@ export const durableSubmissionV2IdempotencyVectors = {
   } as DurableSubmissionV2,
   changed_payload_same_pair: {
     ...durableSubmissionV2Vector,
-    outcome: {
-      kind: "complete",
-      canonical_outcome_hash: "1".repeat(64),
-      outcome_kind: "capture_only",
-      typed_outcome: { reason_code: "changed" },
-      provenance: { extraction_trace_hash: "2".repeat(64) },
-    },
+    outcome: completeOutcome(
+      { reason_code: "changed" },
+      { extraction_trace_hash: "2".repeat(64) },
+    ),
   } as DurableSubmissionV2,
   capture_event_conflict: {
     ...durableSubmissionV2Vector,
@@ -268,13 +282,10 @@ export const acceptedSubmissionDigestV2Vectors = {
     durableSubmissionV2IdempotencyVectors.changed_payload_same_pair,
   included_provenance: {
     ...durableSubmissionV2Vector,
-    outcome: {
-      kind: "complete",
-      canonical_outcome_hash: "1".repeat(64),
-      outcome_kind: "capture_only",
-      typed_outcome: { reason_code: "no_listing_found" },
-      provenance: { extraction_trace_hash: "8".repeat(64) },
-    },
+    outcome: completeOutcome(
+      { reason_code: "no_listing_found" },
+      { extraction_trace_hash: "8".repeat(64) },
+    ),
   } as DurableSubmissionV2,
   included_interpretation:
     durableSubmissionV2IdempotencyVectors.interpretation_conflict,
