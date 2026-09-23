@@ -105,7 +105,18 @@ export const durableSubmissionV2Schema = z
       collected_at: instantSchema,
       request: z.strictObject({
         method: z.literal("GET"),
-        canonical_url: z.string().url().refine((value) => { const url = new URL(value); return url.protocol === "https:" && url.username === "" && url.password === "" && url.hash === ""; }, "Canonical URL must be credential-free HTTPS without fragment"),
+        canonical_url: z
+          .string()
+          .url()
+          .refine((value) => {
+            const url = new URL(value);
+            return (
+              url.protocol === "https:" &&
+              url.username === "" &&
+              url.password === "" &&
+              url.hash === ""
+            );
+          }, "Canonical URL must be credential-free HTTPS without fragment"),
       }),
       response: z.strictObject({
         status_code: safeNonNegativeIntegerSchema.max(599),
@@ -126,24 +137,27 @@ export const durableSubmissionV2Schema = z
     artifact: artifactSchema,
   })
   .superRefine((value, ctx) => {
-    const binding =
+    const bindings = [
       value.artifact.kind === "verified_immutable_reference" ||
       value.artifact.kind === "staged_reference"
         ? value.artifact
-        : value.outcome.kind === "verified_immutable_reference"
-          ? value.outcome.reference
-          : null;
-    if (
-      binding &&
-      (binding.source_key !== value.source_key ||
-        binding.capture_event_id !== value.capture.capture_event_id ||
-        canonicalJson(binding.interpretation) !==
-          canonicalJson(value.interpretation))
-    )
-      ctx.addIssue({
-        code: "custom",
-        message: "Storage reference binding mismatch",
-      });
+        : null,
+      value.outcome.kind === "verified_immutable_reference"
+        ? value.outcome.reference
+        : null,
+    ];
+    for (const binding of bindings)
+      if (
+        binding &&
+        (binding.source_key !== value.source_key ||
+          binding.capture_event_id !== value.capture.capture_event_id ||
+          canonicalJson(binding.interpretation) !==
+            canonicalJson(value.interpretation))
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Storage reference binding mismatch",
+        });
     if (
       value.outcome.kind === "verified_immutable_reference" &&
       value.outcome.reference.referenced_outcome_hash !==
@@ -181,6 +195,7 @@ export const receiptProgressV2Schema = z.strictObject({
   occurred_at: instantSchema,
   state: z.enum(["committed", "quarantined", "failed"]),
   code: identifierSchema.nullable(),
+  reason: z.string().max(512).nullable(),
 });
 export const durableSubmissionV2ErrorSchema = z.strictObject({
   code: z.enum([
