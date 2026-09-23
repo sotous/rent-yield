@@ -196,7 +196,7 @@ provider CI; Crawlers owns producer conformance and fakes.
 
 ## Milestone 2: Fixture runtime preflight
 
-Status: active on 2026-09-23. This slice introduces no acquisition transport
+Status: completed on 2026-09-23. This slice introduces no acquisition transport
 and performs no live or canary work. It defines the fixture-only runtime input,
 trusted methodology resolver and artifact-verification ports, runtime-owned
 opaque capture-event allocation, and the preflight boundary that rejects every
@@ -214,3 +214,13 @@ Focused RED tests cover successful fixture preflight and invalid input,
 resolver failure, scope mismatch, expiration, artifact verification failure,
 and attempts to inject a methodology or candidate binding. The tests prove the
 allocator is never called on a failed preflight and use only injected fakes.
+
+### Retrospective
+
+The implementation met this slice without widening it into fixture reading,
+redaction, parsing, storage submission, or canary acquisition. The strict
+command boundary is ergonomic for callers because they provide only their
+fixture reference and exact lookup scope; trusted methodology remains behind a
+small resolver port. No immediate iteration is needed. The runtime plan now
+records the delivered boundary and the next slice can add fixture reading and
+redaction without changing this command's authority model.
