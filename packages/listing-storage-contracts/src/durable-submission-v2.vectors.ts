@@ -57,3 +57,10 @@ export const durableSubmissionV2Vector: DurableSubmissionV2 = {
     body_byte_length: 120,
   },
 };
+
+export const durableSubmissionV2ArtifactVectors: readonly DurableSubmissionV2[] = [
+  durableSubmissionV2Vector,
+  { ...durableSubmissionV2Vector, artifact: { kind: "inline_redacted", bytes: "{}", media_type: "application/json", encoding: "utf-8", body_sha256: "a".repeat(64), body_byte_length: 120 } },
+  { ...durableSubmissionV2Vector, artifact: { kind: "staged_reference", reference_id: "staged-1", issuer: "storage", contract_version: "v2", source_key: "synthetic-source", capture_event_id: "capture-1", interpretation, referenced_artifact_hash: "a".repeat(64), media_type: "application/json", encoding: "utf-8", body_sha256: "a".repeat(64), body_byte_length: 120 } },
+  { ...durableSubmissionV2Vector, artifact: { kind: "verified_immutable_reference", reference_id: "artifact-1", issuer: "storage", contract_version: "v2", source_key: "synthetic-source", capture_event_id: "capture-1", interpretation, referenced_artifact_hash: "a".repeat(64), media_type: "application/json", encoding: "utf-8", body_sha256: "a".repeat(64), body_byte_length: 120 } },
+];

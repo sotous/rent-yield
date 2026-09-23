@@ -304,3 +304,8 @@ describe("DurableSubmissionV2 review regressions", () => {
     ).toBe(acceptedSubmissionDigestV2(submission));
   });
 });
+
+import { durableSubmissionV2ArtifactVectors } from "./durable-submission-v2.vectors.js";
+it("accepts all canonical artifact vectors", () => {
+  for (const vector of durableSubmissionV2ArtifactVectors) expect(durableSubmissionV2Schema.safeParse(vector).success).toBe(true);
+});

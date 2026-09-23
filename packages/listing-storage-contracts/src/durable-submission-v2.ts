@@ -218,7 +218,9 @@ export type DurableSubmissionV2Error = z.infer<
 >;
 export function acceptedSubmissionDigestV2(input: DurableSubmissionV2): string {
   const parsed = durableSubmissionV2Schema.parse(input);
-  const { submission_id: _id, submitted_at: _at, ...preimage } = parsed;
+  const preimage = { ...parsed } as Record<string, unknown>;
+  delete preimage.submission_id;
+  delete preimage.submitted_at;
   return createHash("sha256")
     .update(canonicalJson(preimage), "utf8")
     .digest("hex");
