@@ -15,7 +15,6 @@ const interpretation = {
   parser_version: "parser-v2",
   normalizer_version: "normalizer-v2",
   extraction_contract_hash: "0".repeat(64),
-  canonical_outcome_hash: "1".repeat(64),
 };
 
 const submission: DurableSubmissionV2 = {
@@ -55,6 +54,7 @@ const submission: DurableSubmissionV2 = {
   interpretation,
   outcome: {
     kind: "complete",
+    canonical_outcome_hash: "1".repeat(64),
     outcome_kind: "capture_only",
     typed_outcome: { reason_code: "no_listing_found" },
     provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -206,7 +206,7 @@ describe("DurableSubmissionV2 contract", () => {
       source_key: "synthetic-source",
       capture_event_id: "capture-1",
       interpretation,
-      referenced_outcome_hash: interpretation.canonical_outcome_hash,
+      referenced_outcome_hash: "1".repeat(64),
     };
     expect(
       durableSubmissionV2Schema.safeParse({
@@ -244,10 +244,7 @@ describe("DurableSubmissionV2 contract", () => {
     expect(
       acceptedSubmissionDigestV2({
         ...submission,
-        interpretation: {
-          ...interpretation,
-          canonical_outcome_hash: "3".repeat(64),
-        },
+        interpretation: { ...interpretation, parser_version: "parser-v3" },
       }),
     ).not.toBe(acceptedSubmissionDigestV2(submission));
     expect(
@@ -255,6 +252,7 @@ describe("DurableSubmissionV2 contract", () => {
         ...submission,
         outcome: {
           kind: "complete",
+          canonical_outcome_hash: "1".repeat(64),
           outcome_kind: "capture_only",
           typed_outcome: { reason_code: "different_complete_outcome" },
           provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -266,6 +264,7 @@ describe("DurableSubmissionV2 contract", () => {
         ...submission,
         outcome: {
           kind: "complete",
+          canonical_outcome_hash: "1".repeat(64),
           outcome_kind: "capture_only",
           typed_outcome: { reason_code: "no_listing_found" },
           provenance: { extraction_trace_hash: "5".repeat(64) },

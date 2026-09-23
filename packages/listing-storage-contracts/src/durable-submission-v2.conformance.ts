@@ -151,6 +151,7 @@ export async function runDurableSubmissionV2Conformance(
       ...base,
       outcome: {
         kind: "complete",
+        canonical_outcome_hash: "1".repeat(64),
         outcome_kind: "capture_only",
         typed_outcome: { reason_code: "changed" },
         provenance: { extraction_trace_hash: "3".repeat(64) },
