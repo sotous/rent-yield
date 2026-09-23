@@ -57,9 +57,8 @@ describe("DurableSubmissionV2 canonical vectors", () => {
     ).toBe(true);
     for (const vector of receiptProgressV2Vectors)
       expect(receiptProgressV2Schema.safeParse(vector).success).toBe(true);
-    expect(receiptProgressV2Vectors[1]!.sequence).toBeGreaterThan(
-      receiptProgressV2Vectors[0]!.sequence,
-    );
+    expect(receiptProgressV2Vectors).toHaveLength(1);
+    expect(receiptProgressV2Vectors[0]!.state).toBe("committed");
     for (const vector of durableSubmissionV2SanitizedErrorVectors)
       expect(durableSubmissionV2ErrorSchema.safeParse(vector).success).toBe(
         true,

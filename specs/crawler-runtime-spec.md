@@ -127,7 +127,6 @@ capture identity
 + parser version
 + normalizer version
 + extraction-contract hash
-+ canonical outcome hash
 ```
 
 It is bound to the separate source-scoped capture identity. The canonical
@@ -172,7 +171,7 @@ and never claims that the event was delivered.
 
 The runtime does not directly write databases or objects. It submits a strict
 `DurableSubmissionV2` containing command context; the complete source-scoped
-capture fingerprint; the six-field V2 interpretation identity; and an outcome
+capture fingerprint; the five-field V2 interpretation identity; and an outcome
 and artifact variant.
 
 The outcome is either a complete typed outcome plus provenance or a

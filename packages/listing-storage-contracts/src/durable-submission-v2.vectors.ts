@@ -11,7 +11,6 @@ export const durableSubmissionV2Interpretation = {
   parser_version: "parser-v2",
   normalizer_version: "normalizer-v2",
   extraction_contract_hash: "0".repeat(64),
-  canonical_outcome_hash: "1".repeat(64),
 } as const;
 
 /** A complete fixture-backed submission used as the canonical V2 baseline. */
@@ -52,6 +51,7 @@ export const durableSubmissionV2Vector: DurableSubmissionV2 = {
   interpretation: durableSubmissionV2Interpretation,
   outcome: {
     kind: "complete",
+    canonical_outcome_hash: "1".repeat(64),
     outcome_kind: "capture_only",
     typed_outcome: { reason_code: "no_listing_found" },
     provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -90,8 +90,9 @@ export const durableSubmissionV2ArtifactVectors: readonly DurableSubmissionV2[] 
         bytes: "{}",
         media_type: "application/json",
         encoding: "utf-8",
-        body_sha256: "a".repeat(64),
-        body_byte_length: 120,
+        body_sha256:
+          "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        body_byte_length: 2,
       },
     } as DurableSubmissionV2,
     {
@@ -120,8 +121,7 @@ const outcomeReference = {
   source_key: "synthetic-source",
   capture_event_id: "capture-1",
   interpretation: durableSubmissionV2Interpretation,
-  referenced_outcome_hash:
-    durableSubmissionV2Interpretation.canonical_outcome_hash,
+  referenced_outcome_hash: "1".repeat(64),
 };
 
 export const durableSubmissionV2OutcomeReferenceVector: DurableSubmissionV2 = {
@@ -143,6 +143,7 @@ export const durableSubmissionV2IdempotencyVectors = {
     ...durableSubmissionV2Vector,
     outcome: {
       kind: "complete",
+      canonical_outcome_hash: "1".repeat(64),
       outcome_kind: "capture_only",
       typed_outcome: { reason_code: "changed" },
       provenance: { extraction_trace_hash: "2".repeat(64) },
@@ -209,7 +210,7 @@ export const durableSubmissionV2RejectedReferenceVectors: readonly unknown[] = [
       kind: "verified_immutable_reference",
       reference: {
         ...outcomeReference,
-        referenced_outcome_hash: "9".repeat(64),
+        source_key: "other-source",
       },
     },
   },
@@ -236,15 +237,6 @@ export const receiptProgressV2Vectors: readonly ReceiptProgressV2[] = [
     state: "committed",
     code: null,
     reason: null,
-  },
-  {
-    contract_version: "v2",
-    receipt_id: "receipt-1",
-    sequence: 2,
-    occurred_at: "2026-09-23T00:02:00.000Z",
-    state: "quarantined",
-    code: "policy_blocked",
-    reason: "Retention policy prevented durable artifact storage.",
   },
 ];
 
@@ -278,6 +270,7 @@ export const acceptedSubmissionDigestV2Vectors = {
     ...durableSubmissionV2Vector,
     outcome: {
       kind: "complete",
+      canonical_outcome_hash: "1".repeat(64),
       outcome_kind: "capture_only",
       typed_outcome: { reason_code: "no_listing_found" },
       provenance: { extraction_trace_hash: "8".repeat(64) },

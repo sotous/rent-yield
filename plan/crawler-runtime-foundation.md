@@ -76,9 +76,9 @@ separate plan and approval gate; all normal development remains fixture-backed.
 
 Capture identity is the runtime-allocated source-scoped pair of `source_key` and
 opaque `capture_event_id`; fixture identity is a derivative artifact and cannot
-replace it. For durable-submission V2, interpretation identity is the six-field
+replace it. For durable-submission V2, interpretation identity is the five-field
 tuple of methodology manifest hash, adapter artifact hash, parser version,
-normalizer version, extraction-contract hash, and canonical outcome hash. It
+normalizer version, extraction-contract hash. It
 is always bound to the separate source-scoped capture identity. The accepted-
 submission hash additionally binds the complete typed outcome and provenance,
 so those values cannot silently change while retaining the same outcome hash.
@@ -164,7 +164,7 @@ a transport, a database, or a durable Storage provider.
   including `no_retained_bytes`.
 - Any staged or verified immutable reference is opaque and Storage-issued. It is
   bound to contract version, source key, capture event ID, the complete
-  six-field interpretation identity, and its outcome or artifact hash. Artifact
+  five-field interpretation identity, and its outcome or artifact hash. Artifact
   references additionally bind their declared body digest.
 - The artifact union is `inline_redacted`, `no_retained_bytes`,
   `staged_reference`, or `verified_immutable_reference`. Every variant carries

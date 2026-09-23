@@ -21,7 +21,6 @@ export const interpretationIdentityV2Schema = z.strictObject({
   parser_version: identifierSchema,
   normalizer_version: identifierSchema,
   extraction_contract_hash: sha256Schema,
-  canonical_outcome_hash: sha256Schema,
 });
 const bodyEvidenceSchema = z.strictObject({
   media_type: z.enum(["application/json", "text/html", "text/plain"]),
@@ -78,6 +77,7 @@ const outcomeSchema = z.discriminatedUnion("kind", [
       "parse_failed",
       "capture_only",
     ]),
+    canonical_outcome_hash: sha256Schema,
     typed_outcome: z.record(z.string(), z.unknown()),
     provenance: z.record(z.string(), z.unknown()),
   }),
@@ -158,15 +158,18 @@ export const durableSubmissionV2Schema = z
           code: "custom",
           message: "Storage reference binding mismatch",
         });
-    if (
-      value.outcome.kind === "verified_immutable_reference" &&
-      value.outcome.reference.referenced_outcome_hash !==
-        value.interpretation.canonical_outcome_hash
-    )
-      ctx.addIssue({
-        code: "custom",
-        message: "Outcome reference hash mismatch",
-      });
+    if (value.artifact.kind === "inline_redacted") {
+      const bytes = Buffer.from(value.artifact.bytes, "utf8");
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      if (
+        bytes.byteLength !== value.artifact.body_byte_length ||
+        digest !== value.artifact.body_sha256
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Inline artifact metadata mismatch",
+        });
+    }
     if (
       (value.artifact.kind === "verified_immutable_reference" ||
         value.artifact.kind === "staged_reference") &&
