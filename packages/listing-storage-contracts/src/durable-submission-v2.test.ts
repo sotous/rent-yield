@@ -346,6 +346,7 @@ describe("DurableSubmissionV2 contract", () => {
     await expect(
       runDurableSubmissionV2Conformance(memoryProvider(), {
         seedReference: async () => undefined,
+        invalidateReference: async () => undefined,
       }),
     ).resolves.toEqual(expect.objectContaining({ passed: true }));
     const provider = memoryProvider();
@@ -358,6 +359,9 @@ describe("DurableSubmissionV2 contract", () => {
             ? receipt
             : { ...receipt, accepted_submission_hash: "9".repeat(64) };
         },
+      }, {
+        seedReference: async () => undefined,
+        invalidateReference: async () => undefined,
       }),
     ).rejects.toThrow("accepted_submission_hash");
   });

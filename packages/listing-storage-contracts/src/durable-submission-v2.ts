@@ -254,6 +254,7 @@ export const durableSubmissionV2ErrorSchema = z.strictObject({
   code: z.enum([
     "validation_failed",
     "artifact_unverified",
+    "outcome_unverified",
     "staged_reference_invalid",
     "unsupported_contract",
     "storage_unavailable",

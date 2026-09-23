@@ -34,6 +34,7 @@ export interface DurableSubmissionV2Provider {
 /** Test-only setup; production providers never expose reference issuance here. */
 export interface DurableSubmissionV2ConformanceFixtures {
   seedReference(input: DurableSubmissionV2): Promise<void>;
+  invalidateReference(input: DurableSubmissionV2): Promise<void>;
 }
 
 const isError = (value: unknown): value is DurableSubmissionV2Error =>
@@ -127,13 +128,14 @@ export async function runDurableSubmissionV2Conformance(
     ...durableSubmissionV2ArtifactVectors,
     durableSubmissionV2OutcomeReferenceVector,
   ];
+  if (!fixtures)
+    throw new Error("reference conformance requires seeded-reference fixtures");
   for (const [index, vector] of acceptanceVectors.entries()) {
     const input = rekey(vector, `artifact-${index + 1}`);
     if (
-      fixtures &&
-      (input.artifact.kind === "staged_reference" ||
-        input.artifact.kind === "verified_immutable_reference" ||
-        input.outcome.kind === "verified_immutable_reference")
+      input.artifact.kind === "staged_reference" ||
+      input.artifact.kind === "verified_immutable_reference" ||
+      input.outcome.kind === "verified_immutable_reference"
     )
       await fixtures.seedReference(input);
     const first = parseAccepted(await provider.accept(input), input);
