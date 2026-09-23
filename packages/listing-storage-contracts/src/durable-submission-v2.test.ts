@@ -9,6 +9,7 @@ import {
 } from "./durable-submission-v2.js";
 import {
   runDurableSubmissionV2Conformance,
+  type DurableSubmissionV2ConformanceFixtures,
   type DurableSubmissionV2Provider,
 } from "./durable-submission-v2.conformance.js";
 
@@ -100,12 +101,41 @@ const storageReference = {
   body_byte_length: 120,
 };
 
-function memoryProvider(): DurableSubmissionV2Provider {
+function memoryProvider(): DurableSubmissionV2Provider &
+  DurableSubmissionV2ConformanceFixtures {
   const receipts = new Map<string, { hash: string; receipt_id: string }>();
   const captures = new Map<string, string>();
   const interpretations = new Map<string, string>();
+  const references = new Map<string, string>();
+  const referenceFor = (input: DurableSubmissionV2) => {
+    if (input.artifact.kind === "staged_reference")
+      return {
+        key: `staged:${input.artifact.reference_id}`,
+        binding: input.artifact,
+        error: "staged_reference_invalid" as const,
+      };
+    if (input.artifact.kind === "verified_immutable_reference")
+      return {
+        key: `artifact:${input.artifact.reference_id}`,
+        binding: input.artifact,
+        error: "artifact_unverified" as const,
+      };
+    if (input.outcome.kind === "verified_immutable_reference")
+      return {
+        key: `outcome:${input.outcome.reference.reference_id}`,
+        binding: input.outcome.reference,
+        error: "outcome_unverified" as const,
+      };
+    return null;
+  };
   return {
     accept: async (input) => {
+      const reference = referenceFor(input);
+      if (
+        reference &&
+        references.get(reference.key) !== JSON.stringify(reference.binding)
+      )
+        return { code: reference.error };
       const key = `${input.source_key}:${input.submission_id}`;
       const hash = acceptedSubmissionDigestV2(input);
       const existing = receipts.get(key);
@@ -151,6 +181,16 @@ function memoryProvider(): DurableSubmissionV2Provider {
       };
     },
     progress: async () => [],
+    seedReference: async (input) => {
+      const reference = referenceFor(input);
+      if (!reference) throw new Error("expected reference input");
+      references.set(reference.key, JSON.stringify(reference.binding));
+    },
+    invalidateReference: async (input) => {
+      const reference = referenceFor(input);
+      if (!reference) throw new Error("expected reference input");
+      references.delete(reference.key);
+    },
   };
 }
 
@@ -343,26 +383,30 @@ describe("DurableSubmissionV2 contract", () => {
   });
 
   it("runs source-scoped replay, conflict, and receipt-hash vectors through a provider-only adapter", async () => {
+    const conformanceProvider = memoryProvider();
     await expect(
-      runDurableSubmissionV2Conformance(memoryProvider(), {
-        seedReference: async () => undefined,
-        invalidateReference: async () => undefined,
-      }),
+      runDurableSubmissionV2Conformance(
+        conformanceProvider,
+        conformanceProvider,
+      ),
     ).resolves.toEqual(expect.objectContaining({ passed: true }));
     const provider = memoryProvider();
     await expect(
-      runDurableSubmissionV2Conformance({
-        ...provider,
-        accept: async (input) => {
-          const receipt = await provider.accept(input);
-          return "code" in receipt
-            ? receipt
-            : { ...receipt, accepted_submission_hash: "9".repeat(64) };
+      runDurableSubmissionV2Conformance(
+        {
+          ...provider,
+          accept: async (input) => {
+            const receipt = await provider.accept(input);
+            return "code" in receipt
+              ? receipt
+              : { ...receipt, accepted_submission_hash: "9".repeat(64) };
+          },
         },
-      }, {
-        seedReference: async () => undefined,
-        invalidateReference: async () => undefined,
-      }),
+        {
+          seedReference: async () => undefined,
+          invalidateReference: async () => undefined,
+        },
+      ),
     ).rejects.toThrow("accepted_submission_hash");
   });
 });

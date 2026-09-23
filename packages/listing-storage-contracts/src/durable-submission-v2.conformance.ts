@@ -100,6 +100,213 @@ async function expectError(
     throw new Error(`expected ${code}, got ${error.code}`);
 }
 
+const referenceDetails = (input: DurableSubmissionV2) => {
+  if (
+    input.artifact.kind === "staged_reference" ||
+    input.artifact.kind === "verified_immutable_reference"
+  )
+    return {
+      reference: input.artifact,
+      error:
+        input.artifact.kind === "staged_reference"
+          ? ("staged_reference_invalid" as const)
+          : ("artifact_unverified" as const),
+    };
+  if (input.outcome.kind === "verified_immutable_reference")
+    return {
+      reference: input.outcome.reference,
+      error: "outcome_unverified" as const,
+    };
+  return null;
+};
+
+/** Keep mutations schema-valid so provider binding checks, not parsing, are tested. */
+function mutateReference(
+  input: DurableSubmissionV2,
+  mutate: (draft: Record<string, unknown>) => void,
+): DurableSubmissionV2 {
+  const draft = structuredClone(input) as Record<string, unknown>;
+  mutate(draft);
+  return durableSubmissionV2Schema.parse(draft);
+}
+
+function setReferenceId(draft: Record<string, unknown>, value: string): void {
+  const artifact = draft.artifact as Record<string, unknown>;
+  const outcome = draft.outcome as Record<string, unknown>;
+  if (
+    artifact.kind === "staged_reference" ||
+    artifact.kind === "verified_immutable_reference"
+  )
+    artifact.reference_id = value;
+  else (outcome.reference as Record<string, unknown>).reference_id = value;
+}
+
+function mutateReferenceBinding(
+  draft: Record<string, unknown>,
+  key:
+    | "source_key"
+    | "capture_event_id"
+    | "retention_policy_hash"
+    | "interpretation",
+  value: unknown,
+): void {
+  const artifact = draft.artifact as Record<string, unknown>;
+  const outcome = draft.outcome as Record<string, unknown>;
+  const reference =
+    artifact.kind === "staged_reference" ||
+    artifact.kind === "verified_immutable_reference"
+      ? artifact
+      : (outcome.reference as Record<string, unknown>);
+  reference[key] = value;
+  if (key === "source_key") draft.source_key = value;
+  if (key === "capture_event_id")
+    (draft.capture as Record<string, unknown>).capture_event_id = value;
+  if (key === "retention_policy_hash")
+    (draft.capture as Record<string, unknown>).retention_policy_hash = value;
+  if (key === "interpretation") draft.interpretation = value;
+}
+
+function mutateArtifactEvidence(
+  draft: Record<string, unknown>,
+  key:
+    | "referenced_artifact_hash"
+    | "body_sha256"
+    | "body_byte_length"
+    | "media_type"
+    | "encoding",
+  value: unknown,
+): void {
+  const artifact = draft.artifact as Record<string, unknown>;
+  artifact[key] = value;
+  if (key === "referenced_artifact_hash" || key === "body_sha256") {
+    artifact.referenced_artifact_hash = value;
+    artifact.body_sha256 = value;
+  }
+  const response = (draft.capture as Record<string, unknown>)
+    .response as Record<string, unknown>;
+  if (key === "referenced_artifact_hash" || key === "body_sha256")
+    response.body_sha256 = value;
+  else if (key === "body_byte_length") response.body_byte_length = value;
+  else if (key === "media_type") response.media_type = value;
+  else response.content_encoding = value;
+}
+
+async function assertReferenceRejections(
+  provider: DurableSubmissionV2Provider,
+  fixtures: DurableSubmissionV2ConformanceFixtures,
+  vector: DurableSubmissionV2,
+  index: number,
+): Promise<void> {
+  const details = referenceDetails(vector);
+  if (!details) return;
+  const seeded = rekey(vector, `reference-negative-${index}`);
+  await fixtures.seedReference(seeded);
+
+  await expectError(
+    provider,
+    mutateReference(seeded, (draft) =>
+      setReferenceId(draft, `unknown-reference-${index}`),
+    ),
+    details.error,
+  );
+  await fixtures.invalidateReference(seeded);
+  await expectError(provider, seeded, details.error);
+
+  const bindings: ReadonlyArray<
+    readonly [
+      (
+        | "source_key"
+        | "capture_event_id"
+        | "retention_policy_hash"
+        | "interpretation"
+      ),
+      unknown,
+    ]
+  > = [
+    ["source_key", `other-source-${index}`],
+    ["capture_event_id", `other-capture-${index}`],
+    ["retention_policy_hash", "9".repeat(64)],
+    ...(
+      [
+        "methodology_manifest_hash",
+        "adapter_artifact_hash",
+        "parser_version",
+        "normalizer_version",
+        "extraction_contract_hash",
+      ] as const
+    ).map(
+      (field) =>
+        [
+          "interpretation",
+          {
+            ...seeded.interpretation,
+            [field]: field.endsWith("hash")
+              ? "9".repeat(64)
+              : `other-${field}-${index}`,
+          },
+        ] as const,
+    ),
+  ];
+  for (const [key, value] of bindings) {
+    const fresh = rekey(vector, `reference-binding-${index}-${key}`);
+    await fixtures.seedReference(fresh);
+    await expectError(
+      provider,
+      mutateReference(fresh, (draft) =>
+        mutateReferenceBinding(draft, key, value),
+      ),
+      details.error,
+    );
+  }
+
+  if (
+    seeded.artifact.kind === "staged_reference" ||
+    seeded.artifact.kind === "verified_immutable_reference"
+  ) {
+    const evidence: ReadonlyArray<
+      readonly [
+        (
+          | "referenced_artifact_hash"
+          | "body_sha256"
+          | "body_byte_length"
+          | "media_type"
+          | "encoding"
+        ),
+        unknown,
+      ]
+    > = [
+      ["referenced_artifact_hash", "8".repeat(64)],
+      ["body_sha256", "8".repeat(64)],
+      ["body_byte_length", 121],
+      ["media_type", "text/html"],
+      ["encoding", "latin-1"],
+    ];
+    for (const [key, value] of evidence) {
+      const fresh = rekey(vector, `reference-evidence-${index}-${key}`);
+      await fixtures.seedReference(fresh);
+      await expectError(
+        provider,
+        mutateReference(fresh, (draft) =>
+          mutateArtifactEvidence(draft, key, value),
+        ),
+        details.error,
+      );
+    }
+  } else {
+    const fresh = rekey(vector, `reference-outcome-${index}`);
+    await fixtures.seedReference(fresh);
+    await expectError(
+      provider,
+      mutateReference(fresh, (draft) => {
+        const outcome = draft.outcome as Record<string, unknown>;
+        (outcome.reference as Record<string, unknown>).referenced_outcome_hash =
+          "8".repeat(64);
+      }),
+      details.error,
+    );
+  }
+}
+
 async function assertProgress(
   provider: DurableSubmissionV2Provider,
   receipt: AcceptedReceiptV2,
@@ -148,6 +355,7 @@ export async function runDurableSubmissionV2Conformance(
     )
       throw new Error("exact replay must return the original receipt");
     await assertProgress(provider, first);
+    await assertReferenceRejections(provider, fixtures, vector, index + 1);
   }
 
   // A submission id scopes only to a source, while payload changes under that
