@@ -31,7 +31,10 @@ export const durableSubmissionV2Vector: DurableSubmissionV2 = {
   capture: {
     capture_event_id: "capture-1",
     collected_at: "2026-09-22T12:00:00.000Z",
-    request: { method: "GET", canonical_url: "https://fixtures.example/listing/1" },
+    request: {
+      method: "GET",
+      canonical_url: "https://fixtures.example/listing/1",
+    },
     response: {
       status_code: 200,
       media_type: "application/json",
@@ -77,32 +80,37 @@ const artifactBinding = {
 };
 
 /** Every permitted artifact disposition has canonical body evidence. */
-export const durableSubmissionV2ArtifactVectors: readonly DurableSubmissionV2[] = [
-  durableSubmissionV2Vector,
-  {
-    ...durableSubmissionV2Vector,
-    artifact: {
-      kind: "inline_redacted",
-      bytes: "{}",
-      media_type: "application/json",
-      encoding: "utf-8",
-      body_sha256: "a".repeat(64),
-      body_byte_length: 120,
-    },
-  } as DurableSubmissionV2,
-  {
-    ...durableSubmissionV2Vector,
-    artifact: { kind: "staged_reference", reference_id: "staged-1", ...artifactBinding },
-  } as DurableSubmissionV2,
-  {
-    ...durableSubmissionV2Vector,
-    artifact: {
-      kind: "verified_immutable_reference",
-      reference_id: "artifact-1",
-      ...artifactBinding,
-    },
-  } as DurableSubmissionV2,
-];
+export const durableSubmissionV2ArtifactVectors: readonly DurableSubmissionV2[] =
+  [
+    durableSubmissionV2Vector,
+    {
+      ...durableSubmissionV2Vector,
+      artifact: {
+        kind: "inline_redacted",
+        bytes: "{}",
+        media_type: "application/json",
+        encoding: "utf-8",
+        body_sha256: "a".repeat(64),
+        body_byte_length: 120,
+      },
+    } as DurableSubmissionV2,
+    {
+      ...durableSubmissionV2Vector,
+      artifact: {
+        kind: "staged_reference",
+        reference_id: "staged-1",
+        ...artifactBinding,
+      },
+    } as DurableSubmissionV2,
+    {
+      ...durableSubmissionV2Vector,
+      artifact: {
+        kind: "verified_immutable_reference",
+        reference_id: "artifact-1",
+        ...artifactBinding,
+      },
+    } as DurableSubmissionV2,
+  ];
 
 const outcomeReference = {
   kind: "verified_immutable_outcome_reference" as const,
@@ -112,12 +120,16 @@ const outcomeReference = {
   source_key: "synthetic-source",
   capture_event_id: "capture-1",
   interpretation: durableSubmissionV2Interpretation,
-  referenced_outcome_hash: durableSubmissionV2Interpretation.canonical_outcome_hash,
+  referenced_outcome_hash:
+    durableSubmissionV2Interpretation.canonical_outcome_hash,
 };
 
 export const durableSubmissionV2OutcomeReferenceVector: DurableSubmissionV2 = {
   ...durableSubmissionV2Vector,
-  outcome: { kind: "verified_immutable_reference", reference: outcomeReference },
+  outcome: {
+    kind: "verified_immutable_reference",
+    reference: outcomeReference,
+  },
 };
 
 /** Inputs used to establish source-scoped replay and the three conflict classes. */
@@ -138,7 +150,10 @@ export const durableSubmissionV2IdempotencyVectors = {
   } as DurableSubmissionV2,
   capture_event_conflict: {
     ...durableSubmissionV2Vector,
-    capture: { ...durableSubmissionV2Vector.capture, capture_event_id: "capture-2" },
+    capture: {
+      ...durableSubmissionV2Vector.capture,
+      capture_event_id: "capture-2",
+    },
   } as DurableSubmissionV2,
   interpretation_conflict: {
     ...durableSubmissionV2Vector,
@@ -153,15 +168,30 @@ export const durableSubmissionV2IdempotencyVectors = {
 export const durableSubmissionV2RejectedReferenceVectors: readonly unknown[] = [
   {
     ...durableSubmissionV2ArtifactVectors[3],
-    artifact: { ...artifactBinding, kind: "verified_immutable_reference", reference_id: "bad-issuer", issuer: "external" },
+    artifact: {
+      ...artifactBinding,
+      kind: "verified_immutable_reference",
+      reference_id: "bad-issuer",
+      issuer: "external",
+    },
   },
   {
     ...durableSubmissionV2ArtifactVectors[3],
-    artifact: { ...artifactBinding, kind: "verified_immutable_reference", reference_id: "bad-source", source_key: "other-source" },
+    artifact: {
+      ...artifactBinding,
+      kind: "verified_immutable_reference",
+      reference_id: "bad-source",
+      source_key: "other-source",
+    },
   },
   {
     ...durableSubmissionV2ArtifactVectors[3],
-    artifact: { ...artifactBinding, kind: "verified_immutable_reference", reference_id: "bad-hash", referenced_artifact_hash: "9".repeat(64) },
+    artifact: {
+      ...artifactBinding,
+      kind: "verified_immutable_reference",
+      reference_id: "bad-hash",
+      referenced_artifact_hash: "9".repeat(64),
+    },
   },
   {
     ...durableSubmissionV2OutcomeReferenceVector,
@@ -218,21 +248,32 @@ export const receiptProgressV2Vectors: readonly ReceiptProgressV2[] = [
   },
 ];
 
-export const durableSubmissionV2SanitizedErrorVectors: readonly DurableSubmissionV2Error[] = [
-  { code: "submission_conflict", message: "Submission differs from accepted receipt." },
-  { code: "storage_unavailable" },
-];
+export const durableSubmissionV2SanitizedErrorVectors: readonly DurableSubmissionV2Error[] =
+  [
+    {
+      code: "submission_conflict",
+      message: "Submission differs from accepted receipt.",
+    },
+    { code: "storage_unavailable" },
+  ];
 
 /** Mutations that state exactly which values participate in accepted-submission identity. */
 export const acceptedSubmissionDigestV2Vectors = {
   baseline: durableSubmissionV2Vector,
-  excluded_submission_id: { ...durableSubmissionV2Vector, submission_id: "submission-retry" } as DurableSubmissionV2,
-  excluded_submitted_at: { ...durableSubmissionV2Vector, submitted_at: "2026-09-22T12:01:00.000Z" } as DurableSubmissionV2,
+  excluded_submission_id: {
+    ...durableSubmissionV2Vector,
+    submission_id: "submission-retry",
+  } as DurableSubmissionV2,
+  excluded_submitted_at: {
+    ...durableSubmissionV2Vector,
+    submitted_at: "2026-09-22T12:01:00.000Z",
+  } as DurableSubmissionV2,
   included_capture: {
     ...durableSubmissionV2Vector,
     capture: { ...durableSubmissionV2Vector.capture, fixture_id: "fixture-2" },
   } as DurableSubmissionV2,
-  included_typed_outcome: durableSubmissionV2IdempotencyVectors.changed_payload_same_pair,
+  included_typed_outcome:
+    durableSubmissionV2IdempotencyVectors.changed_payload_same_pair,
   included_provenance: {
     ...durableSubmissionV2Vector,
     outcome: {
@@ -242,5 +283,6 @@ export const acceptedSubmissionDigestV2Vectors = {
       provenance: { extraction_trace_hash: "8".repeat(64) },
     },
   } as DurableSubmissionV2,
-  included_interpretation: durableSubmissionV2IdempotencyVectors.interpretation_conflict,
+  included_interpretation:
+    durableSubmissionV2IdempotencyVectors.interpretation_conflict,
 } as const;
