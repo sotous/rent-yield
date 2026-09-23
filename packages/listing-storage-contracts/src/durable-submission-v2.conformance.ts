@@ -31,6 +31,11 @@ export interface DurableSubmissionV2Provider {
   ): Promise<readonly ReceiptProgressV2[]>;
 }
 
+/** Test-only setup; production providers never expose reference issuance here. */
+export interface DurableSubmissionV2ConformanceFixtures {
+  seedReference(input: DurableSubmissionV2): Promise<void>;
+}
+
 const isError = (value: unknown): value is DurableSubmissionV2Error =>
   typeof value === "object" && value !== null && "code" in value;
 
@@ -115,6 +120,7 @@ async function assertProgress(
 /** Runs canonical provider-facing V2 behavior against a provider adapter. */
 export async function runDurableSubmissionV2Conformance(
   provider: DurableSubmissionV2Provider,
+  fixtures?: DurableSubmissionV2ConformanceFixtures,
 ): Promise<{ passed: true }> {
   // All artifact representations must be accepted when they meet the schema.
   const acceptanceVectors = [
@@ -123,6 +129,13 @@ export async function runDurableSubmissionV2Conformance(
   ];
   for (const [index, vector] of acceptanceVectors.entries()) {
     const input = rekey(vector, `artifact-${index + 1}`);
+    if (
+      fixtures &&
+      (input.artifact.kind === "staged_reference" ||
+        input.artifact.kind === "verified_immutable_reference" ||
+        input.outcome.kind === "verified_immutable_reference")
+    )
+      await fixtures.seedReference(input);
     const first = parseAccepted(await provider.accept(input), input);
     if (first.duplicate_delivery)
       throw new Error("first acceptance marked duplicate");

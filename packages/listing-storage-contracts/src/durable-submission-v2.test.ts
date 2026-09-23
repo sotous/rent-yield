@@ -344,7 +344,9 @@ describe("DurableSubmissionV2 contract", () => {
 
   it("runs source-scoped replay, conflict, and receipt-hash vectors through a provider-only adapter", async () => {
     await expect(
-      runDurableSubmissionV2Conformance(memoryProvider()),
+      runDurableSubmissionV2Conformance(memoryProvider(), {
+        seedReference: async () => undefined,
+      }),
     ).resolves.toEqual(expect.objectContaining({ passed: true }));
     const provider = memoryProvider();
     await expect(
