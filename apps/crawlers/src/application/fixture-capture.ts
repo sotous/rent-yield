@@ -402,7 +402,7 @@ function redactHtml(value: string): string {
   return serialize(fragment);
 }
 
-function redactPayload(
+export function redactFixturePayload(
   contentType: z.infer<typeof supportedContentTypeSchema>,
   value: string,
 ): string | null {
@@ -642,7 +642,7 @@ export class MemoryFixtureCapture {
         return { ok: false, error: { code: "invalid_supersession" } };
     }
 
-    const redacted = redactPayload(command.content_type, decoded);
+    const redacted = redactFixturePayload(command.content_type, decoded);
     if (redacted === null)
       return {
         ok: false,
