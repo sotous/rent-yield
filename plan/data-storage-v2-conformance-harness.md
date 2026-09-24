@@ -2,9 +2,9 @@
 
 ## Status
 
-Planning only as of 2026-09-23. This slice is released by the approved
-DurableSubmissionV2 contract at Crawler commit `fb183b8`; implementation still
-requires the shared contract to be available on the Data Storage branch.
+Completed on 2026-09-24. This slice uses the approved DurableSubmissionV2
+contract at `ef02bdc`, merged into `main` by PR #18. The harness imports that
+shared workspace package directly; it does not copy contracts or vectors.
 
 ## Goal
 
@@ -46,15 +46,13 @@ durable-provider CI.
 
 ## Dependencies and coordination decision
 
-The approved shared contract currently exists at Crawler commit `fb183b8` in a
-separate worktree. Before implementation, it must be made available to this
-branch through the agreed merge or cherry-pick path. The harness must import the
-exact shared-package revision rather than copy its types or vectors.
+The approved shared contract is available from merged `main` at `ef02bdc`.
+The harness imports the exact shared-package revision rather than copying its
+types or vectors.
 
-Proposed code location is a new Data Storage-owned workspace package:
+The confirmed code location is the new Data Storage-owned workspace package:
 `packages/data-storage-conformance`. It keeps provider-side tests separate from
-the shared contract and from future durable-provider code. Confirm this package
-location when the shared-contract integration path is chosen.
+the shared contract and from future durable-provider code.
 
 ## Behavior to prove
 
@@ -104,7 +102,22 @@ location when the shared-contract integration path is chosen.
 
 - The fake is conformance evidence, not durable-storage evidence. Passing it
   cannot be described as PostgreSQL or object-storage conformance.
-- The import path and package name remain a coordination decision until the
-  shared contract is integrated into the Data Storage branch.
+- The shared package import and the harness package location are now fixed by
+  this slice; changing either needs a coordinated contract update.
 - Durable-provider work requires a separate approved plan after this harness
   has demonstrated the provider-facing contract.
+
+## Delivery and retrospective
+
+The Data Storage-owned package now contains an in-memory provider plus the
+shared runner invocation. It stores only process-local maps for submission,
+capture, interpretation, reference-fixture, receipt, and terminal-progress
+state. The focused tests additionally prove that an unknown receipt cannot
+produce progress and that a receipt accepts only one terminal event.
+
+The implementation stayed within the intended boundary: it adds no database,
+object store, migration, network access, crawler runtime, or live-canary
+behavior. The fake is useful as executable contract evidence and as a template
+for future provider CI, but it is not durability evidence. A later PostgreSQL
+or object-storage provider must use the same shared runner with its own
+provider-owned reference fixture adapter and its own durable failure tests.
