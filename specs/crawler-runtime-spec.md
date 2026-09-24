@@ -106,9 +106,20 @@ pinned deterministic redactor, and scans the redacted result before any
 artifact boundary. It emits bounded `inline_redacted`, explicit
 `no_retained_bytes`, or an opaque staged-reference candidate. An injected
 staging port receives only scanned redacted bytes and returns no object key.
-The original-byte disposal hook runs on every success and failure path. 6. Replay the pinned extraction contract through the declared parser and
-normalizer. Never fabricate a listing, rental evidence, or field provenance. 7. Return a runtime outcome, report required sanitized health events, and submit
-the complete result to Data Storage when an ingestion port is injected.
+The original-byte disposal hook runs on every success and failure path.
+
+6. Replay the pinned extraction contract through the declared parser and
+   normalizer. Never fabricate a listing, rental evidence, or field provenance.
+   Fixture orchestration consumes only a sanitized artifact and returns exactly
+   `normalized`, `quarantined`, `parse_failed`, or `capture_only`. Parse failure
+   emits a sanitized parser-drift event; a failed required health handoff fails
+   closed. Exact fixture replay is deterministic, while a changed capture
+   fingerprint or outcome under the same five-field interpretation identity is
+   rejected. The runtime may derive a validated V2 submission candidate, but it
+   does not deliver it or claim durable acceptance.
+
+7. Return a runtime outcome and, at the separate Data Storage boundary, hand
+   off a complete V2 candidate for durable acceptance.
 
 ## Capture and interpretation identity
 

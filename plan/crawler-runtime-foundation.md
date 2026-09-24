@@ -265,3 +265,20 @@ makes its artifact choices explicit without coupling runtime code to durable
 Storage. Future submission work must bind a staged reference to the complete
 V2 capture and interpretation context; this slice intentionally does not
 produce a durable submission.
+
+## Milestone 4: Fixture interpretation orchestration
+
+Status: completed on 2026-09-24. The fixture-only orchestration boundary accepts
+only sanitized artifacts, invokes an injected pinned replay port, returns the
+four typed terminal interpretations, and emits a sanitized parser-drift health
+event for parse failure. A memory registry enforces immutable capture and
+five-field interpretation identity with deterministic exact replay and typed
+capture/interpretation conflicts. The candidate builder derives a validated V2
+submission candidate but has no delivery or durable-acceptance port.
+
+### Retrospective
+
+This slice reused the existing deterministic fixture replay engine while adding
+runtime authority and identity boundaries around it. It intentionally leaves
+transport, durable submission delivery, and live canary behavior to later
+separately gated work.
