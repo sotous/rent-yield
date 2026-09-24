@@ -99,10 +99,16 @@ lookup -> preflight -> frozen fixture or canary-gated bounded transport
 5. Retain a transient sanitized artifact or hand off a `source_fixture` only
    when retention permits a redacted-fixture representation, purpose, type, and
    size. Otherwise retain only allowed digest and metadata.
-6. Replay the pinned extraction contract through the declared parser and
-   normalizer. Never fabricate a listing, rental evidence, or field provenance.
-7. Return a runtime outcome, report required sanitized health events, and submit
-   the complete result to Data Storage when an ingestion port is injected.
+
+For fixture execution, the redaction-before-artifact pipeline decodes original
+bytes only in memory, rejects embedded binary/control content, applies the
+pinned deterministic redactor, and scans the redacted result before any
+artifact boundary. It emits bounded `inline_redacted`, explicit
+`no_retained_bytes`, or an opaque staged-reference candidate. An injected
+staging port receives only scanned redacted bytes and returns no object key.
+The original-byte disposal hook runs on every success and failure path. 6. Replay the pinned extraction contract through the declared parser and
+normalizer. Never fabricate a listing, rental evidence, or field provenance. 7. Return a runtime outcome, report required sanitized health events, and submit
+the complete result to Data Storage when an ingestion port is injected.
 
 ## Capture and interpretation identity
 

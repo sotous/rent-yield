@@ -242,3 +242,26 @@ fixture reference and exact lookup scope; trusted methodology remains behind a
 small resolver port. No immediate iteration is needed. The runtime plan now
 records the delivered boundary and the next slice can add fixture reading and
 redaction without changing this command's authority model.
+
+## Milestone 3: Fixture redaction-before-artifact pipeline
+
+Status: completed on 2026-09-24. The fixture-only pipeline decodes raw bytes in
+memory, rejects unsafe binary/control input, deterministically redacts and scans
+the payload, and only then creates an artifact disposition. It supports bounded
+inline redacted bytes, explicit no-retained-bytes evidence, and an injected
+opaque staging port. The staging port receives redacted bytes and returns only
+an opaque reference ID; it has no object-store or provider dependency.
+
+Every terminal path invokes the caller-owned original-byte disposal hook.
+Focused tests cover success, prohibited input, inline bounds, no-retention,
+staging, and staging failure. No live transport, credential, browser, database,
+or object-storage capability was added.
+
+### Retrospective
+
+The existing fixture redactor and scanner were reusable after exposing a narrow
+pure redaction function. Keeping the new pipeline as an application boundary
+makes its artifact choices explicit without coupling runtime code to durable
+Storage. Future submission work must bind a staged reference to the complete
+V2 capture and interpretation context; this slice intentionally does not
+produce a durable submission.
