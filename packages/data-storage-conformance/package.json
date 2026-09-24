@@ -1,0 +1,19 @@
+{
+  "name": "@rent-yield/data-storage-conformance",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rent-yield/listing-storage-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "typescript": "6.0.2",
+    "vitest": "4.1.10"
+  }
+}

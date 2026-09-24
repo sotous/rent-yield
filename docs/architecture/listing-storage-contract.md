@@ -130,6 +130,11 @@ fixture-only reference contracts. They require the versioned evolution defined
 by the data storage specification before they can be implemented as durable
 ports.
 
+The shared `DurableSubmissionV2` provider boundary is exercised by the Data
+Storage-owned in-memory conformance harness. Future durable providers reuse its
+shared runner and vectors with a provider-owned test fixture adapter; see
+[`durable-submission-v2-provider-requirements.md`](durable-submission-v2-provider-requirements.md).
+
 PostgreSQL and object storage cannot share one transaction. The durable adapter
 therefore uses immutable acceptance receipts, append-only progress events,
 staged objects, a transactional outbox/finalizer, integrity verification, and
