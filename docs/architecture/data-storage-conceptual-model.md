@@ -203,8 +203,13 @@ The logical ERD must make these rules explicit:
 - A cross-source match does not delete, overwrite, or collapse the original
   source records.
 
-## Next step
+## ERD derivation and review
 
-The next ticket derives the logical ERD from this model. It should introduce
-only entities and relationships justified above; physical schema decisions stay
-out of scope.
+The [logical ERD](data-storage-erd.md) has been derived and reconciled from the
+current storage use cases and the relationships above. Historical ERD material
+was consulted only as reference material; it is not an independent source of
+authority.
+
+The remaining Stage 0 work is review and acceptance of that derivation,
+including any gap a reviewer finds between a use case, this model, and the ERD.
+Physical schema decisions remain out of scope until that review is accepted.

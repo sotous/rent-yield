@@ -28,12 +28,13 @@ snapshots, explorer publications, or backend replacement of prototype data.
 - [Listing storage contract](../docs/architecture/listing-storage-contract.md).
 - [V2 provider conformance requirements](../docs/architecture/durable-submission-v2-provider-requirements.md).
 
-The logical ERD, port-contract, and modeling-review artifacts were authored at
-`f19405d`, `b3d4961`, and `0aed62b`, but their files are not on current `main`.
-This plan uses their documented boundaries as historical design input; restoring
-them to `main`, or explicitly reconfirming their content, is a pre-migration
-approval gate. No migration should silently rely on an absent architecture
-artifact.
+The logical ERD, port-contract, and modeling-review artifacts were originally
+authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 derives and reconciles
+their current versions from the storage use cases, conceptual model, current V2
+contract, and this plan; those historical commits are reference material only.
+They become the physical-design baseline only after review explicitly accepts
+the derivation and any identified gaps. No migration should silently rely on an
+absent or unapproved architecture artifact.
 
 ## Decisions made by this plan
 
@@ -233,9 +234,9 @@ No test contacts a live listing source or needs a live canary.
 The following must be explicitly approved before Notion implementation tickets
 are created or any durable code is written:
 
-1. **Canonical logical artifacts:** restore the ERD and port-contract artifacts
-   to `main`, or approve the cited historical versions as the physical-design
-   baseline.
+1. **Canonical logical artifacts:** review and accept the reconciled ERD,
+   port-contract, and modeling-review artifacts as the physical-design
+   baseline, then merge them to `main`.
 2. **Retention policy registry:** approve initial retention durations, allowed
    original-body purposes, and the stable reviewer/authorizer process. Without
    this, the provider may support only `no_retained_bytes` and permitted
@@ -251,7 +252,8 @@ are created or any durable code is written:
 
 ## Proposed Notion execution sequence after approval
 
-1. Restore or reconfirm the logical ERD and port contracts on `main`.
+1. Review and accept the use-case-to-conceptual-model-to-ERD derivation and any
+   identified gaps, then merge the logical artifacts to `main`.
 2. Establish PostgreSQL/PostGIS migration and integration-test foundation.
 3. Build governance lookup and fail-closed approval/health behavior.
 4. Build durable V2 submission, receipt, and conflict ledger.

@@ -2,8 +2,10 @@
 
 ## Status
 
-In progress on 2026-09-18. The execution breakdown is tracked in the
-`Prototype v1 Tasks` Notion database under plan slug
+The use-case diagram, conceptual model, derived logical ERD, and port diagrams
+now exist. The remaining work is review/acceptance of the derivation and any
+identified gap; it is not a new ERD-design task. The execution breakdown is
+tracked in the `Prototype v1 Tasks` Notion database under plan slug
 `data-storage-modeling-artifacts`.
 
 ## Goal
