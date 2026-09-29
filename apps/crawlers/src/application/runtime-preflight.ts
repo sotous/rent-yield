@@ -89,6 +89,12 @@ export type FixturePreflightResult =
     }
   | { ok: false; error: FixturePreflightError };
 
+/** The only preflight result that may enter fixture interpretation. */
+export type ReadyFixturePreflight = Extract<
+  FixturePreflightResult,
+  { ok: true }
+>;
+
 const sameScope = (
   manifest: MethodologyManifestV2,
   lookup: MethodologyLookupV2,
