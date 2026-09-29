@@ -28,12 +28,12 @@ snapshots, explorer publications, or backend replacement of prototype data.
 - [Listing storage contract](../docs/architecture/listing-storage-contract.md).
 - [V2 provider conformance requirements](../docs/architecture/durable-submission-v2-provider-requirements.md).
 
-The logical ERD, port-contract, and modeling-review artifacts were authored at
-`f19405d`, `b3d4961`, and `0aed62b`, but their files are not on current `main`.
-This plan uses their documented boundaries as historical design input; restoring
-them to `main`, or explicitly reconfirming their content, is a pre-migration
-approval gate. No migration should silently rely on an absent architecture
-artifact.
+The logical ERD, port-contract, and modeling-review artifacts were originally
+authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 restores and
+reconciles them on a dedicated documentation branch against the current V2
+contract and this plan. They become the physical-design baseline only after
+review explicitly accepts them; no migration should silently rely on an absent
+or unapproved architecture artifact.
 
 ## Decisions made by this plan
 
@@ -233,9 +233,9 @@ No test contacts a live listing source or needs a live canary.
 The following must be explicitly approved before Notion implementation tickets
 are created or any durable code is written:
 
-1. **Canonical logical artifacts:** restore the ERD and port-contract artifacts
-   to `main`, or approve the cited historical versions as the physical-design
-   baseline.
+1. **Canonical logical artifacts:** review and accept the reconciled ERD,
+   port-contract, and modeling-review artifacts as the physical-design
+   baseline, then merge them to `main`.
 2. **Retention policy registry:** approve initial retention durations, allowed
    original-body purposes, and the stable reviewer/authorizer process. Without
    this, the provider may support only `no_retained_bytes` and permitted
