@@ -307,15 +307,13 @@ The following decisions remain before durable implementation can begin:
 
 ## Proposed Notion execution sequence after approval
 
-1. Review and accept the use-case-to-conceptual-model-to-ERD derivation and any
-   identified gaps, then merge the logical artifacts to `main`.
-2. Establish PostgreSQL/PostGIS migration and integration-test foundation.
-3. Build governance lookup and fail-closed approval/health behavior.
-4. Build durable V2 submission, receipt, and conflict ledger.
-5. Add the durable reference-fixture adapter and shared conformance CI.
-6. Add policy-gated artifact staging, finalization, and reconciliation.
-7. Add retention/tombstone enforcement and Aiven-compatible validation.
-8. Review the durable provider, document its operational runbook, and perform
+1. Establish PostgreSQL/PostGIS migration and integration-test foundation.
+2. Build governance lookup and fail-closed approval/health behavior.
+3. Build durable V2 submission, receipt, and conflict ledger.
+4. Add the durable reference-fixture adapter and shared conformance CI.
+5. Add policy-gated artifact staging, finalization, and reconciliation.
+6. Add retention/tombstone enforcement and Aiven-compatible validation.
+7. Review the durable provider, document its operational runbook, and perform
    a retrospective before any model or publication work.
 
 These are proposed tickets only. They are not approved or created by this
