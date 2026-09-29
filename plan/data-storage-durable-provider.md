@@ -179,10 +179,12 @@ original-response handoff that occurs before redaction and binds the exact body
 to the capture digest, media type, fixed MVP policy, replay purpose, and
 30-day expiry.
 It must let Storage stage/finalize the body privately without returning an
-object key or storage credential to the crawler. The normalizer still receives
-only the redacted working representation. The retained-body read capability is
-internal to the crawler/parser replay path and must not be represented in the
-Rent Model or Backend contracts. The change needs shared contract schemas and
+object key or storage credential to the crawler. The restricted crawler/parser
+replay path may read and parse the retained original body; it produces a
+redacted working representation and normalized structured output. Original
+bytes must not leave that path. The Rent Model and Backend contracts receive
+only the redacted/normalized structured output and must not represent a
+retained-body read capability. The change needs shared contract schemas and
 vectors, crawler runtime behavior, provider conformance coverage,
 least-privilege access tests, and retention-expiry/reconciliation tests. It is
 deliberately not a V2 change in this plan and does not authorize implementation.
