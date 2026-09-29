@@ -2,7 +2,7 @@
 
 ## Result
 
-The restored [logical ERD](data-storage-erd.md) and [port contracts](data-storage-port-contracts.md) reconcile the historical design material with the current storage specification, conceptual model, and merged V2 conformance boundary. They are a reviewable logical baseline for later physical design. They do not authorize SQL, migrations, provisioning, or provider implementation.
+The [logical ERD](data-storage-erd.md) and [port contracts](data-storage-port-contracts.md) are derived from the current storage use cases and conceptual model, then reconciled with the merged V2 conformance boundary. Historical documents were reference material only; they do not outrank the current specification or conceptual relationships. The result is a reviewable logical baseline for later physical design. It does not authorize SQL, migrations, provisioning, or provider implementation.
 
 ## Traceability check
 
@@ -26,6 +26,11 @@ The restored [logical ERD](data-storage-erd.md) and [port contracts](data-storag
 | Backend authority             | Passed. Backend reads the current publication only. Any future geometry reference must be publication-scoped and must not expose an internal object key.                                                  |
 
 ## Remaining explicit decisions
+
+The derivation has no identified traceability gap at this time: every storage
+use case has a record-group path in the ERD and a caller boundary where one is
+needed. This is a review finding, not approval; reviewers may identify a gap
+before accepting the baseline.
 
 The logical baseline leaves these decisions open for the user’s physical-design approval gate:
 

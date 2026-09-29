@@ -18,11 +18,18 @@ erDiagram
   SOURCE_PROVIDER ||--o{ SOURCE_CANDIDATE : has
   SOURCE_CANDIDATE ||--o{ SOURCE_ASSESSMENT : receives
   SOURCE_CANDIDATE ||--o{ METHODOLOGY_VERSION : proposes
+  SOURCE_ASSESSMENT ||--o{ METHODOLOGY_VERSION : supports
+  EXTRACTION_CONTRACT_VERSION ||--o{ METHODOLOGY_VERSION : pinned_by
+  RETENTION_POLICY_VERSION ||--o{ METHODOLOGY_VERSION : pinned_by
+  REDACTION_POLICY_VERSION ||--o{ METHODOLOGY_VERSION : pinned_by
+  METHODOLOGY_VERSION ||--o{ METHODOLOGY_VALIDATION_REPORT : tested_by
   METHODOLOGY_VERSION ||--o{ METHODOLOGY_REVIEW_DECISION : reviewed_by
+  SOURCE_FIXTURE ||--o{ METHODOLOGY_VALIDATION_REPORT : used_in
   METHODOLOGY_VERSION ||--o{ CRAWL_RUN : governs
   CRAWL_RUN ||--o{ SOURCE_CAPTURE : contains
   METHODOLOGY_VERSION ||--o{ SOURCE_CAPTURE : authorizes
   SOURCE_CAPTURE ||--o| RETAINED_SOURCE_ARTIFACT : may_have
+  RETENTION_POLICY_VERSION ||--o{ RETAINED_SOURCE_ARTIFACT : governs
   SOURCE_CAPTURE ||--o{ SOURCE_LISTING : identifies
   SOURCE_CAPTURE ||--o{ NORMALIZED_OBSERVATION : interpreted_as
   SOURCE_LISTING ||--o{ NORMALIZED_OBSERVATION : observed_as
@@ -62,6 +69,7 @@ erDiagram
 
   MODEL_DEFINITION_VERSION ||--o{ RENT_MODEL_INPUT_SNAPSHOT : pins
   MODEL_CONFIGURATION_VERSION ||--o{ RENT_MODEL_INPUT_SNAPSHOT : pins
+  RENTAL_BENCHMARK_VERSION o|--o{ RENT_MODEL_INPUT_SNAPSHOT_MEMBER : contributes
   RENT_MODEL_INPUT_SNAPSHOT ||--o{ RENT_MODEL_INPUT_SNAPSHOT_MEMBER : contains
   NORMALIZED_OBSERVATION ||--o{ RENT_MODEL_INPUT_SNAPSHOT_MEMBER : contributes
   RENT_MODEL_INPUT_SNAPSHOT ||--o{ RENT_ASSESSMENT : produces
@@ -105,6 +113,11 @@ The backend reads this projection only; it does not join crawler, identity, or
 model working records during a request.
 
 ## Physical-design baseline and open decisions
+
+This ERD is derived from the current storage use cases and the
+[conceptual model](data-storage-conceptual-model.md). Historical ERD material
+was reference material during reconciliation, not an authority that can
+override those sources.
 
 The future physical design must preserve these logical invariants:
 

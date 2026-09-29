@@ -29,11 +29,12 @@ snapshots, explorer publications, or backend replacement of prototype data.
 - [V2 provider conformance requirements](../docs/architecture/durable-submission-v2-provider-requirements.md).
 
 The logical ERD, port-contract, and modeling-review artifacts were originally
-authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 restores and
-reconciles them on a dedicated documentation branch against the current V2
-contract and this plan. They become the physical-design baseline only after
-review explicitly accepts them; no migration should silently rely on an absent
-or unapproved architecture artifact.
+authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 derives and reconciles
+their current versions from the storage use cases, conceptual model, current V2
+contract, and this plan; those historical commits are reference material only.
+They become the physical-design baseline only after review explicitly accepts
+the derivation and any identified gaps. No migration should silently rely on an
+absent or unapproved architecture artifact.
 
 ## Decisions made by this plan
 
@@ -251,7 +252,8 @@ are created or any durable code is written:
 
 ## Proposed Notion execution sequence after approval
 
-1. Restore or reconfirm the logical ERD and port contracts on `main`.
+1. Review and accept the use-case-to-conceptual-model-to-ERD derivation and any
+   identified gaps, then merge the logical artifacts to `main`.
 2. Establish PostgreSQL/PostGIS migration and integration-test foundation.
 3. Build governance lookup and fail-closed approval/health behavior.
 4. Build durable V2 submission, receipt, and conflict ledger.
