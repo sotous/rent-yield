@@ -139,9 +139,10 @@ exact permitted bytes. PostgreSQL records the digest, size, media metadata,
 retention policy, purpose, and lifecycle; only internal workers know storage
 locations.
 
-### Approved initial retention direction
+### Approved MVP retention direction
 
-The user has approved this initial policy direction:
+For the already-approved crawler scope, the user has approved this fixed MVP
+policy direction:
 
 - retain only original text response bodies with media type `text/html` or
   `application/json`;
@@ -154,11 +155,16 @@ The user has approved this initial policy direction:
   the Rent Model and Backend receive structured contract data only and never a
   stored source body.
 
-The approved purposes remain parser replay and evidence audit. PostgreSQL is
-the durable source of truth for the record of collection and interpretation;
-object storage holds only the temporary, permitted body evidence. Policy pages,
-PDFs, XML, CSV, arbitrary binaries, and redacted fixtures are not authorized
-as retained objects by this initial direction.
+The MVP purpose is crawler/parser replay only. PostgreSQL is the durable source
+of truth for the record of collection and interpretation; object storage holds
+only temporary, permitted replay bodies. Policy pages, PDFs, XML, CSV,
+arbitrary binaries, redacted fixtures, and a general evidence-audit archive are
+not authorized as retained objects in this MVP direction.
+
+This is not blanket authorization to collect or retain from any source. A
+general source-by-source legal/compliance workflow, source-specific retention
+permissions, and a retention-authorizer mechanism are deferred. They must be
+revisited and approved before any live-source or canary execution.
 
 ### Required coordinated contract and runtime change
 
@@ -170,7 +176,8 @@ as permission to retain an original response.
 Before original HTML or JSON retention is implemented, a coordinated,
 versioned Crawler/Storage contract change must add a policy-gated
 original-response handoff that occurs before redaction and binds the exact body
-to the capture digest, media type, retention policy, purpose, and 30-day expiry.
+to the capture digest, media type, fixed MVP policy, replay purpose, and
+30-day expiry.
 It must let Storage stage/finalize the body privately without returning an
 object key or storage credential to the crawler. The normalizer still receives
 only the redacted working representation. The retained-body read capability is
@@ -266,30 +273,31 @@ No test contacts a live listing source or needs a live canary.
   authentication, or user data; and
 - changing `DurableSubmissionV2`, its shared vectors, or Crawler-owned code.
 
-## Approval gates and remaining user decisions
+## Resolved baseline and remaining decisions
 
-The following must be explicitly approved before Notion implementation tickets
-are created or any durable code is written:
+The reconciled ERD, port contracts, and modeling review are the accepted
+physical-design baseline and have merged to `main` in PR #23.
 
-1. **Canonical logical artifacts:** review and accept the reconciled ERD,
-   port-contract, and modeling-review artifacts as the physical-design
-   baseline, then merge them to `main`.
-2. **Retention policy registry:** the initial scope is approved: original HTML
-   and JSON only, parser replay/evidence audit purposes, a rolling 30-day
-   window, no media, and metadata/provenance preserved after byte deletion.
-   Still approve the stable reviewer/authorizer process and record the policy
-   as a versioned registry entry before implementation.
-3. **Coordinated contract/runtime evolution:** approve the proposed versioned
+The fixed MVP retention policy is also approved for the already-approved
+crawler scope: original HTML and JSON only, crawler/parser replay only, a
+rolling 30-day window, no media, and metadata/provenance preserved after byte
+deletion. General source-by-source legal/compliance review, source-specific
+permissions, and a stable retention-authorizer mechanism are deferred. They
+must be revisited and approved before any live-source or canary execution.
+
+The following decisions remain before durable implementation can begin:
+
+1. **Coordinated contract/runtime evolution:** approve the proposed versioned
    original-response handoff before redaction. V2's `inline_redacted` form and
    the current redaction-before-artifact runtime must remain unchanged until
    that coordinated work is specified, tested, and approved.
-4. **Deployment choices:** confirm the production PostgreSQL/PostGIS service,
+2. **Deployment choices:** confirm the production PostgreSQL/PostGIS service,
    S3-compatible object-storage provider/region, private-network approach, and
    secret/role administration. The plan remains Aiven-compatible but does not
    provision an account.
-5. **Operations:** approve the finalizer/reconciliation retry limit, alerting
+3. **Operations:** approve the finalizer/reconciliation retry limit, alerting
    owner, and who may authorize tombstones or retry a terminal failure.
-6. **Migration execution:** approve the selected SQL-migration runner and the
+4. **Migration execution:** approve the selected SQL-migration runner and the
    CI environment's ability to run PostgreSQL/PostGIS integration tests.
 
 ## Proposed Notion execution sequence after approval
