@@ -141,8 +141,9 @@ locations.
 
 ### Approved MVP retention direction
 
-For the already-approved crawler scope, the user has approved this fixed MVP
-policy direction:
+The user has approved this fixed MVP policy direction. It applies only within a
+source/methodology scope that is separately authorized for collection; it does
+not imply that any live source scope is currently authorized:
 
 - retain only original text response bodies with media type `text/html` or
   `application/json`;
@@ -280,12 +281,14 @@ No test contacts a live listing source or needs a live canary.
 The reconciled ERD, port contracts, and modeling review are the accepted
 physical-design baseline and have merged to `main` in PR #23.
 
-The fixed MVP retention policy is also approved for the already-approved
-crawler scope: original HTML and JSON only, crawler/parser replay only, a
-rolling 30-day window, no media, and metadata/provenance preserved after byte
-deletion. General source-by-source legal/compliance review, source-specific
-permissions, and a stable retention-authorizer mechanism are deferred. They
-must be revisited and approved before any live-source or canary execution.
+The fixed MVP retention policy is also approved: original HTML and JSON only,
+crawler/parser replay only, a rolling 30-day window, no media, and
+metadata/provenance preserved after byte deletion. It applies only within a
+source/methodology scope separately authorized for collection; no live scope is
+currently implied or authorized. General source-by-source legal/compliance
+review, source-specific permissions, and a stable retention-authorizer
+mechanism are deferred. They must be revisited and approved before any
+live-source or canary execution.
 
 The following decisions remain before durable implementation can begin:
 
