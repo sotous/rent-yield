@@ -150,6 +150,9 @@ The user has approved this initial policy direction:
 - use a rolling 30-day retention window; and
 - at expiry, delete the retained body bytes while preserving capture metadata
   and digest, extracted records, and field-level provenance in PostgreSQL.
+- during that window, permit body access only to the crawler/parser replay path;
+  the Rent Model and Backend receive structured contract data only and never a
+  stored source body.
 
 The approved purposes remain parser replay and evidence audit. PostgreSQL is
 the durable source of truth for the record of collection and interpretation;
@@ -170,10 +173,12 @@ original-response handoff that occurs before redaction and binds the exact body
 to the capture digest, media type, retention policy, purpose, and 30-day expiry.
 It must let Storage stage/finalize the body privately without returning an
 object key or storage credential to the crawler. The normalizer still receives
-only the redacted working representation. The change needs shared contract
-schemas and vectors, crawler runtime behavior, provider conformance coverage,
-and retention-expiry/reconciliation tests. It is deliberately not a V2 change
-in this plan and does not authorize implementation.
+only the redacted working representation. The retained-body read capability is
+internal to the crawler/parser replay path and must not be represented in the
+Rent Model or Backend contracts. The change needs shared contract schemas and
+vectors, crawler runtime behavior, provider conformance coverage,
+least-privilege access tests, and retention-expiry/reconciliation tests. It is
+deliberately not a V2 change in this plan and does not authorize implementation.
 
 ### Atomicity and recovery flow
 
