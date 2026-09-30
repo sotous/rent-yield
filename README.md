@@ -36,6 +36,41 @@ Version one is intentionally narrow.
 - Estimated values should be labeled clearly.
 - Version one should stay ergonomically simple.
 
+## How Data Reaches the Explorer
+
+The product turns approved property-source information into useful rent and
+yield estimates through a small pipeline:
+
+```mermaid
+flowchart LR
+  A[1. Collection request] --> B[2. Crawler]
+  B --> C{3. Finding is valid?}
+  C -->|Yes: positive finding| D[Structured observation in Data Storage]
+  C -->|No: invalid finding| E[Discard safely]
+  D --> F[4. Rent Model]
+  F --> G[5. Backend]
+  G --> H[Explorer for the final consumer]
+```
+
+1. A **collection request** is the small set of information the crawler needs:
+   the approved source, the area and listing type to look for, and the rules
+   that limit the run.
+2. The **crawler** follows those approved rules to find and read a property
+   page. It redacts sensitive data, extracts the useful property information,
+   and checks its quality.
+3. A **positive finding** becomes a structured observation in Data Storage. An
+   invalid, incomplete, or unsafe finding is discarded safely and never reaches
+   the product.
+4. The **Rent Model** uses eligible rental observations to produce a concrete
+   market-rent estimate.
+5. The **backend** combines the Rent Model's estimate with the property and
+   yield information, then serves it to the Explorer used by the final
+   consumer.
+
+The proof of concept begins with redacted test fixtures and manual collection
+requests. A real collection run remains separately approved and tightly
+bounded.
+
 ## Repository Structure
 
 - `apps/frontend`: frontend application
