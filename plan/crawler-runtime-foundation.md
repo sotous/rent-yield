@@ -34,10 +34,11 @@ The runtime will:
 - accept only the resolved methodology's pinned adapter, parser, normalizer,
   extraction contract, access scope, and budgets;
 - execute against injected fixture and transport ports, keeping received bytes
-  in memory until redaction and prohibited-data scanning succeed;
-- produce typed run results: sanitized receipt, redacted fixture reference,
-  `normalized`, `quarantined`, `parse_failed`, or `capture_only`
-  interpretation, health event, and a versioned Data Storage submission;
+  in memory only until redaction and prohibited-data scanning complete;
+- produce one of `normalized`, `quarantined`, `parse_failed`, or
+  `capture_only` as a local typed interpretation; persist only an
+  eligibility-passing `normalized` result through the versioned Data Storage
+  submission boundary;
 - use immutable interpretation identity to detect duplicate delivery and
   deterministic drift; and
 - expose fixture-first tests and a narrow manual canary orchestration boundary.
@@ -48,7 +49,8 @@ The runtime will not:
   broader scope from a source URL;
 - add a database, object store, credentials, scheduler, browser automation,
   proxy, retries, pagination harvesting, or production adapter;
-- retain original source bodies after redaction; or
+- retain original source bodies, provide their replay/retrieval path, or retain
+  fixture bytes above the inline redacted-fixture cap; or
 - claim durable acceptance, Rent Model execution, identity resolution, or
   explorer publication.
 
@@ -61,7 +63,7 @@ runtime lookup request
   -> injected bounded transport or frozen fixture
   -> in-memory raw bytes
   -> deterministic redaction + scanner
-  -> immutable fixture
+  -> bounded redacted fixture or no-retained-fixture evidence
   -> pinned parser/normalizer/extraction
   -> normalized | quarantined interpretation
   -> sanitized run result + health event + submission candidate
@@ -109,7 +111,8 @@ metadata; they do not authorize access or replace review.
 4. Implement the in-memory redaction-before-write pipeline, scanner, artifact
    disposition, and original-byte disposal on every terminal path.
 5. Implement deterministic parser/normalizer/extraction orchestration,
-   duplicate/drift semantics, health events, and submission production.
+   duplicate/drift semantics, the minimum two-event health boundary, and
+   normalized-only submission production.
 6. Integrate the bounded manual canary command only after its separate access,
    reviewer, V2-methodology, and live-transport gates are met.
 7. Review ergonomics, document the runtime runbook, and reconcile the canary
@@ -125,8 +128,11 @@ require joint agreement with Data Storage before implementation.
   prerequisite; runtime implementation starts only after its contract review.
 - Live transport belongs only to the separately approved canary. A fixture-first
   runtime must not create an implied live-crawling capability.
-- Data Storage must supply durable policy, reviewer-identity, artifact, and
-  provider-conformance behavior before a run can be treated as durably stored.
+- Data Storage is the sole durable idempotency and receipt authority. The
+  crawler keeps process-local memory only for fixture testing and never treats
+  it as durable state.
+- Shared acceptance vectors remain jointly reviewed: Data Storage owns durable
+  acceptance semantics; Crawlers owns producer coverage.
 
 ## Validation
 
@@ -136,8 +142,11 @@ require joint agreement with Data Storage before implementation.
 - Scope, approval, artifact, integrity, policy, redaction, scanner, parser, and
   storage-boundary failures stop before a result is published.
 - Capture conflict, duplicate delivery, changed interpretation, parser drift,
-  health-report failure, and pre-acceptance storage unavailability produce their
-  specified typed outcomes.
+  artifact-safety blocking, health-report failure, and pre-acceptance storage
+  unavailability produce their specified typed outcomes.
+- Only an eligibility-passing normalized interpretation produces a submission
+  candidate. Quarantined, parse-failed, and capture-only results are transient:
+  no durable outcome, receipt, or tombstone is created for them.
 - Tests use frozen fixtures and injected fakes; no test contacts a live source
   or needs a database.
 - The manual canary executes only after its own explicit gates pass.
@@ -248,9 +257,10 @@ redaction without changing this command's authority model.
 Status: completed on 2026-09-24. The fixture-only pipeline decodes raw bytes in
 memory, rejects unsafe binary/control input, deterministically redacts and scans
 the payload, and only then creates an artifact disposition. It supports bounded
-inline redacted bytes, explicit no-retained-bytes evidence, and an injected
-opaque staging port. The staging port receives redacted bytes and returns only
-an opaque reference ID; it has no object-store or provider dependency.
+inline redacted bytes and explicit no-retained-bytes evidence. The original
+prototype also exposed an opaque staging port; the MVP follow-up removes that
+producer path because oversized redacted fixtures are discarded rather than
+stored behind a reference.
 
 Every terminal path invokes the caller-owned original-byte disposal hook.
 Focused tests cover success, prohibited input, inline bounds, no-retention,
@@ -262,9 +272,9 @@ or object-storage capability was added.
 The existing fixture redactor and scanner were reusable after exposing a narrow
 pure redaction function. Keeping the new pipeline as an application boundary
 makes its artifact choices explicit without coupling runtime code to durable
-Storage. Future submission work must bind a staged reference to the complete
-V2 capture and interpretation context; this slice intentionally does not
-produce a durable submission.
+Storage. The follow-up keeps the strict inline cap and uses an explicit
+no-retained-fixture disposition when it is exceeded; this slice intentionally
+does not produce a durable submission.
 
 ## Milestone 4: Fixture interpretation orchestration
 
@@ -282,3 +292,47 @@ This slice reused the existing deterministic fixture replay engine while adding
 runtime authority and identity boundaries around it. It intentionally leaves
 transport, durable submission delivery, and live canary behavior to later
 separately gated work.
+
+## Milestone 5: MVP storage and health alignment
+
+Status: completed on 2026-09-30. This follow-up reconciles the merged Data
+Storage POC boundary with the runtime. It is fixture-first and retains no
+original source body or historical replay path.
+
+### Deliverables
+
+- Record both the observed original-response digest/length and, when retained,
+  the redacted-fixture digest/length in normalized-result provenance. The
+  original bytes are always discarded.
+- Remove the Crawler producer's opaque staged-reference path. A redacted
+  fixture over the inline limit is discarded without truncation and becomes an
+  explicit no-retained-fixture disposition.
+- Keep exactly two sanitized health events: `parser_drift` and
+  `artifact_safety_block`. Other preflight, validation, and receipt failures
+  remain typed process results.
+- Produce a Storage submission candidate only for a `normalized` interpretation
+  that passes the MVP listing-quality eligibility gate. Rental-evidence use
+  remains a separate downstream rule. Discard
+  `quarantined`, `parse_failed`, and `capture_only` results after their typed
+  local result and any applicable health event; create no durable outcome,
+  receipt, or tombstone.
+- Add Crawler producer coverage against the shared V2 vectors. Storage owns the
+  durable acceptance semantics and receipt/idempotency authority.
+
+### Test-first validation
+
+Focused RED tests must prove the original-response digest never retains bytes,
+the redacted fixture has separate digest/length when present, oversized fixtures
+have no bytes or reference, only the two health events can be emitted, and a
+non-normalized or ineligible normalized result cannot produce a submission.
+All tests remain frozen-fixture and fake-port only.
+
+### Retrospective
+
+The final fixture runtime is a small composition root rather than a collection
+of disconnected helpers: it preflights externally, redacts and disposes source
+bytes, interprets the sanitized artifact, reports only essential safety events,
+and delivers only a normalized candidate through the Storage port. The separate
+capture and redacted-artifact evidence prevents provenance ambiguity without
+retaining the original body. The remaining live-source and canary plans stay
+separate and require their own approval.

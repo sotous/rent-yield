@@ -7,7 +7,8 @@ reviews. Product requirements and version-one scope live in
 
 ## Current documentation
 
-- [Architecture](architecture/): system boundaries and implementation design.
+- [Architecture](architecture/): system boundaries and implementation design,
+  including the [Crawler runtime MVP runbook](architecture/crawler-runtime-mvp-runbook.md).
 - [API](api/): consumer contracts and API reference material.
 - [Decisions](decisions/): durable technical and product choices.
 - [Research](research/): exploratory findings and market research.

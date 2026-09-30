@@ -6,6 +6,10 @@ import {
 } from "./fixture-capture.js";
 
 type ContentType = "application/json" | "text/html" | "text/plain";
+export type ObservedResponseEvidence = {
+  original_body_sha256: string;
+  original_body_byte_length: number;
+};
 export type RuntimeArtifact =
   | {
       kind: "inline_redacted";
@@ -17,30 +21,22 @@ export type RuntimeArtifact =
     }
   | {
       kind: "no_retained_bytes";
-      disposition: "policy_forbids_retention";
-      media_type: ContentType;
-      encoding: "utf-8";
-      body_sha256: string;
-      body_byte_length: number;
-    }
-  | {
-      kind: "staged_reference";
-      reference_id: string;
+      disposition: "policy_forbids_retention" | "inline_limit_exceeded";
       media_type: ContentType;
       encoding: "utf-8";
       body_sha256: string;
       body_byte_length: number;
     };
 export type RuntimeArtifactResult =
-  | { ok: true; artifact: RuntimeArtifact }
+  | {
+      ok: true;
+      artifact: RuntimeArtifact;
+      capture_evidence: ObservedResponseEvidence;
+    }
   | {
       ok: false;
       error: {
-        code:
-          | "invalid_encoding"
-          | "invalid_payload"
-          | "prohibited_data"
-          | "inline_limit_exceeded";
+        code: "invalid_encoding" | "invalid_payload" | "prohibited_data";
       };
     };
 
@@ -49,17 +45,10 @@ export async function prepareFixtureArtifact(
   input: {
     content_type: ContentType;
     original_bytes: Uint8Array;
-    disposition: "inline_redacted" | "no_retained_bytes" | "staged_reference";
+    disposition: "inline_redacted" | "no_retained_bytes";
   },
   dependencies: {
     disposeOriginal(): void;
-    stageRedacted?: (input: {
-      bytes: string;
-      media_type: ContentType;
-      encoding: "utf-8";
-      body_sha256: string;
-      body_byte_length: number;
-    }) => Promise<{ ok: true; reference_id: string } | { ok: false }>;
   },
 ): Promise<RuntimeArtifactResult> {
   try {
@@ -71,6 +60,12 @@ export async function prepareFixtureArtifact(
     } catch {
       return { ok: false, error: { code: "invalid_encoding" } };
     }
+    const capture_evidence = {
+      original_body_sha256: createHash("sha256")
+        .update(original, "utf8")
+        .digest("hex"),
+      original_body_byte_length: Buffer.byteLength(original, "utf8"),
+    };
     if (
       scanProhibitedFixtureData(original).some(
         (issue) => issue === "embedded_binary" || issue === "embedded_control",
@@ -88,9 +83,21 @@ export async function prepareFixtureArtifact(
       .digest("hex");
     if (input.disposition === "inline_redacted") {
       if (body_byte_length > MAX_INLINE_REDACTED_BYTES_V2)
-        return { ok: false, error: { code: "inline_limit_exceeded" } };
+        return {
+          ok: true,
+          capture_evidence,
+          artifact: {
+            kind: "no_retained_bytes",
+            disposition: "inline_limit_exceeded",
+            media_type: input.content_type,
+            encoding: "utf-8",
+            body_sha256,
+            body_byte_length,
+          },
+        };
       return {
         ok: true,
+        capture_evidence,
         artifact: {
           kind: "inline_redacted",
           bytes: redacted,
@@ -101,31 +108,9 @@ export async function prepareFixtureArtifact(
         },
       };
     }
-    if (input.disposition === "staged_reference") {
-      if (!dependencies.stageRedacted)
-        return { ok: false, error: { code: "invalid_payload" } };
-      const staged = await dependencies.stageRedacted({
-        bytes: redacted,
-        media_type: input.content_type,
-        encoding: "utf-8",
-        body_sha256,
-        body_byte_length,
-      });
-      if (!staged.ok) return { ok: false, error: { code: "invalid_payload" } };
-      return {
-        ok: true,
-        artifact: {
-          kind: "staged_reference",
-          reference_id: staged.reference_id,
-          media_type: input.content_type,
-          encoding: "utf-8",
-          body_sha256,
-          body_byte_length,
-        },
-      };
-    }
     return {
       ok: true,
+      capture_evidence,
       artifact: {
         kind: "no_retained_bytes",
         disposition: "policy_forbids_retention",

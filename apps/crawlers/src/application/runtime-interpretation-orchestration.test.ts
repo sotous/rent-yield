@@ -6,6 +6,7 @@ import {
   MemoryFixtureInterpretationRegistry,
   deriveFixtureSubmissionCandidate,
   orchestrateFixtureInterpretation,
+  reportArtifactSafetyBlock,
 } from "./runtime-interpretation-orchestration.js";
 
 const readyPreflight = {
@@ -21,6 +22,11 @@ const readyPreflight = {
     },
   },
 } as ReadyFixturePreflight;
+
+const captureEvidence = {
+  original_body_sha256: "a".repeat(64),
+  original_body_byte_length: 120,
+};
 
 describe("fixture runtime interpretation orchestration", () => {
   it("passes only a sanitized artifact to the pinned replay port and emits a typed normalized result", async () => {
@@ -103,6 +109,40 @@ describe("fixture runtime interpretation orchestration", () => {
     ).resolves.toEqual({ ok: false, error: { code: "health_unavailable" } });
   });
 
+  it("emits the only other health event when a fixture cannot be retained safely", async () => {
+    const emitHealth = vi.fn(async () => undefined);
+    await expect(
+      reportArtifactSafetyBlock(
+        {
+          preflight: readyPreflight,
+          failure_code: "prohibited_data",
+        },
+        { emitHealth },
+      ),
+    ).resolves.toEqual({ ok: true });
+    expect(emitHealth).toHaveBeenCalledWith({
+      code: "artifact_safety_block",
+      severity: "error",
+      source_key: "synthetic-source",
+      capture_event_id: "capture-1",
+      methodology_manifest_hash: "m".repeat(64),
+      failure_code: "prohibited_data",
+    });
+    await expect(
+      reportArtifactSafetyBlock(
+        {
+          preflight: readyPreflight,
+          failure_code: "invalid_payload",
+        },
+        {
+          emitHealth: async () => {
+            throw new Error("raw port error");
+          },
+        },
+      ),
+    ).resolves.toEqual({ ok: false, error: { code: "health_unavailable" } });
+  });
+
   it("keeps capture and five-field interpretation identity immutable while allowing exact replay", () => {
     const registry = new MemoryFixtureInterpretationRegistry();
     const identity = {
@@ -161,11 +201,12 @@ describe("fixture runtime interpretation orchestration", () => {
     },
   );
 
-  it("derives but does not deliver a validated V2 fixture submission candidate", () => {
+  it("derives but does not deliver a validated V2 normalized submission candidate", () => {
     const base: Omit<typeof durableSubmissionV2Vector, "artifact" | "outcome"> =
       durableSubmissionV2Vector;
-    const candidate = deriveFixtureSubmissionCandidate({
+    const result = deriveFixtureSubmissionCandidate({
       base,
+      capture_evidence: captureEvidence,
       artifact: {
         kind: "no_retained_bytes",
         disposition: "policy_forbids_retention",
@@ -175,17 +216,105 @@ describe("fixture runtime interpretation orchestration", () => {
         body_byte_length: 120,
       },
       interpretation: {
-        kind: "capture_only",
-        observations: [],
+        kind: "normalized",
+        observations: [{ quality: { blocking: false } }],
         rental_evidence: [],
         issues: [],
       },
       provenance: { fixture: true },
     });
-    expect(candidate.outcome).toMatchObject({
-      kind: "complete",
-      outcome_kind: "capture_only",
+    expect(result).toMatchObject({
+      ok: true,
+      candidate: {
+        outcome: { kind: "complete", outcome_kind: "normalized" },
+        artifact: { kind: "no_retained_bytes" },
+      },
     });
-    expect(candidate.artifact.kind).toBe("no_retained_bytes");
+  });
+
+  it("rejects a candidate whose capture metadata differs from observed response evidence", () => {
+    const base: Omit<typeof durableSubmissionV2Vector, "artifact" | "outcome"> =
+      durableSubmissionV2Vector;
+    expect(
+      deriveFixtureSubmissionCandidate({
+        base,
+        capture_evidence: {
+          ...captureEvidence,
+          original_body_byte_length: 121,
+        },
+        artifact: {
+          kind: "no_retained_bytes",
+          disposition: "policy_forbids_retention",
+          media_type: "application/json",
+          encoding: "utf-8",
+          body_sha256: "a".repeat(64),
+          body_byte_length: 120,
+        },
+        interpretation: {
+          kind: "normalized",
+          observations: [{ quality: { blocking: false } }],
+          rental_evidence: [],
+          issues: [],
+        },
+        provenance: { fixture: true },
+      }),
+    ).toEqual({ ok: false, error: { code: "capture_evidence_mismatch" } });
+  });
+
+  it.each(["quarantined", "parse_failed", "capture_only"] as const)(
+    "does not create a durable submission candidate for %s",
+    (kind) => {
+      const base: Omit<
+        typeof durableSubmissionV2Vector,
+        "artifact" | "outcome"
+      > = durableSubmissionV2Vector;
+      expect(
+        deriveFixtureSubmissionCandidate({
+          base,
+          capture_evidence: captureEvidence,
+          artifact: {
+            kind: "no_retained_bytes",
+            disposition: "policy_forbids_retention",
+            media_type: "application/json",
+            encoding: "utf-8",
+            body_sha256: "a".repeat(64),
+            body_byte_length: 120,
+          },
+          interpretation: {
+            kind,
+            observations: [],
+            rental_evidence: [],
+            issues: [],
+          },
+          provenance: { fixture: true },
+        }),
+      ).toEqual({ ok: false, error: { code: "outcome_not_persistable" } });
+    },
+  );
+
+  it("does not create a durable submission candidate for an empty normalized result", () => {
+    const base: Omit<typeof durableSubmissionV2Vector, "artifact" | "outcome"> =
+      durableSubmissionV2Vector;
+    expect(
+      deriveFixtureSubmissionCandidate({
+        base,
+        capture_evidence: captureEvidence,
+        artifact: {
+          kind: "no_retained_bytes",
+          disposition: "policy_forbids_retention",
+          media_type: "application/json",
+          encoding: "utf-8",
+          body_sha256: "a".repeat(64),
+          body_byte_length: 120,
+        },
+        interpretation: {
+          kind: "normalized",
+          observations: [],
+          rental_evidence: [],
+          issues: [],
+        },
+        provenance: { fixture: true },
+      }),
+    ).toEqual({ ok: false, error: { code: "outcome_not_persistable" } });
   });
 });

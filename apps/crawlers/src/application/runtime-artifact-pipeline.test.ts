@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { MAX_INLINE_REDACTED_BYTES_V2 } from "@rent-yield/listing-storage-contracts";
 import { prepareFixtureArtifact } from "./runtime-artifact-pipeline.js";
 
 describe("fixture runtime artifact pipeline", () => {
@@ -17,6 +18,9 @@ describe("fixture runtime artifact pipeline", () => {
     expect(result).toMatchObject({
       ok: true,
       artifact: { kind: "inline_redacted" },
+      capture_evidence: {
+        original_body_byte_length: 49,
+      },
     });
     if (result.ok && result.artifact.kind === "inline_redacted")
       expect(result.artifact.bytes).not.toContain("private@example.com");
@@ -37,28 +41,29 @@ describe("fixture runtime artifact pipeline", () => {
     expect(dispose).toHaveBeenCalledOnce();
   });
 
-  it("hands only scanned redacted bytes to an opaque staging port", async () => {
+  it("discards an oversized redacted fixture without requesting a staged reference", async () => {
     const dispose = vi.fn();
-    const stageRedacted = vi.fn(async (input: { bytes: string }) => {
-      expect(input.bytes).not.toContain("private@example.com");
-      return { ok: true as const, reference_id: "staged-redacted-1" };
-    });
     const result = await prepareFixtureArtifact(
       {
         content_type: "text/plain",
-        original_bytes: new TextEncoder().encode("email: private@example.com"),
-        disposition: "staged_reference",
+        original_bytes: new TextEncoder().encode(
+          "a".repeat(MAX_INLINE_REDACTED_BYTES_V2 + 1),
+        ),
+        disposition: "inline_redacted",
       },
-      { disposeOriginal: dispose, stageRedacted },
+      { disposeOriginal: dispose },
     );
     expect(result).toMatchObject({
       ok: true,
-      artifact: { kind: "staged_reference", reference_id: "staged-redacted-1" },
+      artifact: {
+        kind: "no_retained_bytes",
+        disposition: "inline_limit_exceeded",
+      },
     });
     expect(dispose).toHaveBeenCalledOnce();
   });
 
-  it("retains only evidence metadata when policy forbids bytes and disposes after staging failure", async () => {
+  it("retains only evidence metadata when policy forbids fixture bytes", async () => {
     const dispose = vi.fn();
     const noRetention = await prepareFixtureArtifact(
       {
@@ -76,18 +81,6 @@ describe("fixture runtime artifact pipeline", () => {
       },
     });
 
-    const failedStage = await prepareFixtureArtifact(
-      {
-        content_type: "text/plain",
-        original_bytes: new TextEncoder().encode("rent: 1800000 COP"),
-        disposition: "staged_reference",
-      },
-      { disposeOriginal: dispose, stageRedacted: async () => ({ ok: false }) },
-    );
-    expect(failedStage).toEqual({
-      ok: false,
-      error: { code: "invalid_payload" },
-    });
-    expect(dispose).toHaveBeenCalledTimes(2);
+    expect(dispose).toHaveBeenCalledOnce();
   });
 });
