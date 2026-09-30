@@ -20,7 +20,7 @@ The [logical ERD](data-storage-erd.md) and [port contracts](data-storage-port-co
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sale-price firewall           | Passed. Sale and rental offers remain separate. Rental evidence, snapshots, and assessments exclude sale price and sale-derived values.                                                                   |
 | V2 receipt behavior           | Passed. The ingestion port now states exact `(source_key, submission_id)` receipt replay, conflict precedence, distinct receipts for linked identical interpretations, and zero-or-one terminal progress. |
-| Provenance and retained bytes | Passed. Relational records remain the source of truth. Private content-addressed objects are optional, policy-gated evidence; images remain excluded by default.                                          |
+| Provenance and retained bytes | Passed. The MVP/POC retains structured records, provenance, capture digest/length, and redacted fixtures only; original-body replay is post-POC and media is excluded.                                    |
 | Immutable history             | Passed. Evidence, decisions, snapshots, assessments, and publications append rather than overwrite. Only the current-publication pointer is mutable.                                                      |
 | Crawler authority             | Passed. Crawlers receive neither table access, object keys, reference issuance, nor governance authority.                                                                                                 |
 | Backend authority             | Passed. Backend reads the current publication only. Any future geometry reference must be publication-scoped and must not expose an internal object key.                                                  |
@@ -35,7 +35,7 @@ before accepting the baseline.
 The logical baseline leaves these decisions open for the user’s physical-design approval gate:
 
 1. Restore/reconfirm acceptance of these logical artifacts as the physical-design baseline.
-2. Approve retention durations, allowed original-body purposes, and reviewer/authorizer process.
+2. Decide later whether and how redacted fixtures need durable storage; original-body retention remains post-POC.
 3. Confirm the production PostgreSQL/PostGIS and S3-compatible providers, region/networking, and role/secret administration.
 4. Approve finalizer/reconciliation retry limits, alerts, and tombstone authority.
 5. Select the SQL migration runner and CI integration-test environment.

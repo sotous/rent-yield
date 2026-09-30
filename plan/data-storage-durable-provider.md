@@ -3,7 +3,7 @@
 ## Status
 
 Draft for approval on 2026-09-24. This is the prerequisite plan for a durable
-PostgreSQL/PostGIS and private-object-storage provider. It authorizes no
+PostgreSQL/PostGIS durable-ingestion provider. It authorizes no
 implementation, provisioning, migration, or shared-contract change until its
 approval and Notion breakdown.
 
@@ -12,7 +12,7 @@ approval and Notion breakdown.
 Deliver the smallest durable implementation of the already-merged
 `DurableSubmissionV2` provider boundary. It must let a crawler receive an
 immutable accepted receipt, let Storage recover finalization work, and retain
-only policy-permitted evidence without exposing database access or object keys.
+immutable structured evidence without exposing database access or object keys.
 
 The first durable slice is deliberately an ingestion foundation. It does not
 attempt to implement the Rent Model evidence view, cross-source identity,
@@ -38,15 +38,15 @@ absent or unapproved architecture artifact.
 
 ## Decisions made by this plan
 
-| Decision                   | Proposal                                                                                                                                                                                                   | Why it stays simple                                                                                        |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Database shape             | One PostgreSQL 16+ database with PostGIS, organized under the existing `ingestion`, `model`, and `app` schemas                                                                                             | One system of record; schemas clarify authority without creating application databases.                    |
-| Durable delivery scope     | Implement only `ingestion` governance lookup and V2 intake/finalization records in this plan                                                                                                               | The other schemas have independent model and publication behavior that would obscure provider correctness. |
-| Relational source of truth | PostgreSQL holds policy, submission, capture, interpretation, receipt, progress, artifact metadata, and reconciliation state                                                                               | Object storage never becomes a hidden database.                                                            |
-| Byte storage               | Private S3-compatible storage holds only policy-permitted original HTML or JSON response bodies for a rolling 30 days; media is never retained                                                             | Bytes are optional evidence, not listing media.                                                            |
-| Migration style            | Ordered, reviewed SQL migrations with a small runner; no ORM-generated schema                                                                                                                              | SQL makes immutable constraints, indexes, roles, and PostGIS behavior visible and portable to Aiven.       |
-| Acceptance boundary        | A receipt is written only after a recoverable database record and, if needed, a finalization outbox record are durable                                                                                     | `accepted` means Storage can finish or report a terminal result after a crash.                             |
-| Reference issuance         | Production `DurableSubmissionV2Provider` remains unchanged. Its test-only `DurableSubmissionV2ConformanceFixtures` adapter seeds and invalidates provider-issued references directly in durable test state | The runner proves opaque-reference safety without adding an uploader or object-key API for Crawlers.       |
+| Decision                   | Proposal                                                                                                                                                                                                   | Why it stays simple                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Database shape             | One PostgreSQL 16+ database with PostGIS, organized under the existing `ingestion`, `model`, and `app` schemas                                                                                             | One system of record; schemas clarify authority without creating application databases.                          |
+| Durable delivery scope     | Implement only `ingestion` governance lookup and V2 intake/finalization records in this plan                                                                                                               | The other schemas have independent model and publication behavior that would obscure provider correctness.       |
+| Relational source of truth | PostgreSQL holds policy, submission, capture, interpretation, receipt, progress, artifact metadata, and reconciliation state                                                                               | Object storage never becomes a hidden database.                                                                  |
+| Raw response bodies        | Do not retain original HTML/JSON bodies or build replay retrieval in the MVP/POC; retain their digest and length with structured outcomes and provenance                                                   | A fresh, separately approved collection run is more useful for explorer accuracy than replaying an old response. |
+| Migration style            | Ordered, reviewed SQL migrations with a small runner; no ORM-generated schema                                                                                                                              | SQL makes immutable constraints, indexes, roles, and PostGIS behavior visible and portable to Aiven.             |
+| Acceptance boundary        | A receipt is written only after a recoverable database record and, if needed, a finalization outbox record are durable                                                                                     | `accepted` means Storage can finish or report a terminal result after a crash.                                   |
+| Reference issuance         | Production `DurableSubmissionV2Provider` remains unchanged. Its test-only `DurableSubmissionV2ConformanceFixtures` adapter seeds and invalidates provider-issued references directly in durable test state | The runner proves opaque-reference safety without adding an uploader or object-key API for Crawlers.             |
 
 ## Provider boundary
 
@@ -61,12 +61,11 @@ The provider implements the already exported `DurableSubmissionV2Provider`:
 The durable provider owns these internal operations, which are not crawler
 ports or public APIs:
 
-1. persist and verify reference issuance records for staged, verified-artifact,
-   and verified-outcome references;
-2. stage an allowed inline artifact, record a finalization outbox operation,
-   and later make its internal content-addressed object durable;
-3. reconcile a database record with staged, finalized, missing, orphaned, or
-   digest-mismatched object state; and
+1. persist and verify the provider-issued references needed by the shared
+   conformance fixture adapter;
+2. retain the V2 artifact disposition and body digest/length/media metadata as
+   structured evidence without retaining an original response body;
+3. preserve the complete typed outcome and field-level provenance; and
 4. write the one terminal `committed`, `quarantined`, or `failed` progress
    event.
 
@@ -91,16 +90,14 @@ progress is zero or one terminal event, not a multi-event workflow history.
 The first migration set creates the `ingestion` schema and the minimum durable
 records below. It does not create the later `model` or `app` record groups.
 
-| Record group           | Required responsibility                                                                                                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Governance lookup      | Versioned methodology, retention/redaction policy, review decision, and health-block records sufficient to return exactly one approved effective methodology or a typed no-work decision. |
-| Submission ledger      | Source-scoped submission ID, canonical accepted-submission hash, immutable receipt, accepted timestamp, and exact-replay lookup.                                                          |
-| Capture ledger         | Source/capture-event identity, canonical capture fingerprint, collection metadata, methodology/policy hashes, and conflict detection.                                                     |
-| Interpretation ledger  | The five-field V2 identity, derived outcome hash, typed outcome/provenance JSON, and an immutable capture link.                                                                           |
-| Artifact ledger        | Disposition, body digest/length/media/encoding, retention-policy hash, internal lifecycle state, and no externally visible object location.                                               |
-| Reference ledger       | Opaque provider-issued ID, kind, full V2 binding, issuance/invalidated state, and expiry metadata when a provider workflow requires it.                                                   |
-| Finalization ledger    | Outbox operation, attempt count, sanitized failure, object digest, and terminal receipt-progress linkage.                                                                                 |
-| Retention/audit ledger | Authorized redaction or tombstone action, policy reason, actor, time, and required derived-data invalidation marker.                                                                      |
+| Record group             | Required responsibility                                                                                                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Governance lookup        | Versioned methodology, retention/redaction policy, review decision, and health-block records sufficient to return exactly one approved effective methodology or a typed no-work decision. |
+| Submission ledger        | Source-scoped submission ID, canonical accepted-submission hash, immutable receipt, accepted timestamp, and exact-replay lookup.                                                          |
+| Capture ledger           | Source/capture-event identity, canonical capture fingerprint, collection metadata, methodology/policy hashes, and conflict detection.                                                     |
+| Interpretation ledger    | The five-field V2 identity, derived outcome hash, typed outcome/provenance JSON, and an immutable capture link.                                                                           |
+| Artifact evidence ledger | Redacted-fixture disposition plus body digest/length/media/encoding and retention-policy hash; no original response bytes or externally visible object location.                          |
+| Reference ledger         | Opaque provider-issued ID, kind, full V2 binding, issuance/invalidated state, and expiry metadata when a provider workflow requires it.                                                   |
 
 Use canonical JSON values and SHA-256 strings from the shared contract as
 stored evidence. Store canonical submission/capture/interpretation preimages
@@ -132,63 +129,24 @@ submission_id)`, `(source_key, capture_event_id)`, and capture plus
 - Money, area, and later model values use PostgreSQL `numeric`; the V2 provider
   preserves contract decimals and does not calculate model values.
 
-## Private object-storage responsibilities
+## MVP/POC body and fixture boundary
 
-Objects are private, encrypted, and content-addressed by the SHA-256 of the
-exact permitted bytes. PostgreSQL records the digest, size, media metadata,
-retention policy, purpose, and lifecycle; only internal workers know storage
-locations.
+The current V2 runtime redacts and disposes original response bodies. That is
+the intended MVP/POC behavior and must remain unchanged. Storage retains the
+structured outcome, field-level provenance, parser/normalizer/extraction and
+methodology versions, capture metadata, and exact body/content digest and
+length. It may retain redacted fixtures only; the durable-storage policy and
+location for those fixtures are a separate future decision.
 
-### Approved MVP retention direction
+Parser improvements are validated with redacted fixtures and take effect
+through a new, separately approved collection run. This gives the Explorer
+fresh source data rather than presenting an old response as current.
 
-The user has approved this fixed MVP policy direction. It applies only within a
-source/methodology scope that is separately authorized for collection; it does
-not imply that any live source scope is currently authorized:
-
-- retain only original text response bodies with media type `text/html` or
-  `application/json`;
-- retain no media, including listing images, video, audio, or other binary
-  objects;
-- use a rolling 30-day retention window; and
-- at expiry, delete the retained body bytes while preserving capture metadata
-  and digest, extracted records, and field-level provenance in PostgreSQL.
-- during that window, permit body access only to the crawler/parser replay path;
-  the Rent Model and Backend receive structured contract data only and never a
-  stored source body.
-
-The MVP purpose is crawler/parser replay only. PostgreSQL is the durable source
-of truth for the record of collection and interpretation; object storage holds
-only temporary, permitted replay bodies. Policy pages, PDFs, XML, CSV,
-arbitrary binaries, redacted fixtures, and a general evidence-audit archive are
-not authorized as retained objects in this MVP direction.
-
-This is not blanket authorization to collect or retain from any source. A
-general source-by-source legal/compliance workflow, source-specific retention
-permissions, and a retention-authorizer mechanism are deferred. They must be
-revisited and approved before any live-source or canary execution.
-
-### Required coordinated contract and runtime change
-
-The current V2/runtime flow cannot realize this policy: it redacts the original
-response before artifact submission, disposes the original body, and calls its
-only inline artifact form `inline_redacted`. That form must not be reinterpreted
-as permission to retain an original response.
-
-Before original HTML or JSON retention is implemented, a coordinated,
-versioned Crawler/Storage contract change must add a policy-gated
-original-response handoff that occurs before redaction and binds the exact body
-to the capture digest, media type, fixed MVP policy, replay purpose, and
-30-day expiry.
-It must let Storage stage/finalize the body privately without returning an
-object key or storage credential to the crawler. The restricted crawler/parser
-replay path may read and parse the retained original body; it produces a
-redacted working representation and normalized structured output. Original
-bytes must not leave that path. The Rent Model and Backend contracts receive
-only the redacted/normalized structured output and must not represent a
-retained-body read capability. The change needs shared contract schemas and
-vectors, crawler runtime behavior, provider conformance coverage,
-least-privilege access tests, and retention-expiry/reconciliation tests. It is
-deliberately not a V2 change in this plan and does not authorize implementation.
+Original HTML/JSON retention, private object storage for originals, capture-ID
+replay retrieval APIs or grants, object finalization for originals, and exact
+historical-body reproduction are post-POC work. Media is not retained. None of
+these deferrals grants source permission or changes the separately gated
+live-source/canary, compliance, or source-specific authorization process.
 
 ### Atomicity and recovery flow
 
@@ -237,15 +195,13 @@ then refactoring with the suite green.
    `DurableSubmissionV2ConformanceFixtures` adapter in test code. Seed and
    invalidate each reference kind through durable state, then run the shared
    unknown/stale/common-binding/artifact-evidence/outcome-binding matrix in CI.
-5. **Retained artifact finalization** — After the coordinated contract/runtime
-   change is approved, add private-object staging, outbox, finalizer, and
-   reconciliation for policy-gated original HTML/JSON responses. Prove no
-   object is created for `no_retained_bytes`, object keys never cross the
-   provider boundary, duplicate content is safe, and every crash point is
-   recoverable.
-6. **Retention and operational hardening** — Add policy-gated expiry,
-   authorized tombstones, cleanup/reconciliation reporting, least-privilege
-   checks, and Aiven/object-provider integration validation.
+5. **Structured artifact evidence** — Persist redacted-fixture disposition and
+   body digest/length/media metadata with the accepted structured outcome.
+   Prove originals are not retained and object locations never cross the
+   provider boundary.
+6. **Operational hardening** — Add least-privilege checks, sanitized failure
+   reporting, and Aiven-compatible validation. Redacted-fixture durable storage
+   is deferred pending its own policy decision.
 
 The later source-listing/normalized-observation mapping, rental-evidence view,
 identity decisions, Rent Model snapshots, and explorer publication each need
@@ -258,8 +214,7 @@ their own approved delivery plan after this provider foundation is stable.
 | Shared contract      | Run the merged `@rent-yield/listing-storage-contracts` typecheck, lint, and complete V2 suite unchanged.                                              |
 | Provider conformance | Run `runDurableSubmissionV2Conformance(provider, fixtures)` against the durable provider and its real test-only reference fixture adapter.            |
 | Database behavior    | Run migrations from empty state, enforce immutable rows/roles, test concurrent idempotent delivery, and prove conflict precedence atomically.         |
-| Object lifecycle     | Test staging failure, database rollback after staging, finalizer retry, orphan cleanup, missing object, digest mismatch, and content-addressed reuse. |
-| Retention            | Test HTML/JSON-only admission, denied media and other representations, 30-day expiry deleting bytes while preserving metadata/provenance, and audit.  |
+| Body boundary        | Test that originals and media are not retained, while digest/length, structured outcome, provenance, and permitted redacted-fixture metadata persist. |
 | Security             | Test that crawler-facing responses and logs contain neither object locations, raw bodies, credentials, nor unsanitized provider errors.               |
 | Compatibility        | Run migrations and provider integration tests against local PostgreSQL/PostGIS and an Aiven-compatible PostgreSQL/PostGIS target.                     |
 
@@ -281,28 +236,24 @@ No test contacts a live listing source or needs a live canary.
 The reconciled ERD, port contracts, and modeling review are the accepted
 physical-design baseline and have merged to `main` in PR #23.
 
-The fixed MVP retention policy is also approved: original HTML and JSON only,
-crawler/parser replay only, a rolling 30-day window, no media, and
-metadata/provenance preserved after byte deletion. It applies only within a
-source/methodology scope separately authorized for collection; no live scope is
-currently implied or authorized. General source-by-source legal/compliance
-review, source-specific permissions, and a stable retention-authorizer
-mechanism are deferred. They must be revisited and approved before any
-live-source or canary execution.
+The MVP/POC body boundary is accepted: retain structured outcomes, provenance,
+parser/normalizer/extraction metadata, and body/content digest and length plus
+redacted fixtures only. Original-body retention/replay and its retrieval,
+grant, and object-finalization mechanisms are post-POC. Redacted-fixture
+durable-storage policy is a separate future decision. No live scope is implied
+or authorized; source-specific permission, legal/compliance, and canary gates
+remain unchanged.
 
 The following decisions remain before durable implementation can begin:
 
-1. **Coordinated contract/runtime evolution:** approve the proposed versioned
-   original-response handoff before redaction. V2's `inline_redacted` form and
-   the current redaction-before-artifact runtime must remain unchanged until
-   that coordinated work is specified, tested, and approved.
-2. **Deployment choices:** confirm the production PostgreSQL/PostGIS service,
-   S3-compatible object-storage provider/region, private-network approach, and
-   secret/role administration. The plan remains Aiven-compatible but does not
-   provision an account.
-3. **Operations:** approve the finalizer/reconciliation retry limit, alerting
-   owner, and who may authorize tombstones or retry a terminal failure.
-4. **Migration execution:** approve the selected SQL-migration runner and the
+1. **Deployment choices:** confirm the production PostgreSQL/PostGIS service,
+   private-network approach, and secret/role administration. An S3-compatible
+   provider is not an MVP/POC dependency; revisit it only with a separate
+   redacted-fixture durable-storage decision. The plan remains Aiven-compatible
+   but does not provision an account.
+2. **Operations:** approve sanitized terminal-failure handling and least-
+   privilege operational ownership without introducing raw-body recovery.
+3. **Migration execution:** approve the selected SQL-migration runner and the
    CI environment's ability to run PostgreSQL/PostGIS integration tests.
 
 ## Proposed Notion execution sequence after approval
@@ -311,8 +262,8 @@ The following decisions remain before durable implementation can begin:
 2. Build governance lookup and fail-closed approval/health behavior.
 3. Build durable V2 submission, receipt, and conflict ledger.
 4. Add the durable reference-fixture adapter and shared conformance CI.
-5. Add policy-gated artifact staging, finalization, and reconciliation.
-6. Add retention/tombstone enforcement and Aiven-compatible validation.
+5. Add structured artifact evidence and enforce original-body disposal.
+6. Add least-privilege operational hardening and Aiven-compatible validation.
 7. Review the durable provider, document its operational runbook, and perform
    a retrospective before any model or publication work.
 

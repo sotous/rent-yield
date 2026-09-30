@@ -39,15 +39,15 @@ erDiagram
   SOURCE_PROVIDER ||--o{ SOURCE_HEALTH_EVENT : has
 ```
 
-| Record group                                                      | Meaning and reason to persist                                                                                                                                                  |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source provider, candidate, assessment, and health event          | **Immutable** source-review history. It establishes whether collection is permitted and makes a later pause or correction explainable.                                         |
-| Methodology, extraction, redaction, and retention policy versions | **Immutable** versioned rules pinned to collection. A capture can be replayed or reviewed under the rules that actually governed it.                                           |
-| Validation report and review decision                             | **Immutable** technical and authorization history; testing a method does not itself authorize it.                                                                              |
-| Crawl run and source capture                                      | One approved execution and one source-qualified acquisition event. Equal bytes do not collapse separate collection events.                                                     |
-| Retained source artifact                                          | Optional **immutable** metadata for policy-permitted bytes. PostgreSQL holds its digest, purpose, policy, and lifecycle; private object storage holds only the approved bytes. |
-| Source listing and normalized observation                         | A source-qualified listing identity and an **immutable** versioned interpretation of a capture. Neither replaces the other.                                                    |
-| Offer, field provenance, and quality issue                        | **Immutable** claims and explanations attached to an observation. They retain auditability even when an outcome is quarantined.                                                |
+| Record group                                                      | Meaning and reason to persist                                                                                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source provider, candidate, assessment, and health event          | **Immutable** source-review history. It establishes whether collection is permitted and makes a later pause or correction explainable.                          |
+| Methodology, extraction, redaction, and retention policy versions | **Immutable** versioned rules pinned to collection. A capture can be replayed or reviewed under the rules that actually governed it.                            |
+| Validation report and review decision                             | **Immutable** technical and authorization history; testing a method does not itself authorize it.                                                               |
+| Crawl run and source capture                                      | One approved execution and one source-qualified acquisition event. Equal bytes do not collapse separate collection events.                                      |
+| Retained source artifact                                          | Optional **immutable** metadata for a permitted redacted fixture. The MVP/POC retains no original response body; its digest and length remain capture evidence. |
+| Source listing and normalized observation                         | A source-qualified listing identity and an **immutable** versioned interpretation of a capture. Neither replaces the other.                                     |
+| Offer, field provenance, and quality issue                        | **Immutable** claims and explanations attached to an observation. They retain auditability even when an outcome is quarantined.                                 |
 
 A normalized observation is identified by its capture plus methodology-manifest
 hash, adapter-artifact hash, parser version, normalizer version, and

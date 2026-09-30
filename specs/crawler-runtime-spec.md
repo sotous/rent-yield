@@ -60,13 +60,13 @@ fixture hashes, scope, and budgets, V2 declares:
   connection and response timeouts; and
 - credentials and cookies permanently forbidden, plus a nullable named
   non-secret header profile reference; and
-- a default `redacted_fixture` retention representation, or an explicit
-  `original_source_body` approval limited to declared `text/html` or
-  `application/json` media types and replay/audit use.
+- a default `redacted_fixture` retention representation. The MVP/POC runtime
+  does not retain `original_source_body`; original-body replay is post-POC.
 
-The runtime holds original bytes in memory unless that explicit retention policy
-is in force. The first live canary still permits only redacted fixtures and
-always discards originals. The manifest hash is calculated from a canonical form: every semantic set is
+The runtime holds original bytes in memory only until redaction and scanning
+complete, then always disposes them. The first live canary still permits only
+redacted fixtures and always discards originals. The manifest hash is
+calculated from a canonical form: every semantic set is
 sorted, including hosts, paths, media types, operations, fixtures, and declared
 query pairs. Only declared non-secret query values may be retained. Every other
 query value, credential, and fragment is rejected or removed before any
