@@ -29,12 +29,11 @@ snapshots, explorer publications, or backend replacement of prototype data.
 - [V2 provider conformance requirements](../docs/architecture/durable-submission-v2-provider-requirements.md).
 
 The logical ERD, port-contract, and modeling-review artifacts were originally
-authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 derives and reconciles
+authored at `f19405d`, `b3d4961`, and `0aed62b`. Stage 0 derived and reconciled
 their current versions from the storage use cases, conceptual model, current V2
-contract, and this plan; those historical commits are reference material only.
-They become the physical-design baseline only after review explicitly accepts
-the derivation and any identified gaps. No migration should silently rely on an
-absent or unapproved architecture artifact.
+contract, and this plan; those historical commits were reference material only.
+The reconciled baseline was accepted and merged in PR #23. No migration should
+silently rely on an absent or unapproved architecture artifact.
 
 ## Decisions made by this plan
 

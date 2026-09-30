@@ -25,19 +25,22 @@ The [logical ERD](data-storage-erd.md) and [port contracts](data-storage-port-co
 | Crawler authority             | Passed. Crawlers receive neither table access, object keys, reference issuance, nor governance authority.                                                                                                 |
 | Backend authority             | Passed. Backend reads the current publication only. Any future geometry reference must be publication-scoped and must not expose an internal object key.                                                  |
 
-## Remaining explicit decisions
+## Resolved baseline and remaining decisions
 
 The derivation has no identified traceability gap at this time: every storage
 use case has a record-group path in the ERD and a caller boundary where one is
 needed. This is a review finding, not approval; reviewers may identify a gap
 before accepting the baseline.
 
-The logical baseline leaves these decisions open for the user’s physical-design approval gate:
+The reconciled logical baseline was accepted and merged in PR #23. The remaining
+physical-design decisions are:
 
-1. Restore/reconfirm acceptance of these logical artifacts as the physical-design baseline.
-2. Decide later whether and how redacted fixtures need durable storage; original-body retention remains post-POC.
-3. Confirm the production PostgreSQL/PostGIS and S3-compatible providers, region/networking, and role/secret administration.
-4. Approve finalizer/reconciliation retry limits, alerts, and tombstone authority.
-5. Select the SQL migration runner and CI integration-test environment.
+1. Decide later whether and how redacted fixtures need durable storage;
+   original-body retention remains post-POC.
+2. Confirm the production PostgreSQL/PostGIS service, region/networking, and
+   role/secret administration.
+3. Approve sanitized terminal-failure handling and least-privilege operational
+   ownership without raw-body recovery.
+4. Select the SQL migration runner and CI integration-test environment.
 
 No unresolved decision above is decided by this review. The current model remains intentionally free of physical table and implementation-class design.
