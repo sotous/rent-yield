@@ -282,3 +282,157 @@ This slice reused the existing deterministic fixture replay engine while adding
 runtime authority and identity boundaries around it. It intentionally leaves
 transport, durable submission delivery, and live canary behavior to later
 separately gated work.
+
+## Milestone 5: Versioned retained-body parser replay handoff
+
+### Status
+
+Proposed as a decision-complete addition on 2026-09-30. It is not approved for
+implementation or Notion breakdown until this plan addition is accepted. It
+does not authorize live sources, a canary, browsers, credentials, or
+source-specific legal/compliance and permission work.
+
+### Goal
+
+Allow a restricted crawler/parser replay path to read a policy-permitted,
+retained original response body and reproduce parsing without exposing raw
+source bodies to the Rent Model, Backend, Explorer, or object storage callers.
+The boundary is a joint Crawler/Data Storage change. It is a new versioned
+contract, not a reinterpretation of V2's `inline_redacted` artifact.
+
+### Fixed MVP policy and authority boundary
+
+This milestone applies only when a source/methodology scope is separately
+authorized for collection. It does not imply any live scope is authorized now.
+
+- Only exact original `text/html` and `application/json` response bodies are
+  eligible for retention; media and every other representation are denied.
+- Storage retains an eligible body for a rolling 30 days, then deletes the body
+  bytes while preserving capture metadata/digest, extracted records, and
+  provenance.
+- The crawler/parser replay worker is the only raw-body reader. It may parse
+  the original bytes but must produce a redacted working representation and
+  normalized structured output before anything leaves that path.
+- Rent Model, Backend, and Explorer receive structured contract data only.
+  Their contracts have no raw-body field, replay handle, retrieval method, or
+  object location.
+- A general source-by-source legal/compliance workflow, source-specific
+  permissions, and a stable retention-authorizer mechanism are deferred until
+  before live-source or canary work.
+
+### Intended versioned contract and lifecycle
+
+Add a private, versioned Crawler/Storage replay-retrieval port keyed by the
+source-scoped capture ID. Its only successful result is the exact retained
+HTML/JSON body with capture digest, media type, collection time, and expiry
+metadata sufficient to verify and replay it. It never returns an object key,
+pre-signed URL, database credential, source-policy record, or arbitrary-object
+lookup capability.
+
+Each retrieval is authorized by a short-lived, single-use, opaque replay grant
+bound to the capture ID, contract version, parser/replay caller identity, and
+expiry. Storage owns grant issuance and validation; its issuance mechanism is
+internal and does not become a general crawler or consumer API. The retrieval
+port must return typed, sanitized no-body outcomes for unknown capture, missing
+or non-retained body, expired/deleted body, consumed/expired/mismatched grant,
+unauthorized caller, forbidden media type, policy block, and integrity failure.
+
+The lifecycle is:
+
+1. A future authorized acquisition flow computes the exact-body digest and
+   submits the original HTML/JSON to Storage before redaction, with capture
+   binding and the fixed MVP retention policy.
+2. Storage validates scope and representation, persists capture/artifact
+   metadata, privately stages/finalizes the body, and records its 30-day expiry.
+3. A parser replay job obtains a Storage-issued one-time grant and calls the
+   versioned retrieval port with its capture ID.
+4. Storage atomically validates and consumes the grant, verifies lifecycle,
+   media type, policy, and digest, and supplies the exact body only to the
+   restricted replay worker.
+5. The worker verifies the digest, parses, redacts, normalizes, and emits only
+   the existing structured outcome/provenance path. It does not forward, log,
+   cache, or persist the original bytes outside the approved restricted path.
+6. At expiry, Storage deletes the body bytes and future replay reads return a
+   typed unavailable result; capture metadata, digest, extracted records, and
+   provenance remain.
+
+V2 fixture/runtime behavior remains unchanged: it redacts and disposes original
+fixture bytes, and `inline_redacted` continues to mean redacted bytes only.
+The new handoff requires a new contract version, schemas, vectors, and
+provider/runtime conformance; it must not alter V2 hashes or receipt behavior.
+
+### Ownership
+
+| Area                               | Owner                                                                    | Responsibility                                                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared contract design             | Crawlers and Data Storage jointly; Crawlers authors shared-package edits | Versioned request/result/no-body schemas, grant binding, canonical vectors, and compatibility boundary.                                                          |
+| Replay caller and output isolation | Crawlers                                                                 | Restricted worker identity, digest verification, parsing/redaction/normalization, original-byte disposal, and proof that downstream outputs are structured only. |
+| Retention, grants, and retrieval   | Data Storage                                                             | Private body lifecycle, 30-day expiry, one-time grant issuance/consumption, policy/lifecycle/digest checks, and no object-location leakage.                      |
+| Durable integration tests          | Data Storage with Crawler conformance input                              | Provider behavior, private lifecycle, expiry, grant replay resistance, and reconciliation.                                                                       |
+| Live-source permission             | Deferred                                                                 | No team implements or infers source-specific authorization in this milestone.                                                                                    |
+
+### Implementation slices after approval
+
+1. **Contract freeze** — Define the next-version original-response submission
+   and capture-ID replay-retrieval schemas, opaque replay grant binding, typed
+   no-body outcomes, canonical hashing rules, and shared vectors. Preserve V2
+   unchanged and publish migration/compatibility guidance.
+2. **Crawler replay boundary** — Add a restricted replay worker port and
+   in-memory fakes. Prove it can verify and parse retrieved bytes, then emits
+   only redacted/normalized structured data.
+3. **Storage retention and retrieval provider** — Add policy/lifecycle records,
+   private staging/finalization, one-time grant validation/consumption, and
+   capture-keyed retrieval without object-location exposure.
+4. **Expiry and recovery** — Add clock-driven expiry deletion, metadata
+   preservation, typed post-expiry reads, replay-grant retry behavior,
+   reconciliation, and least-privilege enforcement.
+5. **Joint conformance and review** — Run the shared vectors against Crawler
+   fakes and the durable provider, update runbooks/docs, then review before any
+   separate live-source/canary proposal.
+
+Each slice follows RED → GREEN → REFACTOR. No slice includes a live transport,
+browser, credential, real source request, or canary execution.
+
+### Test and validation strategy
+
+- Contract tests reject V2-as-replay substitutions, media, missing bindings,
+  grant/capture/caller mismatches, expired or consumed grants, and unknown
+  contract versions.
+- Replay tests prove exact digest/media verification, original-byte isolation,
+  redaction before structured output, and that Rent Model/Backend/Explorer
+  shapes cannot receive a raw body or object location.
+- Storage tests prove HTML/JSON-only admission, 30-day clock boundaries,
+  byte deletion with metadata/provenance preservation, typed unavailable
+  results, grant single use, and object reconciliation without leakage.
+- Conformance runs the same canonical vectors against memory fakes and the
+  durable provider. Tests use frozen fixtures only; none contact a live source.
+- Security tests inspect returned values and logs for raw bodies, object keys,
+  URLs, credentials, and unsanitized errors.
+
+### Risks and assumptions
+
+- One-time grants prevent a replay read from becoming a reusable bearer URL,
+  but require atomic consumption and clear retry semantics. A failed read after
+  grant consumption must return a typed result; recovery must not widen access.
+- Capture IDs are source-scoped and opaque at the boundary. If a later physical
+  design considers them guessable, the port must use a Storage-issued opaque
+  capture reference without changing the authorization rules.
+- The new pre-redaction handoff is required before Storage can retain originals;
+  current fixture/runtime behavior cannot be upgraded by configuration alone.
+- This fixed MVP policy is not a source permission. Legal/compliance and
+  source-specific approval remain a hard gate for live or canary work.
+
+### Documentation and tracking after approval
+
+After user approval of this plan addition, update the crawler-runtime and data
+storage specifications, the listing-storage contract, the durable-provider
+plan, and the crawler/Data Storage contract agreement to name the new version
+and the raw-body/structured-output firewall. Then create one new Notion
+planning task, not implementation work, titled:
+
+`[crawler-runtime-foundation] Specify versioned original-response replay handoff`
+
+That task must carry this lifecycle, ownership matrix, fixed MVP constraints,
+explicit deferred live/compliance gates, and acceptance criteria for the
+contract freeze. Only after its design is reviewed and accepted may the
+implementation slices be broken into execution tasks.
