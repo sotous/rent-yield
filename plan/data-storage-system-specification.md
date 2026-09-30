@@ -28,8 +28,8 @@ exists.
 1. Describe the four consumers: Crawlers, Rent Model, backend explorer, and
    operators/reviewers.
 2. Define a simple architecture: one logical PostgreSQL/PostGIS database,
-   three logical schemas, and private object storage only for permitted
-   retained documents.
+   three logical schemas, structured evidence/provenance, and redacted fixtures
+   only; defer original-body object storage and replay beyond the POC.
 3. Explain the data lifecycle from source review through ingestion, modeling,
    and explorer publication.
 4. Specify the minimum durable records, access boundaries, retention rules,

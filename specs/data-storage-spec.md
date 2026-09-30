@@ -10,9 +10,8 @@ The storage system must let us answer four questions reliably:
 4. Who approved, changed, blocked, or removed something, and why?
 
 The design should remain simple in version one. We will use one logical
-PostgreSQL/PostGIS database. Private object storage is an optional companion
-for a small set of permitted source documents; it is not a second application
-database.
+PostgreSQL/PostGIS database. Original-source object storage is post-POC; it is
+not an MVP component or a second application database.
 
 ## Who the system serves
 
@@ -75,7 +74,7 @@ operations provide the security boundary.
 source review and crawler
           |
           v
-  ingestion schema -----> private object storage, only when permitted
+  ingestion schema -----> structured evidence + redacted fixtures
        |       |
        |       v
        |   model schema
@@ -86,8 +85,12 @@ source review and crawler
 ```
 
 Use PostgreSQL with PostGIS and preserve compatibility with Aiven PostgreSQL.
-Private object storage should use an S3-compatible interface. The contracts
-must not depend on a particular ORM or object-storage vendor.
+The MVP/POC does not retain original source bodies or require private object
+storage for them. It preserves structured outcomes, provenance, capture
+metadata, parser/normalizer/extraction versions, and exact body digest/length.
+Redacted fixtures remain permitted, but their durable-storage policy is a
+separate future decision. The contracts must not depend on a particular ORM or
+object-storage vendor.
 
 ## Core rules
 
@@ -137,16 +140,16 @@ durable proof and the applicable terms allow it.
 
 ### Collection and interpretation
 
-| Record                                     | What it means                                                                                   | Why it exists                                                                                                            |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `ingestion.crawl_run`                      | One execution under one approved methodology version                                            | Groups operational events without becoming listing identity.                                                             |
-| `ingestion.source_capture`                 | One acquisition event, including request/response metadata, collection time, and content digest | Two fetches are two historical events even when their bytes match.                                                       |
-| `ingestion.retained_source_artifact`       | Metadata for permitted source bytes kept in private object storage                              | Tracks digest, media type, size, purpose, retention policy, and storage state without exposing object keys to consumers. |
-| `ingestion.source_listing`                 | A source-qualified listing identity                                                             | Prevents an identifier from one source being mistaken for the same identifier at another source.                         |
-| `ingestion.normalized_listing_observation` | One versioned canonical interpretation of an observation                                        | Gives downstream systems consistent types without rewriting the source claim.                                            |
-| `ingestion.listing_offer_observation`      | One sale or rental offer observed at a point in time                                            | Keeps sale price, base rent, fees, currency, and frequency explicit and separate.                                        |
-| `ingestion.observation_field_provenance`   | The source path, original value, transformation, and issue for a normalized field               | Lets a reviewer trace a price, rent, area, or date back to evidence.                                                     |
-| `ingestion.observation_quality_issue`      | A typed warning or blocking problem                                                             | Supports quarantine without losing the submitted evidence.                                                               |
+| Record                                     | What it means                                                                                   | Why it exists                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `ingestion.crawl_run`                      | One execution under one approved methodology version                                            | Groups operational events without becoming listing identity.                                     |
+| `ingestion.source_capture`                 | One acquisition event, including request/response metadata, collection time, and content digest | Two fetches are two historical events even when their bytes match.                               |
+| `ingestion.retained_source_artifact`       | Metadata for a permitted redacted fixture, if one is retained                                   | Tracks digest, media type, size, and policy without exposing object keys to consumers.           |
+| `ingestion.source_listing`                 | A source-qualified listing identity                                                             | Prevents an identifier from one source being mistaken for the same identifier at another source. |
+| `ingestion.normalized_listing_observation` | One versioned canonical interpretation of an observation                                        | Gives downstream systems consistent types without rewriting the source claim.                    |
+| `ingestion.listing_offer_observation`      | One sale or rental offer observed at a point in time                                            | Keeps sale price, base rent, fees, currency, and frequency explicit and separate.                |
+| `ingestion.observation_field_provenance`   | The source path, original value, transformation, and issue for a normalized field               | Lets a reviewer trace a price, rent, area, or date back to evidence.                             |
+| `ingestion.observation_quality_issue`      | A typed warning or blocking problem                                                             | Supports quarantine without losing the submitted evidence.                                       |
 
 An interpretation is identified by its capture plus the methodology manifest
 hash, adapter artifact hash, parser version, normalizer version, and
@@ -275,10 +278,10 @@ The versioned submission contains:
 - field-level provenance and typed quality issues; and
 - the interpretation identity and canonical outcome hash.
 
-For version one, bounded permitted bytes are supplied through the storage port.
-The storage provider owns staging, digest verification, and object placement.
-Crawlers never construct object keys. A later large-document workflow may add
-a verified staged-upload handle without changing the storage semantics.
+For version one, bounded redacted fixture bytes may be supplied through the
+storage port. The provider validates their digest; their durable-storage policy
+is deferred. Crawlers never construct object keys. A later post-POC workflow
+may revisit original-body retention separately.
 
 ### Receipt behavior
 
@@ -287,7 +290,7 @@ a verified staged-upload handle without changing the storage semantics.
 | Same source and idempotency key, same canonical submission          | Return the byte-for-byte original immutable receipt; report duplication separately or append a delivery event. |
 | Same source and idempotency key, changed submission                 | Return `idempotency_conflict`.                                                                                 |
 | Same source and capture event, changed acquisition metadata or body | Return `capture_event_conflict`.                                                                               |
-| New capture event and key, identical body                           | Append a new capture; it may reference the same retained object.                                               |
+| New capture event and key, identical body                           | Append a new capture with its own metadata and digest; do not infer a retained original-body object.           |
 | Same capture, new interpretation identity                           | Append a new interpretation.                                                                                   |
 | Same capture and interpretation identity, same outcome hash         | Return the existing interpretation with duplicate-delivery metadata.                                           |
 | Same capture and interpretation identity, different outcome hash    | Return `interpretation_conflict`.                                                                              |
@@ -303,43 +306,28 @@ Later append-only progress events report:
 - `failed`: finalization ended with a sanitized terminal cause, and a retry
   needs a new submission key.
 
-PostgreSQL and object storage cannot participate in one transaction. The
-provider therefore uses staged objects, a database transaction and outbox,
-digest verification, a finalizer, and reconciliation.
+The MVP provider persists structured evidence and redacted-fixture metadata.
+It does not stage, finalize, or retrieve original response bodies.
 
 The canonical submission hash excludes the idempotency key and
 provider-generated fields. It includes canonical capture metadata, exact body
 digest, methodology identity, interpretation identity, outcome, provenance,
 and quality issues.
 
-## Object storage policy
+## MVP/POC body and fixture policy
 
-PostgreSQL is the system of record for metadata, policy, relationships, and
-state. Private content-addressed object storage holds bytes only when their
-size or immutable replay purpose makes a database row inappropriate.
+PostgreSQL is the system of record for structured outcomes, provenance,
+relationships, parser/normalizer/extraction versions, capture metadata, and
+exact body digest/length. The runtime redacts and disposes original response
+bodies. It retains no media and builds no original-body object store, retrieval
+API, grant, finalizer, or historical-response replay path in the MVP/POC.
 
-Store an object only for one of these approved uses:
-
-1. A redacted source-derived fixture used to replay and test a parser.
-2. A permitted original HTML, JSON, XML, CSV, or source PDF needed to replay a
-   parser without requesting a volatile source again.
-3. A permitted original document needed to prove what the source showed for a
-   model-eligible or published price, rent, fee, area, or date.
-4. A policy snapshot that compliance explicitly requires and may retain.
-
-Original source bytes require an approved retention policy, a valid replay or
-audit purpose, representation/size/privacy/licensing checks, an expiry rule,
-and private encrypted storage. If policy is missing, do not retain the bytes.
-
-Do not store listing images by default. The crawler and Rent Model do not need
-them. A future visual use case requires its own approval, licensing, privacy,
-and retention decision.
-
-The first real-world canary retains no original response body. It hashes the
-response, redacts and scans it in memory, keeps only the approved sanitized
-receipt and redacted fixture artifacts, and discards the original bytes. Until
-the durable provider passes its conformance tests, those files are test
-artifacts and do not prove durable ingestion.
+Redacted fixtures may be retained for parser validation. Their durable-storage
+policy and location are a separate future decision. Parser improvements are
+validated using redacted fixtures and applied through a new, separately
+approved collection run. Original-body retention or historical reproduction may
+be reconsidered after the proof of concept; it does not authorize any live
+source, canary, or source-specific permission work now.
 
 ## Rent Model evidence boundary
 
@@ -412,13 +400,13 @@ use a manually managed stable reviewer key and restricted database role so each
 decision still has a durable author.
 
 Production storage uses private networking where available, encryption in
-transit and at rest, secret rotation, and access auditing. Object and database
-reconciliation must detect missing, orphaned, or digest-mismatched objects.
+transit and at rest, secret rotation, and access auditing. The MVP/POC has no
+original-body object lifecycle to reconcile.
 
-Retention periods are source- and purpose-specific entries in an authoritative
-policy registry. Expiry creates an auditable deletion or tombstone event and
-invalidates affected derived data where required. We will not invent one
-universal duration before those policies are approved.
+The durable-storage policy for redacted fixtures is deferred. A source-specific
+retention registry and its legal/compliance authorizer workflow are also
+deferred until before live-source or canary work; neither is an MVP/POC
+authorization.
 
 ## Version-one simplicity limits
 
@@ -440,7 +428,8 @@ Durable storage is ready only when provider-neutral tests prove:
 - methodology lookup and fail-closed governance behavior;
 - immutable history, exact retries, conflicts, reinterpretation, and receipt
   progress behavior;
-- quarantine, object finalization, reconciliation, and retention behavior;
+- quarantine, original-body disposal, structured provenance, and
+  redacted-fixture boundary behavior;
 - rental-only evidence and sale-price exclusion;
 - deterministic immutable snapshots and assessments;
 - complete, atomic explorer publication and read isolation; and

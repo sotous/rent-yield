@@ -99,32 +99,27 @@ candidates. The ecosystem storage requirements are defined in
 ### Durable-storage decisions
 
 - Operate one PostgreSQL/PostGIS primary cluster **per environment** (local,
-  test, staging, and production are isolated), plus private S3-compatible
-  object storage. Separate schemas organize `ingestion`, `model`, and `app`;
-  they are not the security boundary.
+  test, staging, and production are isolated). Separate schemas organize
+  `ingestion`, `model`, and `app`; they are not the security boundary.
 - Use least-privilege roles: the crawler writes only through controlled ingest
   operations; the model reads curated rental evidence and writes model output;
   the backend has `SELECT` access only to `app.explorer_*`; migrations/admin
-  are separately held. Raw capture/blob identifiers and object keys are never exposed by the
-  explorer API.
-- A raw-content SHA-256 identifies a `raw_blob`, not a collection event.
-  `raw_capture`/`source_fetch` records every acquisition event and references
-  its blob, including repeated identical responses.
-- Retain full permitted HTML/JSON/XML/CSV and listing/source PDFs only for
-  parser replay or audit of model-eligible/published facts. Ordinary captures
-  use a short parser-drift retention window; evidence supporting a published
-  record or immutable snapshot uses its approved retention period. Exclude
-  listing images/binaries by default. Store policy URLs, metadata, assessment,
-  and minimal excerpts in PostgreSQL; retain a full policy snapshot only when
-  compliance requires proof and the terms permit it.
-- PostgreSQL and object storage cannot share a transaction. Durable ingestion
-  therefore uses a request idempotency key, canonical payload hash, staged
-  state (`pending_blob`, `stored`, `committed`, `failed`), transactional outbox
-  or finalizer, integrity verification, and reconciliation/quarantine for
-  orphaned blobs or rows. The crawler receives one immutable `accepted`
-  receipt only after Storage can recover the submission. Duplicate delivery is
-  metadata on the original receipt or interpretation. Later append-only events
-  report `committed`, `quarantined`, or terminal `failed` finalization.
+  are separately held. Capture identifiers and internal storage details are
+  never exposed by the explorer API.
+- A raw-content SHA-256 and byte length are capture evidence, not a retained
+  raw blob or collection-event identity. `raw_capture`/`source_fetch` records
+  every acquisition event, including repeated identical responses.
+- The MVP/POC disposes original bodies after redaction. It retains structured
+  outcomes, provenance, parser/version metadata, body digest/length, and
+  redacted fixtures only. Original-body replay/audit storage is post-POC;
+  listing media remains excluded. Store policy URLs, metadata, assessment, and
+  minimal excerpts in PostgreSQL; full policy snapshots remain deferred.
+- PostgreSQL durable ingestion uses a request idempotency key, canonical payload
+  hash, structured evidence validation, and typed terminal progress. The
+  crawler receives one immutable `accepted` receipt only after Storage can
+  recover the structured submission. Duplicate delivery is metadata on the
+  original receipt or interpretation. Later append-only events report
+  `committed`, `quarantined`, or terminal `failed` without raw-body finalization.
 - “Append-only” is the default evidence rule, not an exemption from law or
   source obligations. Retention, licensing, and privacy events use a governed
   redaction/tombstone process that records scope, reason, authorizer, time,

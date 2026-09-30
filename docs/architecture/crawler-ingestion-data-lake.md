@@ -22,7 +22,7 @@ Model assessments; it is not the current in-memory backend persistence layer.
 
 ```text
 approved source adapter
-  -> crawl run -> source fetch -> raw capture -> raw blob (immutable, policy-retained)
+  -> crawl run -> source fetch -> capture metadata + body digest (immutable)
   -> source listing identity -> normalized listing observation (immutable)
   -> offer, provenance, geography, identity decisions
   -> model snapshot manifest (immutable) -> rent assessment (immutable)
@@ -34,30 +34,30 @@ from observation history, never an update to an old source claim.
 ## Storage
 
 Use PostgreSQL plus PostGIS. Store relational metadata, normalized data,
-identity decisions, and snapshot manifests in PostgreSQL. Store only permitted
-raw HTML, JSON, XML, CSV, or listing/source PDFs in private object storage,
-addressed by SHA-256, when needed for parser replay or evidence audit. Listing
-images and other binaries are not retained by default. Small structured
-payloads may be retained as `jsonb` when policy permits.
+identity decisions, snapshot manifests, provenance, parser/version metadata,
+and body digest/length in PostgreSQL. The MVP/POC redacts and disposes original
+responses; it does not retain raw HTML/JSON/XML/CSV/PDF bodies, media, or build
+an original-body replay store. Redacted fixtures remain the parser-improvement
+input, and their durable-storage policy is a separate future decision.
 
 ## Logical schema
 
-| Group             | Tables                                                                                                                                                                                          | Responsibility                                                                                  |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Source operations | `source_provider`, `crawl_run`, `source_fetch`, `raw_capture`, `raw_blob`                                                                                                                       | Permission metadata, run history, distinct capture events, and retained raw-document integrity. |
-| Source identity   | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Stable portal manifestation and changing IDs/URLs.                                              |
-| Canonical facts   | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `geographic_area`, `observation_geography_assignment`                                            | Versioned Colombian interpretation, sale/rent terms, per-field lineage, canonical geography.    |
-| Deduplication     | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`                                                                                                 | Conservative cross-source links; candidates and non-matches stay auditable.                     |
-| Model evidence    | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Dated benchmark facts, exact reproducible inputs, model output, and selected-comparable trace.  |
+| Group             | Tables                                                                                                                                                                                          | Responsibility                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Source operations | `source_provider`, `crawl_run`, `source_fetch`, `raw_capture`                                                                                                                                   | Permission metadata, run history, distinct capture events, and body-digest integrity.          |
+| Source identity   | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Stable portal manifestation and changing IDs/URLs.                                             |
+| Canonical facts   | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `geographic_area`, `observation_geography_assignment`                                            | Versioned Colombian interpretation, sale/rent terms, per-field lineage, canonical geography.   |
+| Deduplication     | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`                                                                                                 | Conservative cross-source links; candidates and non-matches stay auditable.                    |
+| Model evidence    | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Dated benchmark facts, exact reproducible inputs, model output, and selected-comparable trace. |
 
 ### Raw source and observations
 
-`raw_blob` has a content checksum, content type/encoding/size, storage
-reference, and approved retention class. `raw_capture` records each acquisition
-event and points to a blob, so two captures with identical bytes are not
-collapsed into one historical event. A full raw document is retained only for
-parser replay or evidence audit and only where the applicable source policy
-allows it. It is immutable.
+`raw_capture` records each acquisition event, including its content checksum,
+content type/encoding, and size, so two captures with identical bytes are not
+collapsed into one historical event. The MVP/POC does not retain a full raw
+document. Parser improvements are validated with redacted fixtures and applied
+by a new separately approved collection run; historical-body reproduction is
+post-POC.
 
 `normalized_listing_observation` is one versioned canonical interpretation of
 a captured source listing. It stores `country_code = CO`, labels and canonical IDs
@@ -136,7 +136,7 @@ the Rent Model's deterministic, immutable-snapshot contract is enforced.
 - A comparable requires a for-rent observed offer, positive base monthly COP
   rent, usable built area, date, source provenance, and no selected duplicate
   or subject identity.
-- Prevent `UPDATE` and `DELETE` on retained raw blobs/captures, normalized observations,
+- Prevent `UPDATE` and `DELETE` on capture metadata, normalized observations,
   benchmark versions, snapshots, and model outputs with database privileges and
   rejection triggers.
 - Index source identities, URL fingerprints, content hashes, observed date plus

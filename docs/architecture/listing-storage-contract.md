@@ -13,46 +13,27 @@ storage ports and may provide in-memory fakes.
 
 Use PostgreSQL 16+ with PostGIS 3.4+ locally and in Aiven. This remains the
 right fit for transactions, constraints, generated views, `numeric`
-calculations, migrations, canonical geography, and spatial indexes. Store
-relational metadata and normalized facts in PostgreSQL. Store only retained raw
-source documents in private S3-compatible object storage; do not use it for
-listing images by default.
+calculations, migrations, canonical geography, and spatial indexes. The
+MVP/POC stores relational metadata, normalized facts, parser/normalizer/
+extraction versions, exact body digest/length, provenance, and redacted
+fixtures only. It does not retain original source documents in object storage.
 
-Object keys derive from the plaintext SHA-256 digest. PostgreSQL records the
-digest, byte size, media metadata, retention class, and capture linkage. The
-storage adapter hashes the exact uncompressed bytes supplied by the crawler. A
-digest identifies an immutable `raw_blob`; each fetch is a distinct
-`raw_capture`/`source_fetch` occurrence that refers to that blob, even when two
-responses have identical bytes.
-Use a PostGIS Docker image plus MinIO locally; use Aiven PostgreSQL/PostGIS and
-a private S3-compatible bucket in production. Crawlers know neither connection
-strings nor object-key conventions.
+### MVP/POC body and fixture policy
 
-### Raw-document retention
+The runtime redacts and disposes original response bodies. The MVP/POC retains
+no original HTML, JSON, XML, CSV, PDF, image, or other binary source document.
+Redacted fixtures are the only permitted replay material; their durable-storage
+policy and location are a separate future decision.
 
-The system retains a full raw HTML, JSON, XML, CSV, or PDF document only when
-it is a permitted source response and at least one of these purposes applies:
-
-- parser or normalizer replay after source shape/semantics change, without
-  re-requesting a volatile source; or
-- audit of a model-eligible or published price, rent, fee, area, or date where
-  field provenance alone cannot demonstrate the source content at collection.
-
-This is evidence storage, not media collection. Listing images and other
-binaries are excluded by default. Store at most a permitted source image URL or
-hash if a separately approved visual or quality workflow needs it; downloading
-or retaining the image requires its own privacy, licensing, and retention
-decision.
+Parser improvements use redacted fixtures and a new, separately approved
+collection run. Original-body retention, retrieval, object finalization, and
+historical reproduction are post-POC and do not grant source permission or
+alter the separately gated canary/compliance workflow.
 
 For source-policy material, PostgreSQL stores the URL, retrieval time,
 effective/version date where known, content hash, assessor conclusion, and the
-minimal supporting excerpts. Retain a full policy-page/PDF snapshot only when
-compliance requires durable proof and the terms permit retention.
-
-Retention is tiered: ordinary permitted captures have a short parser-drift
-window; documents supporting a published explorer record or immutable Rent
-Model snapshot receive the approved evidence-retention period. Lifecycle rules
-must enforce expiry, encryption, private access, and audit logging.
+minimal supporting excerpts. Full policy-document retention is deferred with
+the broader legal/compliance workflow.
 
 ## Invariants
 
@@ -60,8 +41,7 @@ must enforce expiry, encryption, private access, and audit logging.
   decisions, methodologies, snapshots, assessments, and selected comparables
   are append-only. “Current” state is a derived view.
 - Retrying a request with the same idempotency key is idempotent; a later
-  capture always appends new observation history, including where it refers to
-  a previously stored raw blob.
+  capture always appends new observation history with its own digest metadata.
 - Original source strings, source-declared dates, collection time, parser
   paths, transformations, and quality warnings are retained.
 - `(source_provider_id, source_listing_id)` is source identity. Cross-source
@@ -77,14 +57,14 @@ must enforce expiry, encryption, private access, and audit logging.
 
 ## Persistent model
 
-| Area                  | Records                                                                                                                                                                                         | Key constraint                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Source governance     | `source_provider`, `source_assessment`, `source_methodology_version`, `permitted_probe`, `source_fixture`                                                                                       | Access/terms/robots/API/privacy/retention assessments and methodology approval are versioned.            |
-| Raw evidence          | `crawl_run`, `source_fetch`, `raw_capture`, `raw_blob`                                                                                                                                          | SHA-256-addressed permitted raw documents and each distinct acquisition event are retained under policy. |
-| Source claims         | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Source-qualified identity and aliases are retained.                                                      |
-| Canonical facts       | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `observation_quality_issue`, `geographic_area`, `observation_geography_assignment`               | Every model-relevant normalized field has raw-artifact provenance.                                       |
-| Identity/dedupe       | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`, `deduplication_selection`                                                                      | Decisions, including non-matches and ambiguous results, are auditable.                                   |
-| Model reproducibility | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Snapshots, output, and canonical membership never mutate.                                                |
+| Area                  | Records                                                                                                                                                                                         | Key constraint                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Source governance     | `source_provider`, `source_assessment`, `source_methodology_version`, `permitted_probe`, `source_fixture`                                                                                       | Access/terms/robots/API/privacy/retention assessments and methodology approval are versioned.                    |
+| Capture evidence      | `crawl_run`, `source_fetch`, `raw_capture`, `source_fixture`                                                                                                                                    | Each distinct acquisition event retains digest/length metadata; redacted fixtures may support parser validation. |
+| Source claims         | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Source-qualified identity and aliases are retained.                                                              |
+| Canonical facts       | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `observation_quality_issue`, `geographic_area`, `observation_geography_assignment`               | Every model-relevant normalized field has raw-artifact provenance.                                               |
+| Identity/dedupe       | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`, `deduplication_selection`                                                                      | Decisions, including non-matches and ambiguous results, are auditable.                                           |
+| Model reproducibility | `rental_benchmark_version`, `model_definition`, `model_configuration_version`, `rent_model_input_snapshot`, `rent_model_input_snapshot_member`, `rent_assessment`, `rent_assessment_comparable` | Snapshots, output, and canonical membership never mutate.                                                        |
 
 Use rejection triggers and role privileges to reject updates/deletes of immutable
 rows. Add `CHECK` constraints for positive money/area, coordinates, stratum
@@ -120,9 +100,10 @@ it does no work.
 
 It then uses a versioned durable-ingestion port. The submission must contain
 the complete normalized or quarantined outcome and field provenance, not only
-their hashes. For version one, any bounded permitted fixture bytes cross that
-port and the storage provider owns staging, digest verification, and object
-placement. Crawlers never precompute database IDs or object keys.
+their hashes. For version one, bounded redacted fixture bytes may cross that
+port. Storage validates their digest and preserves the structured submission
+boundary; durable-fixture storage remains a separate future policy decision.
+Crawlers never precompute database IDs or object keys.
 
 The currently exported `SourceMethodologyRepository` and
 `ListingIngestionSink` shapes in `packages/listing-storage-contracts` are
@@ -135,11 +116,8 @@ Storage-owned in-memory conformance harness. Future durable providers reuse its
 shared runner and vectors with a provider-owned test fixture adapter; see
 [`durable-submission-v2-provider-requirements.md`](durable-submission-v2-provider-requirements.md).
 
-PostgreSQL and object storage cannot share one transaction. The durable adapter
-therefore uses immutable acceptance receipts, append-only progress events,
-staged objects, a transactional outbox/finalizer, integrity verification, and
-reconciliation. Crawlers must not mutate prior results or call a Rent Model
-endpoint.
+The MVP durable adapter does not store or retrieve original response bodies.
+Crawlers must not mutate prior results or call a Rent Model endpoint.
 
 ## Source governance
 

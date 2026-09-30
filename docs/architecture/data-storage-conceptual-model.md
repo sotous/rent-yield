@@ -61,9 +61,10 @@ contract, parser/normalizer identity, redaction policy, and retention policy
 used by each capture.
 
 A source capture is one acquisition event. It remains distinct even when a
-later capture has identical bytes. A retained source artifact is optional: it
-exists only when policy permits redacted replay material or an original source
-document for an approved replay or audit purpose.
+later capture has identical bytes. A retained source artifact is optional and,
+in the MVP/POC, can represent only permitted redacted fixture material. Original
+response-body retention and replay are post-POC; capture digest/length preserve
+the acquisition evidence now.
 
 One source listing is a source-qualified identity, such as a portal’s listing
 ID plus its stable URL. It can have many normalized observations over time. An
@@ -161,14 +162,14 @@ internals.
 
 ## Ownership and persistence purpose
 
-| Concept group                     | Created or maintained by                      | Why it persists                                                                              |
-| --------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Source governance                 | Research tools, trusted reviewer, and Storage | Shows what source access was considered, reviewed, approved, blocked, or retired.            |
-| Captures and observations         | Crawler through the Storage ingestion port    | Preserves what was collected and how it was interpreted without overwriting history.         |
-| Artifacts and fixtures            | Crawler and Storage under policy              | Replays a parser or supports an approved evidence audit without retaining images by default. |
-| Identity and deduplication        | Identity resolver and governed review         | Keeps cross-source choices conservative and reversible.                                      |
-| Rental evidence and model history | Snapshot builder and Rent Model               | Makes each assessment reproducible and prevents sale price from entering rent estimation.    |
-| Explorer publication              | Publication projector                         | Gives the Backend API one complete, read-only release for map and chart use.                 |
+| Concept group                     | Created or maintained by                      | Why it persists                                                                           |
+| --------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Source governance                 | Research tools, trusted reviewer, and Storage | Shows what source access was considered, reviewed, approved, blocked, or retired.         |
+| Captures and observations         | Crawler through the Storage ingestion port    | Preserves what was collected and how it was interpreted without overwriting history.      |
+| Artifacts and fixtures            | Crawler and Storage under policy              | Validates parser changes with redacted fixtures; original-body replay is post-POC.        |
+| Identity and deduplication        | Identity resolver and governed review         | Keeps cross-source choices conservative and reversible.                                   |
+| Rental evidence and model history | Snapshot builder and Rent Model               | Makes each assessment reproducible and prevents sale price from entering rent estimation. |
+| Explorer publication              | Publication projector                         | Gives the Backend API one complete, read-only release for map and chart use.              |
 
 ## Relationship rules for the ERD
 
