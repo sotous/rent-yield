@@ -96,27 +96,29 @@ lookup -> preflight -> frozen fixture or canary-gated bounded transport
    ports receive only post-scan data. Contact details, exact unit identifiers,
    tracking parameters, and user-generated personal data are prohibited. Every
    terminal path discards original bytes.
-5. Retain a transient sanitized artifact or hand off a `source_fixture` only
-   when retention permits a redacted-fixture representation, purpose, type, and
-   size. Otherwise retain only allowed digest and metadata.
+5. Retain a bounded redacted fixture only when it fits the inline cap. Otherwise
+   discard the fixture bytes without truncation and retain only the allowed
+   metadata. The capture records the observed original-response digest and
+   length; a retained redacted fixture has its own separate digest and length.
 
 For fixture execution, the redaction-before-artifact pipeline decodes original
 bytes only in memory, rejects embedded binary/control content, applies the
 pinned deterministic redactor, and scans the redacted result before any
-artifact boundary. It emits bounded `inline_redacted`, explicit
-`no_retained_bytes`, or an opaque staged-reference candidate. An injected
-staging port receives only scanned redacted bytes and returns no object key.
+artifact boundary. It emits bounded `inline_redacted` or explicit
+`no_retained_bytes`; it has no Crawler-facing staging or object-reference path.
 The original-byte disposal hook runs on every success and failure path.
 
 6. Replay the pinned extraction contract through the declared parser and
    normalizer. Never fabricate a listing, rental evidence, or field provenance.
    Fixture orchestration consumes only a sanitized artifact and returns exactly
-   `normalized`, `quarantined`, `parse_failed`, or `capture_only`. Parse failure
-   emits a sanitized parser-drift event; a failed required health handoff fails
-   closed. Exact fixture replay is deterministic, while a changed capture
-   fingerprint or outcome under the same five-field interpretation identity is
-   rejected. The runtime may derive a validated V2 submission candidate, but it
-   does not deliver it or claim durable acceptance.
+   `normalized`, `quarantined`, `parse_failed`, or `capture_only`. Only a
+   normalized interpretation passing the MVP eligibility gate may become a V2
+   submission candidate. The other terminal results are local and transient:
+   they create no durable record, receipt, or tombstone. Parse failure emits a
+   sanitized `parser_drift` event; unsafe artifact retention emits
+   `artifact_safety_block`. A failed required health handoff fails closed.
+   Exact fixture replay is deterministic, while a changed capture fingerprint
+   or outcome under the same five-field interpretation identity is rejected.
 
 7. Return a runtime outcome and, at the separate Data Storage boundary, hand
    off a complete V2 candidate for durable acceptance.
@@ -165,25 +167,26 @@ interpretation.
 
 Runtime content quality is distinct from durable storage progress.
 
-| Terminal condition                            | Runtime outcome   | Artifact                                     | Health event                                         | Submission            |
-| --------------------------------------------- | ----------------- | -------------------------------------------- | ---------------------------------------------------- | --------------------- |
-| Clean extraction                              | `normalized`      | Allowed sanitized artifact                   | Only when policy requires it                         | Complete submission   |
-| Blocking quality issue                        | `quarantined`     | Allowed sanitized artifact                   | When source-health applies                           | Complete submission   |
-| Parser or shape drift                         | `parse_failed`    | Allowed sanitized artifact                   | Error-level parser drift                             | Complete submission   |
-| Valid capture without listing                 | `capture_only`    | Allowed sanitized artifact                   | Only when policy requires it                         | Complete submission   |
-| Preflight, transport, redaction, scanner stop | Sanitized failure | No retained artifact; sanitized receipt only | Required for policy, challenge, rate limit, or drift | No submission         |
-| Storage unavailable before acceptance         | Submission error  | Runtime result retained                      | Storage-boundary event when applicable               | No successful receipt |
+| Terminal condition                     | Runtime outcome   | Artifact                          | Health event                                     | Submission            |
+| -------------------------------------- | ----------------- | --------------------------------- | ------------------------------------------------ | --------------------- |
+| Clean, eligibility-passing extraction  | `normalized`      | Allowed bounded redacted artifact | None by default                                  | Complete submission   |
+| Blocking quality issue                 | `quarantined`     | Discarded                         | None                                             | No submission         |
+| Parser or shape drift                  | `parse_failed`    | Discarded                         | `parser_drift`                                   | No submission         |
+| Valid capture without listing          | `capture_only`    | Discarded                         | None                                             | No submission         |
+| Redaction/scanner or fixture-size stop | Sanitized failure | No retained fixture               | `artifact_safety_block` when retention is unsafe | No submission         |
+| Storage unavailable before acceptance  | Submission error  | No new durable artifact           | None                                             | No successful receipt |
 
 Rental evidence is eligible only when it is observed, active, long-term,
 residential, base monthly COP rent with positive explicit built area. All other
 rent, fee, area, or date ambiguity remains in the outcome and is quarantined
 from rental-evidence use.
 
-Health events are typed, sanitized, and linked to source, methodology, and run.
-They contain no source body or prohibited URL material. The runtime cannot clear
-a block; trusted review controls pause and reactivation. If the required health
-port cannot accept an event, the runtime returns a sanitized reporting failure
-and never claims that the event was delivered.
+Health events are limited to `parser_drift` and `artifact_safety_block`. They
+are typed, sanitized, and linked to source, methodology, and run; they contain
+no source body or prohibited URL material. The runtime cannot clear a block;
+trusted review controls pause and reactivation. If the required health port
+cannot accept an event, the runtime returns a sanitized reporting failure and
+never claims that the event was delivered.
 
 ## Data Storage boundary
 
@@ -192,20 +195,19 @@ The runtime does not directly write databases or objects. It submits a strict
 capture fingerprint; the five-field V2 interpretation identity; and an outcome
 and artifact variant.
 
-The outcome is either a complete typed outcome plus provenance or a
-`verified_immutable_outcome_reference`. The artifact is exactly one of:
+The MVP Crawler producer submits only a complete, eligibility-passing
+`normalized` outcome plus provenance. It does not submit a verified immutable
+outcome reference. Its artifact is exactly one of:
 
 - `inline_redacted`, carrying at most 65,536 UTF-8 bytes of permitted redacted
   material;
-- `no_retained_bytes`, carrying an explicit disposition but no retained bytes;
-- `staged_reference`, an opaque Storage-issued reference; or
-- `verified_immutable_reference`, an opaque Storage-issued artifact reference.
+- `no_retained_bytes`, carrying an explicit disposition but no retained bytes.
 
-Every artifact variant, including `no_retained_bytes`, carries media type,
-encoding, immutable body SHA-256, and body byte length. The absent bytes in
-`no_retained_bytes` never excuse omission of the capture evidence used for
-conflict detection. Original bytes require explicit policy approval; the first
-canary supplies only a redacted fixture and discards originals.
+Every artifact variant, including `no_retained_bytes`, carries the redacted
+artifact's media type, encoding, immutable SHA-256, and byte length. The
+separate capture fingerprint carries the observed original-response digest and
+length used for conflict detection. The absent fixture bytes never excuse
+omission of that evidence. Original bytes are always discarded in the MVP.
 
 All outcome and artifact references are Storage-issued and opaque. They bind
 the V2 contract version, `source_key`, `capture_event_id`, retention-policy
@@ -230,17 +232,13 @@ otherwise exact retry into a new accepted submission. Receipt IDs, acceptance
 time, duplicate-delivery status, provider-generated fields, and all progress
 are also outside the preimage.
 
-Storage issues an immutable `accepted` receipt only when it can recover the
-submission. The receipt binds contract version, receipt ID, source and
-submission identities, capture event ID, accepted-submission hash, acceptance
-time, and duplicate-delivery status. Later `ReceiptProgressV2` is separate and
-append-only: each event has a strictly increasing positive sequence and one of
-`committed`, `quarantined`, or `failed`, with nullable sanitized code and
-reason. `normalized` typically becomes `committed`; `quarantined` and
-`parse_failed` become storage `quarantined`; `capture_only` may become
-`committed` but is never model evidence; and finalization failure becomes
-`failed`. A post-acceptance storage failure does not create a second runtime
-outcome.
+Storage is the sole durable idempotency and receipt authority. It issues an
+immutable `accepted` receipt only when it can recover a normalized submission.
+The receipt binds contract version, receipt ID, source and submission
+identities, capture event ID, accepted-submission hash, acceptance time, and
+duplicate-delivery status. A post-acceptance Storage failure does not create a
+second runtime outcome. The process-local fixture registry is not durable
+idempotency state.
 
 ## Validation
 
@@ -256,14 +254,13 @@ prove:
 - source-scoped exact replay, changed-payload `submission_conflict`, capture
   conflict, interpretation conflict, and every changed interpretation-identity
   component have specified outcomes;
-- all four artifact variants, the 65,536-byte UTF-8 inline boundary,
-  outcome-reference and artifact-reference binding, and unknown, stale, or
-  mismatched-reference rejection conform to shared vectors; conformance-only
-  fixtures seed and invalidate provider-owned references without extending the
-  production provider port;
-- receipt/progress and typed errors are strictly parsed; progress ordering and
-  sanitized nullable code/reason are enforced; and accepted-submission hash
-  vectors prove its required inclusions and deliberate `submitted_at` exclusion;
+- the Crawler producer emits only bounded inline-redacted or no-retained-bytes
+  artifacts; the 65,536-byte UTF-8 boundary discards oversized fixtures without
+  a reference; shared vectors continue to cover provider-owned reference
+  validation without extending the production Crawler port;
+- normalized-only submission candidates and typed Storage errors are strictly
+  parsed; accepted-submission hash vectors prove their required inclusions and
+  deliberate `submitted_at` exclusion; and
 - sale/rent separation, fee/area/date ambiguity, and rental-evidence quarantine
   remain intact; and
 - no fixture test performs live access or requires a database.
