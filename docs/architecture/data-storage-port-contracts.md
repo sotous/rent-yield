@@ -34,11 +34,21 @@ flowchart LR
   ledger --> progress[Zero or one terminal progress event]
 ```
 
-The crawler submits a V2 capture identity and fingerprint, interpretation
-identity, typed outcome and provenance, and permitted artifact disposition. It
-receives an immutable receipt only after Storage can recover responsibility for
-the submission. It never receives a database credential, object key, raw body
-location, or an operation to issue a storage reference.
+The MVP Crawler submits only a complete, listing-quality-passing `normalized`
+outcome with at least one normalized observation, provenance, a V2 capture
+identity/fingerprint, interpretation identity, and permitted artifact
+disposition. Capture evidence records the observed original-response
+digest/length; any redacted fixture artifact has its own digest/length.
+Storage validates durable admission, including the normalized-only rule and
+V2 integrity/conflict semantics, before issuing an immutable receipt. It never
+receives a database credential, object key, raw body location, or an operation
+to issue a storage reference.
+
+`quarantined`, `parse_failed`, and `capture_only` are local transient Crawler
+results in this POC and receive no durable receipt or tombstone. The initial
+producer dispositions are bounded `inline_redacted` and `no_retained_bytes`;
+oversized fixtures are discarded without truncation or a reference. Fixture
+byte retention and durable health-event intake are explicitly deferred.
 
 The merged `DurableSubmissionV2` contract is the authoritative behavior:
 
@@ -52,11 +62,12 @@ The merged `DurableSubmissionV2` contract is the authoritative behavior:
 | Storage cannot durably accept responsibility                                   | Return no successful receipt.                                   |
 
 `progress(receipt_id, after_sequence)` exposes zero or one terminal
-`committed`, `quarantined`, or `failed` event. Provider-issued staged and
-verified references support provider-owned workflows and the test-only
-conformance fixture adapter; the crawler has no reference-issuance or object
-upload port. `inline_redacted` and `no_retained_bytes` are the initial
-production-facing dispositions.
+`committed`, `quarantined`, or `failed` event. The POC producer does not use a
+receipt to persist a non-normalized result; `quarantined` remains available for
+provider-owned post-acceptance handling and future approved producers.
+Provider-issued staged and verified references support provider-owned workflows
+and the test-only conformance fixture adapter; the crawler has no
+reference-issuance or object-upload port.
 
 ## 3. Rental-evidence read
 
@@ -70,9 +81,10 @@ flowchart LR
 The Rent Model requests an as-of date, subject/context, and versioned selection
 rules. Storage returns eligible observed rental evidence, permitted benchmarks,
 applicable identity/deduplication decisions, and provenance needed to freeze a
-snapshot. The result has no sale-price field or derivative. Storage enforces
-rental-only admission; model configuration owns the matching and selection
-rules.
+snapshot. This is a later, stricter gate than ingestion-quality admission: a
+durably accepted normalized listing can still have no eligible rental offer.
+The result has no sale-price field or derivative. Storage enforces rental-only
+admission; model configuration owns the matching and selection rules.
 
 ## 4. Explorer publication and read
 

@@ -107,6 +107,10 @@ object-storage vendor.
 - Model inputs and published explorer releases are immutable versions.
 - Unknown values remain unknown. Storage and normalization must not invent
   missing facts.
+- Durable V2 ingestion admission and Rent Model evidence eligibility are
+  separate gates. A durable receipt proves only that Storage accepted a
+  quality-passing normalized listing outcome; it never proves that any offer
+  can be used as rental evidence.
 - Retention, privacy, or licensing removals use an authorized tombstone or
   redaction record. They are never silent deletions.
 
@@ -143,8 +147,8 @@ durable proof and the applicable terms allow it.
 | Record                                     | What it means                                                                                   | Why it exists                                                                                    |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `ingestion.crawl_run`                      | One execution under one approved methodology version                                            | Groups operational events without becoming listing identity.                                     |
-| `ingestion.source_capture`                 | One acquisition event, including request/response metadata, collection time, and content digest | Two fetches are two historical events even when their bytes match.                               |
-| `ingestion.retained_source_artifact`       | Metadata for a permitted redacted fixture, if one is retained                                   | Tracks digest, media type, size, and policy without exposing object keys to consumers.           |
+| `ingestion.source_capture`                 | One acquisition event, including request/response metadata, collection time, and observed original-response digest and length | Two fetches are two historical events even when their bytes match; the digest does not retain the original body. |
+| `ingestion.retained_source_artifact`       | Metadata for a permitted redacted fixture, if one is retained or supplied inline               | Keeps the fixture's separate digest, media type, and size without exposing bytes or object keys to consumers.    |
 | `ingestion.source_listing`                 | A source-qualified listing identity                                                             | Prevents an identifier from one source being mistaken for the same identifier at another source. |
 | `ingestion.normalized_listing_observation` | One versioned canonical interpretation of an observation                                        | Gives downstream systems consistent types without rewriting the source claim.                    |
 | `ingestion.listing_offer_observation`      | One sale or rental offer observed at a point in time                                            | Keeps sale price, base rent, fees, currency, and frequency explicit and separate.                |
@@ -268,20 +272,39 @@ revocation, incompatible adapters, or an active source-health block.
 
 ### Durable ingestion submission
 
-The versioned submission contains:
+The versioned V2 submission contains:
 
 - source and approved methodology identity;
 - idempotency key and capture event ID;
-- sanitized acquisition metadata, content digest, length, and representation;
-- permitted redacted fixture bytes when applicable;
-- the complete normalized or quarantined outcome;
+- sanitized acquisition metadata plus the observed original-response digest,
+  length, and representation;
+- a bounded redacted-fixture artifact when applicable, with its own digest and
+  length;
+- one complete, listing-quality-passing `normalized` outcome;
 - field-level provenance and typed quality issues; and
 - the interpretation identity and canonical outcome hash.
 
-For version one, bounded redacted fixture bytes may be supplied through the
-storage port. The provider validates their digest; their durable-storage policy
-is deferred. Crawlers never construct object keys. A later post-POC workflow
-may revisit original-body retention separately.
+The MVP Crawler producer sends only a complete normalized outcome with at least
+one normalized observation after its pinned extraction-contract quality gate.
+Storage is the durable-admission authority: it validates the V2 payload,
+bindings, digests, conflicts, and this normalized-only rule before issuing a
+receipt. The Crawler owns producer coverage for the extraction-quality gate;
+Storage does not reinterpret a parser result to manufacture or repair an
+observation.
+
+`quarantined`, `parse_failed`, and `capture_only` are deliberately local,
+transient results in this POC. They create neither a durable outcome, a minimal
+receipt, nor a tombstone. `parser_drift` and `artifact_safety_block` are the
+only Crawler runtime health events; a future durable health-event intake needs
+its own shared-contract alignment and is outside this V2 receipt boundary.
+
+Bounded redacted fixture bytes may cross the port, but their durable-storage
+policy remains deferred. Storage validates their separate digest and length and
+persists only allowed metadata in this POC. Crawlers never construct object
+keys. A fixture above the strict inline cap is discarded without truncation or
+a Storage-managed reference; its no-retained-bytes metadata remains part of an
+otherwise admissible normalized submission. A later post-POC workflow may
+revisit fixture persistence and original-body retention separately.
 
 ### Receipt behavior
 
@@ -297,7 +320,7 @@ may revisit original-body retention separately.
 | Storage cannot durably accept responsibility                        | Return no successful receipt.                                                                                  |
 
 An immutable `accepted` receipt means storage can recover and finish the work.
-It does not mean finalization succeeded or the data qualifies for the model.
+It does not mean that the data qualifies for the Rent Model.
 Later append-only progress events report:
 
 - `committed`: capture and interpretation are durably linked;
@@ -306,13 +329,30 @@ Later append-only progress events report:
 - `failed`: finalization ended with a sanitized terminal cause, and a retry
   needs a new submission key.
 
-The MVP provider persists structured evidence and redacted-fixture metadata.
-It does not stage, finalize, or retrieve original response bodies.
+The MVP provider persists accepted structured evidence and redacted-fixture
+metadata. It does not retain, stage, finalize, or retrieve original response
+bodies or redacted-fixture bytes.
 
 The canonical submission hash excludes the idempotency key and
-provider-generated fields. It includes canonical capture metadata, exact body
-digest, methodology identity, interpretation identity, outcome, provenance,
-and quality issues.
+provider-generated fields. It includes canonical capture metadata and its
+observed-original digest/length, separate artifact disposition and
+digest/length, methodology identity, interpretation identity, outcome,
+provenance, and quality issues.
+
+### Admission is not rental evidence eligibility
+
+The ingestion-quality gate answers only whether a normalized listing outcome is
+complete and trustworthy enough to preserve as structured ingestion history.
+It can preserve sale offers, rental offers that are incomplete for modeling,
+and other normalized source claims. It must not depend on a sale price or a
+Rent Model configuration.
+
+The later rental-evidence read gate is stricter and evaluates each rental offer
+against the Rent Model rules: observed active long-term residential monthly COP
+rent, separable fees, positive built area, valid date, geography, property type,
+provenance, identity/deduplication decisions, and as-of freshness. Only that
+read gate supplies the Rent Model, and its DTO has no sale price or
+sale-derived value.
 
 ## MVP/POC body and fixture policy
 

@@ -15,8 +15,9 @@ Use PostgreSQL 16+ with PostGIS 3.4+ locally and in Aiven. This remains the
 right fit for transactions, constraints, generated views, `numeric`
 calculations, migrations, canonical geography, and spatial indexes. The
 MVP/POC stores relational metadata, normalized facts, parser/normalizer/
-extraction versions, exact body digest/length, provenance, and redacted
-fixtures only. It does not retain original source documents in object storage.
+extraction versions, observed-original-response digest/length, provenance, and
+redacted-fixture metadata only. It does not retain original source documents
+or redacted-fixture bytes in object storage.
 
 ### MVP/POC body and fixture policy
 
@@ -60,7 +61,7 @@ the broader legal/compliance workflow.
 | Area                  | Records                                                                                                                                                                                         | Key constraint                                                                                                   |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Source governance     | `source_provider`, `source_assessment`, `source_methodology_version`, `permitted_probe`, `source_fixture`                                                                                       | Access/terms/robots/API/privacy/retention assessments and methodology approval are versioned.                    |
-| Capture evidence      | `crawl_run`, `source_fetch`, `raw_capture`, `source_fixture`                                                                                                                                    | Each distinct acquisition event retains digest/length metadata; redacted fixtures may support parser validation. |
+| Capture evidence      | `crawl_run`, `source_fetch`, `raw_capture`, `source_fixture`                                                                                                                                    | Each acquisition retains observed-original digest/length; an inline redacted fixture has separate digest/length and only permitted metadata persists. |
 | Source claims         | `source_listing`, `source_listing_identifier`                                                                                                                                                   | Source-qualified identity and aliases are retained.                                                              |
 | Canonical facts       | `normalized_listing_observation`, `listing_offer_observation`, `observation_field_provenance`, `observation_quality_issue`, `geographic_area`, `observation_geography_assignment`               | Every model-relevant normalized field has raw-artifact provenance.                                               |
 | Identity/dedupe       | `resolved_property`, `identity_evidence`, `identity_resolution_decision`, `identity_membership`, `deduplication_selection`                                                                      | Decisions, including non-matches and ambiguous results, are auditable.                                           |
@@ -98,11 +99,23 @@ capability, listing role, effective time, recorded-as-of time, and accepted
 contract version. Without exactly one compatible, approved, unblocked result,
 it does no work.
 
-It then uses a versioned durable-ingestion port. The submission must contain
-the complete normalized or quarantined outcome and field provenance, not only
-their hashes. For version one, bounded redacted fixture bytes may cross that
-port. Storage validates their digest and preserves the structured submission
-boundary; durable-fixture storage remains a separate future policy decision.
+It then uses a versioned durable-ingestion port only for a complete,
+listing-quality-passing `normalized` outcome with at least one normalized
+observation and field provenance, not only their hashes. Storage owns durable
+admission: it validates the V2 payload, original-capture and separate artifact
+evidence, binding, conflict, and normalized-only rules before issuing a
+receipt. The Crawler owns coverage of its pinned extraction-quality gate.
+
+`quarantined`, `parse_failed`, and `capture_only` stay local and transient for
+the POC. They create no durable outcome, receipt, or tombstone. The Crawler
+emits only `parser_drift` or `artifact_safety_block` health events; integrating
+those events into durable Storage is a separately versioned contract decision.
+
+For version one, bounded redacted fixture bytes may cross the port. Storage
+validates their separate digest and preserves allowed metadata; durable fixture
+bytes and their location remain a separate future policy decision. Oversized
+fixtures are discarded without truncation or a Storage-managed reference, using
+`no_retained_bytes` metadata in an otherwise accepted normalized submission.
 Crawlers never precompute database IDs or object keys.
 
 The currently exported `SourceMethodologyRepository` and
