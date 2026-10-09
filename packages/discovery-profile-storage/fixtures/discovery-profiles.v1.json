@@ -1,0 +1,27 @@
+{
+  "contract_version": "v1",
+  "profiles": [
+    {
+      "source_key": "ciencuadras",
+      "profile_version": 1,
+      "state": "active",
+      "scope": {
+        "country_code": "CO",
+        "city_key": "barranquilla",
+        "capability": "discovery",
+        "listing_roles": ["for_rent"]
+      },
+      "allowed_hosts": ["www.ciencuadras.com"],
+      "allowed_path_prefixes": ["/arriendo/barranquilla"],
+      "budget": {
+        "max_requests": 2,
+        "max_bytes": 65536,
+        "max_duration_ms": 10000,
+        "max_redirects": 1,
+        "max_concurrency": 1,
+        "max_source_requests": 2
+      },
+      "permitted_media_types": ["text/html", "application/json"]
+    }
+  ]
+}

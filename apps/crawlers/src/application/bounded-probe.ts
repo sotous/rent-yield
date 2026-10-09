@@ -95,7 +95,7 @@ export class MemorySourceBudget {
 
 export type ProbeDependencies = {
   transport: ProbeTransport;
-  access: ProbeAccessGate;
+  access?: ProbeAccessGate;
   clock: ProbeClock;
   sourceBudget: MemorySourceBudget;
 };
@@ -324,15 +324,17 @@ export async function probeListingDiscovery(
   const stop = (reason: StopReason) =>
     finish({ kind: "stopped" as const, reason });
 
-  const access = dependencies.access.probeAccess({
+  const access = dependencies.access?.probeAccess({
     scope: command.scope,
     as_of: command.as_of,
   });
-  assessmentId = access.assessment_id ?? null;
-  assessmentSha256 = access.assessment_sha256 ?? null;
-  if (!access.permitted) return stop(accessReason(access.reason));
-  if (!commandWithinConstraints(command, access.constraints)) {
-    return stop("policy_mismatch");
+  if (access) {
+    assessmentId = access.assessment_id ?? null;
+    assessmentSha256 = access.assessment_sha256 ?? null;
+    if (!access.permitted) return stop(accessReason(access.reason));
+    if (!commandWithinConstraints(command, access.constraints)) {
+      return stop("policy_mismatch");
+    }
   }
 
   let target = command.start_url;
