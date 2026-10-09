@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   canonicalJson,
   canonicalSet,
+  discoveryProfileProvenanceSchema,
   fixtureEnvelopeSchema,
   identifierSchema,
   instantSchema,
@@ -26,7 +27,7 @@ const sourceOriginInputSchema = z.strictObject({
   source_key: identifierSchema,
   source_url: z.string().min(1),
   collected_at: instantSchema,
-  assessment_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  discovery_profile_provenance: discoveryProfileProvenanceSchema,
 });
 
 const syntheticOriginInputSchema = z.strictObject({

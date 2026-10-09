@@ -23,7 +23,11 @@ function artifact(): FixtureArtifact {
       source_key: "ciencuadras",
       source_url: "https://www.ciencuadras.com/arriendo/barranquilla?tracking=1",
       collected_at: "2026-10-09T00:00:00.000Z",
-      assessment_sha256: "0".repeat(64),
+      discovery_profile_provenance: {
+        source_key: "ciencuadras",
+        profile_version: 1,
+        profile_sha256: "0".repeat(64),
+      },
     },
     created_at: "2026-10-09T00:00:01.000Z",
     content_type: "application/json",

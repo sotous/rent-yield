@@ -9,7 +9,11 @@ import {
 
 const at = "2026-09-12T12:00:00.000Z";
 const later = "2026-09-12T13:00:00.000Z";
-const assessmentHash = "a".repeat(64);
+const discoveryProfileProvenance = {
+  source_key: "example-source",
+  profile_version: 1,
+  profile_sha256: "a".repeat(64),
+};
 
 const sha256 = (value: string) =>
   createHash("sha256").update(value, "utf8").digest("hex");
@@ -26,7 +30,7 @@ function command(overrides: Record<string, unknown> = {}) {
       source_url:
         "https://example.com/listing/123?utm_source=probe&token=secret#contact",
       collected_at: at,
-      assessment_sha256: assessmentHash,
+      discovery_profile_provenance: discoveryProfileProvenance,
     },
     created_at: at,
     content_type: "application/json",
@@ -63,6 +67,31 @@ function command(overrides: Record<string, unknown> = {}) {
 }
 
 describe("fixture capture", () => {
+  it("requires complete matching discovery-profile provenance for permitted fixtures", () => {
+    const legacy = command();
+    const permitted = legacy.origin as Record<string, unknown>;
+    const withoutProvenance = { ...permitted };
+    delete withoutProvenance.discovery_profile_provenance;
+    expect(
+      new MemoryFixtureCapture().captureRedactedFixture({
+        ...legacy,
+        origin: { ...withoutProvenance, assessment_sha256: "a".repeat(64) },
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+    expect(
+      new MemoryFixtureCapture().captureRedactedFixture({
+        ...legacy,
+        origin: {
+          ...permitted,
+          discovery_profile_provenance: {
+            ...discoveryProfileProvenance,
+            source_key: "different-source",
+          },
+        },
+      }),
+    ).toMatchObject({ ok: false, error: { code: "invalid_input" } });
+  });
+
   it("redacts prohibited JSON fields while retaining parser paths and listing semantics", () => {
     const repository = new MemoryFixtureCapture();
     const result = repository.captureRedactedFixture(command());
@@ -149,7 +178,10 @@ describe("fixture capture", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok || result.artifact.envelope.origin.kind !== "permitted_source")
+    if (
+      !result.ok ||
+      result.artifact.envelope.origin.kind !== "permitted_source"
+    )
       return;
     expect(result.artifact.envelope.origin.original_entity_sha256).toBe(
       sha256Bytes(payload),

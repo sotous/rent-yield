@@ -61,7 +61,11 @@ function materializeFixture() {
       source_key: "ciencuadras",
       source_url: "https://www.ciencuadras.com/arriendo/barranquilla",
       collected_at: "2026-10-09T00:00:00.000Z",
-      assessment_sha256: "a".repeat(64),
+      discovery_profile_provenance: {
+        source_key: "ciencuadras",
+        profile_version: 1,
+        profile_sha256: "a".repeat(64),
+      },
     },
     created_at: "2026-10-09T00:00:00.000Z",
     content_type: "application/json",
@@ -132,7 +136,6 @@ describe("manual bounded discovery", () => {
           "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
       },
     });
-    expect(materializedInputs[0]).not.toHaveProperty("assessment_sha256");
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(
       "private@example.com",
     );
