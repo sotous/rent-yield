@@ -11,6 +11,13 @@ invalid records, duplicate source/profile versions, and multiple active profiles
 for a source fail closed. The committed fixture is at
 [`packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json`](../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json).
 
+Every active result also includes derived `discovery_profile_provenance`:
+`source_key`, `profile_version`, and `profile_sha256`. The digest is SHA-256 of
+a canonical complete validated V1 record, so it binds the selected operational
+scope, hosts, paths, budgets, and media types. It is generated at read time and
+is not a new fixture field. Fixture capture uses this object for configuration
+lineage in place of the obsolete `assessment_sha256` provenance.
+
 Each record scopes an operational discovery run to Colombia, one city, allowed
 listing roles, hosts, path prefixes, budgets, and media types. Source-specific
 values belong to that Storage fixture rather than generic crawler application

@@ -25,12 +25,15 @@ scope selection.
 
 ## Follow-up
 
-No additional Storage iteration is needed now. When Crawler needs multiple
-scopes, evolve the repository lookup with an explicit versioned scope query and
-replace the JSON adapter behind the same read-only boundary.
+The 2026-10-09 provenance evolution is the only additional Storage iteration
+needed now: active reads derive deterministic profile lineage instead of
+borrowing access-assessment terminology. When Crawler needs multiple scopes,
+evolve the repository lookup with an explicit versioned scope query and replace
+the JSON adapter behind the same read-only boundary.
 
 ## Documentation
 
-The package README explains the consumer and replacement boundary, and the
-architecture note records the fixture path, fail-closed semantics, and the fact
-that `active` is not authorization.
+The package README explains the consumer and replacement boundary, including
+the exact derived provenance fields. The architecture note records the fixture
+path, fail-closed semantics, canonical profile digest, and the fact that
+`active` is not authorization.
