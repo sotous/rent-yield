@@ -13,8 +13,8 @@ Ciencuadras is the selected MVP source candidate.
 
 ## MVP policy decision
 
-The run is operationally enabled once its Storage-owned discovery profile and
-local preflight pass. It has no candidate-registration, access-assessment,
+The bounded-discovery run is operationally ready once Storage returns its active
+source profile and local preflight passes. It has no candidate-registration, access-assessment,
 trusted-reviewer, or approved-methodology gate. This is an MVP operational
 rule, not a claim that a third party grants reuse rights. The crawler stops
 immediately, without retry or evasion, whenever the source or transport signals
@@ -40,8 +40,8 @@ It does not activate scheduled or production crawling.
 - `docs/architecture/listing-storage-contract.md`
 
 Fixture redaction/integrity and offline extraction/provenance must be complete
-before the live execution task. The Storage-owned profile declares allowed
-media types, exact discovery paths, and bounded request policy.
+before the live execution task. A checked-in canary configuration declares
+allowed media types, exact discovery/detail paths, and query policy.
 
 ## Canary scope
 
@@ -58,21 +58,22 @@ media types, exact discovery paths, and bounded request policy.
 - Images and other binaries: excluded.
 - Scheduling, retries, pagination harvesting, and durable cursors: excluded.
 
-The Storage-owned profile owns request, byte, duration, path, and retention
-limits. The command cannot widen them.
+The Storage-owned active discovery profile owns request, byte, duration, path,
+and media-type limits. The command cannot widen them.
 
 ## Proposed approach
 
-1. Load the active Ciencuadras profile from Storage, with exact HTTPS host/path,
-   accepted media types, and conservative budgets.
+1. Load the immutable active Ciencuadras discovery profile from Storage. It
+   declares exact HTTPS host/paths, accepted media types, and conservative
+   budgets.
 2. Implement a canary-only DNS/HTTPS transport behind the existing bounded
    probe port. Bind connections to validated public addresses and enforce all
    limits while streaming. Disable automatic redirects, preserve the validated
    hostname for TLS, enforce the exact remaining byte allowance before every
    request, and return the received body only through a bounded in-memory
    handoff to redaction.
-3. Add manual orchestration with dry run, fixed-scope checks, and a local kill
-   switch.
+3. Add a manual orchestration command with dry run, fixed-scope checks, and a
+   local kill switch.
 4. Keep received bytes in memory until deterministic redaction and the
    prohibited-data scanner pass. Never write the original response to Git.
 5. Write the redacted payload and envelope, replay the parser, and
@@ -83,7 +84,8 @@ limits. The command cannot widen them.
 
 ## Required outputs
 
-- Versioned Storage-owned discovery profile and exact provenance digest.
+- Versioned Storage-owned Ciencuadras discovery profile and its deterministic
+  provenance.
 - Sanitized probe receipt.
 - Redacted source-derived fixture envelope and separately hashed payload.
 - Canonical source URL without credentials, query parameters, or fragment.
@@ -102,7 +104,7 @@ Stop without retry or evasion on:
 - robots denial or configured-scope mismatch;
 - `401`, `403`, `429`, login, authentication, CAPTCHA, or challenge response;
 - host, path, redirect, DNS, address, byte, duration, or request-budget failure;
-- content type outside the active profile;
+- content type outside the active discovery profile;
 - a caller-expanded scope or local kill-switch activation;
 - prohibited data that cannot be deterministically removed; or
 - parser drift that invalidates required fields or provenance.
@@ -121,7 +123,8 @@ personal data in committed artifacts.
    output.
 3. Existing fixture and extraction suites prove deterministic replay before the
    live invocation.
-4. The live execution occurs once, only after its gate checklist passes, and is
+4. The live execution occurs once, only after its local preflight/dry-run
+   checklist passes and the user explicitly authorizes that external request. It is
    validated by inspecting the sanitized artifacts rather than retaining the
    original response.
 5. Root typecheck, lint, formatting, and tests remain green.
@@ -169,10 +172,11 @@ the same result without another network request.
 
 ## Execution task set
 
-1. Define the Storage-owned Ciencuadras profile and executable checklist.
+1. Define the Storage-owned Ciencuadras discovery profile and executable
+   checklist.
 2. Implement the bounded live DNS/HTTPS transport with offline conformance
    tests.
-3. Implement the manual canary orchestration and redaction-before-write pipeline.
+3. Implement the manual canary command and redaction-before-write pipeline.
 4. Execute one Barranquilla rental canary and retain only approved artifacts.
 5. Review the outcome and record the next-source decision.
 6. Document the canary runbook, evidence, and retrospective.

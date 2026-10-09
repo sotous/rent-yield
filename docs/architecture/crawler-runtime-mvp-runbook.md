@@ -2,26 +2,44 @@
 
 ## Purpose
 
-This runbook describes the fixture-only Crawler runtime boundary. It turns an
-approved frozen fixture into a local interpretation and, only for a valid
-normalized result, a Data Storage submission candidate. It does not authorize
-or perform a live collection run.
+This runbook describes readiness for the bounded-discovery MVP. It does not
+authorize or perform a live collection run. The completed offline path loads a
+Storage-owned active profile, applies bounded transport rules, redacts in
+memory, and writes only a validated sanitized fixture or typed result. The
+local manual command composition exists and has been validated offline; it has
+not been invoked against a live source.
 
 ## Preconditions
 
-- A trusted resolver returns one approved, unexpired methodology for the exact
-  source, city, capability, listing role, and time scope.
-- The fixture hash and every pinned parser, normalizer, extraction, redaction,
-  and retention artifact verify before the fixture is read.
-- The caller supplies only a frozen fixture and injected test ports. No browser,
-  transport, credential, database, object-storage, or source-permission port is
-  present in this runtime.
+- Storage returns exactly one active discovery profile for the requested source
+  key. Its deterministic provenance is retained with the sanitized fixture.
+- The profile fixes Colombia, Barranquilla, `for_rent`, hosts, path prefixes,
+  budgets, and permitted media types. Caller input cannot widen it.
+- Local kill switch is off; the redaction/scanner, fixture writer, and typed
+  quarantine path are available.
+- Lint, typecheck, and offline transport/orchestration/fixture tests pass.
+- A dry run passes without DNS or HTTP.
+- Explicit user authorization is received for one external request. Neither an
+  active profile nor a passing dry run supplies this authorization.
 
-## Fixture flow
+## Local preflight and dry run
 
-1. Run preflight. Any lookup, scope, integrity, approval, or expiry failure is
-   a typed local refusal; no capture ID is allocated and no fixture is read.
-2. Decode the fixture response in memory. Record the observed original-response
+1. Resolve the exact active Storage profile. Fail locally if it is missing,
+   ambiguous, invalid, or outside the requested country/city/listing-role
+   scope.
+2. Verify all fixed limits and permitted media types, confirm the kill switch is
+   off, and render a sanitized plan. Do not perform DNS or HTTP.
+3. Exercise the same orchestration in dry-run mode. It must allocate no
+   capture, write no fixture, and make no external request.
+4. Stop here until the user explicitly authorizes one live request.
+
+## Bounded live flow after authorization
+
+1. Revalidate profile scope and remaining budgets before each request. Stop
+   without retry or evasion on robots denial, `401`, `403`, `429`, login,
+   authentication, CAPTCHA/challenge, scope/redirect/DNS/address failure,
+   unsupported media type, or budget exhaustion.
+2. Decode the received response in memory. Record the observed original-response
    digest and byte length, then redact and scan it. Always dispose the original
    bytes before returning.
 3. If the redacted fixture is at most 65,536 UTF-8 bytes, retain it inline with
@@ -52,5 +70,7 @@ does not calculate yield or publish product data.
 
 The MVP retains no original HTML/JSON body and provides no historical-body
 replay. Parser improvements use redacted fixtures and take effect on a new,
-separately approved collection run. Live sources, source permissions,
-compliance review, credentials, and canary execution remain separately gated.
+separately scoped run. The MVP execution path has no candidate-registration,
+access-assessment, trusted-review, or approved-methodology gate. It does retain
+all mandatory transport and source block stops, and it cannot turn a single
+run into scheduled or production crawling.
