@@ -2,23 +2,28 @@
 
 ## Status
 
-Approved in principle on 2026-09-10. The canary is the first live-source
-milestone after the fixture, extraction, and methodology-review foundation is
-complete. Execution is tracked in Notion under Plan Slug
+Approved for MVP implementation on 2026-10-07. The canary is the first
+real-source milestone after the fixture and extraction foundation is complete.
+Execution is tracked in Notion under Plan Slug
 `crawler-first-real-world-canary`.
 
 Seven execution tasks were created in
 [Prototype v1 Tasks](https://app.notion.com/p/e859027b50fa4a228ec3184cd63d7a7a).
-Execution begins with
-[candidate-source selection and access assessment](https://app.notion.com/p/3d7dd70227408176be27db8cfdf2ecff).
+Ciencuadras is the selected MVP source candidate.
 
-The source itself is selected through the access-assessment task. No source is
-authorized merely by this plan.
+## MVP policy decision
+
+The run is operationally enabled once its Storage-owned discovery profile and
+local preflight pass. It has no candidate-registration, access-assessment,
+trusted-reviewer, or approved-methodology gate. This is an MVP operational
+rule, not a claim that a third party grants reuse rights. The crawler stops
+immediately, without retry or evasion, whenever the source or transport signals
+a block.
 
 ## Goal
 
-Run one manually triggered, tightly bounded request path against one reviewed
-public source offering long-term residential rentals in Barranquilla. Convert
+Run one manually triggered, tightly bounded request path against Ciencuadras
+for apparent long-term residential rentals in Barranquilla. Convert
 the permitted response into a sanitized probe receipt, one redacted
 source-derived fixture, and one normalized listing observation or typed
 quarantine result.
@@ -34,21 +39,15 @@ It does not activate scheduled or production crawling.
 - `docs/architecture/crawler-foundation-contract-agreement.md`
 - `docs/architecture/listing-storage-contract.md`
 
-Foundation tickets for fixture redaction and integrity, offline extraction and
-provenance, methodology validation, and approved-effective lookup must be
-complete before the live execution task. Source research and access assessment
-may begin earlier.
-
-The live gate also requires an authorization record from a trusted reviewer;
-caller-supplied findings or the fixture-only homepage-derived scope cannot
-grant live access. The approved methodology must declare allowed content types,
-the exact discovery and detail paths, and whether a query string is permitted.
+Fixture redaction/integrity and offline extraction/provenance must be complete
+before the live execution task. The Storage-owned profile declares allowed
+media types, exact discovery paths, and bounded request policy.
 
 ## Canary scope
 
 - Geography: Barranquilla, Colombia.
 - Listing role: `for_rent` and long-term residential only.
-- Source count: one reviewed public source.
+- Source count: Ciencuadras only.
 - Trigger: one manual CLI invocation.
 - Request path: at most one discovery request and one detail request.
 - Concurrency: one.
@@ -59,36 +58,32 @@ the exact discovery and detail paths, and whether a query string is permitted.
 - Images and other binaries: excluded.
 - Scheduling, retries, pagination harvesting, and durable cursors: excluded.
 
-The approved methodology may impose stricter request, byte, duration, path, or
-retention limits. The canary cannot widen them.
+The Storage-owned profile owns request, byte, duration, path, and retention
+limits. The command cannot widen them.
 
 ## Proposed approach
 
-1. Select a candidate with apparent Barranquilla long-term rental coverage and
-   record public terms, robots, API/feed, sitemap, privacy, and retention
-   evidence.
-2. Obtain an unexpired `allowed_for_probe` assessment and an approved-effective
-   canary methodology for the exact source, city, capability, and listing role.
-3. Implement a canary-only DNS/HTTPS transport behind the existing bounded
+1. Load the active Ciencuadras profile from Storage, with exact HTTPS host/path,
+   accepted media types, and conservative budgets.
+2. Implement a canary-only DNS/HTTPS transport behind the existing bounded
    probe port. Bind connections to validated public addresses and enforce all
    limits while streaming. Disable automatic redirects, preserve the validated
    hostname for TLS, enforce the exact remaining byte allowance before every
    request, and return the received body only through a bounded in-memory
    handoff to redaction.
-4. Add a manual orchestration command with a dry run, explicit methodology
-   identity, fail-closed access checks, and a local kill switch.
-5. Keep received bytes in memory until deterministic redaction and the
+3. Add manual orchestration with dry run, fixed-scope checks, and a local kill
+   switch.
+4. Keep received bytes in memory until deterministic redaction and the
    prohibited-data scanner pass. Never write the original response to Git.
-6. Write the redacted payload and envelope, replay the approved parser, and
+5. Write the redacted payload and envelope, replay the parser, and
    emit a normalized observation or typed quarantine result with provenance and
    quality issues.
-7. Review the evidence and decide whether to stop, revise the methodology, run
+6. Review the evidence and decide whether to stop, repair, run
    another bounded canary, or propose production-source work.
 
 ## Required outputs
 
-- Versioned source candidate and access assessment.
-- Approved-effective canary methodology and exact digest.
+- Versioned Storage-owned discovery profile and exact provenance digest.
 - Sanitized probe receipt.
 - Redacted source-derived fixture envelope and separately hashed payload.
 - Canonical source URL without credentials, query parameters, or fragment.
@@ -102,14 +97,13 @@ retention limits. The canary cannot widen them.
 
 ## Safety and stop conditions
 
-Do not send a request unless access lookup returns one current, approved scope.
 Stop without retry or evasion on:
 
-- terms, robots, assessment, or methodology mismatch;
+- robots denial or configured-scope mismatch;
 - `401`, `403`, `429`, login, authentication, CAPTCHA, or challenge response;
 - host, path, redirect, DNS, address, byte, duration, or request-budget failure;
-- content type outside the approved methodology;
-- a missing trusted-reviewer authorization or a caller-derived live scope;
+- content type outside the active profile;
+- a caller-expanded scope or local kill-switch activation;
 - prohibited data that cannot be deterministically removed; or
 - parser drift that invalidates required fields or provenance.
 
@@ -122,7 +116,7 @@ personal data in committed artifacts.
 1. RED/GREEN transport conformance tests cover validated-address connection
    binding, TLS hostname handling, streaming limits, redirects, timeouts, and
    stop conditions without contacting a live source.
-2. RED/GREEN orchestration tests cover dry run, access and methodology gates,
+2. RED/GREEN orchestration tests cover dry run, fixed-scope and kill-switch
    hard canary limits, redaction-before-write, scanner failure, and typed
    output.
 3. Existing fixture and extraction suites prove deterministic replay before the
@@ -132,16 +126,15 @@ personal data in committed artifacts.
    original response.
 5. Root typecheck, lint, formatting, and tests remain green.
 
-Success means a reviewer can trace one real permitted response from assessment
-and methodology through a sanitized receipt, redacted fixture, and normalized
+Success means a reviewer can trace one real bounded response from configured
+scope through a sanitized receipt, redacted fixture, and normalized
 observation or quarantine decision. Replaying the retained fixture must produce
 the same result without another network request.
 
 ## Risks and assumptions
 
-- A suitable public source may remain `unknown`, require commercial approval,
-  or disallow the proposed access. In that case the canary stops and records
-  the decision rather than switching sources silently.
+- Ciencuadras may block, challenge, or expose an incompatible response shape.
+  The canary stops and records the typed result rather than switching sources.
 - A client-rendered or challenge-protected source may not fit this HTTP-only
   canary. Browser automation requires a separate decision and plan.
 - Query parameters may carry tracking or personal data and are removed from
@@ -176,11 +169,10 @@ the same result without another network request.
 
 ## Execution task set
 
-1. Select the candidate source and record the access/retention decision.
-2. Approve a canary methodology and executable gate checklist.
-3. Implement the bounded live DNS/HTTPS transport with offline conformance
+1. Define the Storage-owned Ciencuadras profile and executable checklist.
+2. Implement the bounded live DNS/HTTPS transport with offline conformance
    tests.
-4. Implement the manual canary command and redaction-before-write pipeline.
-5. Execute one Barranquilla rental canary and retain only approved artifacts.
-6. Review the outcome and record the next-source decision.
-7. Document the canary runbook, evidence, and retrospective.
+3. Implement the manual canary orchestration and redaction-before-write pipeline.
+4. Execute one Barranquilla rental canary and retain only approved artifacts.
+5. Review the outcome and record the next-source decision.
+6. Document the canary runbook, evidence, and retrospective.

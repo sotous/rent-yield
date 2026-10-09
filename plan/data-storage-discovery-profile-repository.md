@@ -7,9 +7,9 @@ and its tracked execution slices. It does not authorize a live request,
 database migration, candidate registration, access assessment, trusted review,
 or pull request.
 
-**Progress on 2026-10-08:** the Storage contract, JSON adapter, fixture, tests,
-and documentation are complete. Crawler-owned integration remains pending with
-the concurrent Crawler implementation.
+**Progress on 2026-10-09:** the Storage contract, JSON adapter, fixture,
+profile provenance, fixture-envelope migration, tests, documentation, and the
+Crawler-owned read integration are complete. No live request has been made.
 
 **Evolution in progress on 2026-10-09:** replace the fixture capture's obsolete
 access-assessment hash with deterministic, Storage-derived discovery-profile
