@@ -11,7 +11,9 @@ import { writeRedactedFixture } from "./filesystem-redacted-fixture-writer.js";
 
 const roots: string[] = [];
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true })));
+  await Promise.all(
+    roots.splice(0).map((root) => rm(root, { recursive: true })),
+  );
 });
 
 function artifact(): FixtureArtifact {
@@ -21,7 +23,8 @@ function artifact(): FixtureArtifact {
     origin: {
       kind: "permitted_source",
       source_key: "ciencuadras",
-      source_url: "https://www.ciencuadras.com/arriendo/barranquilla?tracking=1",
+      source_url:
+        "https://www.ciencuadras.com/arriendo/barranquilla?tracking=1",
       collected_at: "2026-10-09T00:00:00.000Z",
       discovery_profile_provenance: {
         source_key: "ciencuadras",
@@ -69,7 +72,9 @@ describe("filesystem redacted fixture writer", () => {
     const unsafe = artifact();
     unsafe.payload = '{"email":"private@example.com"}';
 
-    await expect(writeRedactedFixture({ root, artifact: unsafe })).resolves.toEqual({
+    await expect(
+      writeRedactedFixture({ root, artifact: unsafe }),
+    ).resolves.toEqual({
       ok: false,
       error: { code: "invalid_artifact" },
     });
@@ -84,7 +89,9 @@ describe("filesystem redacted fixture writer", () => {
     roots.push(root);
     const input = { root, artifact: artifact() };
 
-    await expect(writeRedactedFixture(input)).resolves.toMatchObject({ ok: true });
+    await expect(writeRedactedFixture(input)).resolves.toMatchObject({
+      ok: true,
+    });
     await expect(writeRedactedFixture(input)).resolves.toEqual({
       ok: false,
       error: { code: "fixture_already_exists" },

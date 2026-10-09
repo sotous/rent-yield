@@ -10,7 +10,11 @@ export type RedactedFixtureWriteResult =
   | {
       ok: false;
       error: {
-        code: "invalid_root" | "invalid_artifact" | "fixture_already_exists" | "write_failed";
+        code:
+          | "invalid_root"
+          | "invalid_artifact"
+          | "fixture_already_exists"
+          | "write_failed";
       };
     };
 
@@ -57,7 +61,14 @@ export async function writeRedactedFixture(input: {
         `${JSON.stringify(input.artifact.envelope, null, 2)}\n`,
         { encoding: "utf8", flag: "wx" },
       ),
-      writeFile(join(destination, payloadFileName(input.artifact)), input.artifact.payload, {
+      writeFile(
+        join(destination, payloadFileName(input.artifact)),
+        input.artifact.payload,
+        {
+          encoding: "utf8",
+          flag: "wx",
+        },
+      ),
     ]);
     return { ok: true, path: destination };
   } catch {
