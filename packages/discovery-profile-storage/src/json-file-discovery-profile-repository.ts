@@ -2,8 +2,9 @@ import { readFile } from "node:fs/promises";
 import {
   discoveryProfileLookupSchema,
   discoveryProfileRegistryV1Schema,
+  deriveDiscoveryProfileProvenance,
+  type ActiveDiscoveryProfileV1,
   type DiscoveryProfileRepository,
-  type DiscoveryProfileV1,
 } from "./discovery-profile.js";
 
 export class JsonFileDiscoveryProfileRepository implements DiscoveryProfileRepository {
@@ -15,7 +16,7 @@ export class JsonFileDiscoveryProfileRepository implements DiscoveryProfileRepos
 
   async findActiveBySourceKey(input: {
     source_key: string;
-  }): Promise<DiscoveryProfileV1 | null> {
+  }): Promise<ActiveDiscoveryProfileV1 | null> {
     const lookup = discoveryProfileLookupSchema.parse(input);
     const registry = await this.#readRegistry();
     const matches = registry.profiles.filter(
@@ -26,7 +27,14 @@ export class JsonFileDiscoveryProfileRepository implements DiscoveryProfileRepos
       throw new Error(
         `Discovery profile registry has multiple active profiles for ${lookup.source_key}`,
       );
-    return matches[0] ?? null;
+    const profile = matches[0];
+    return profile
+      ? {
+          ...profile,
+          discovery_profile_provenance:
+            deriveDiscoveryProfileProvenance(profile),
+        }
+      : null;
   }
 
   async #readRegistry() {

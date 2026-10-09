@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 const sourceKeySchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/);
@@ -111,6 +112,14 @@ export const discoveryProfileLookupSchema = z.strictObject({
   source_key: sourceKeySchema,
 });
 
+const profileSha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+
+export const discoveryProfileProvenanceSchema = z.strictObject({
+  source_key: sourceKeySchema,
+  profile_version: positiveSafeIntegerSchema,
+  profile_sha256: profileSha256Schema,
+});
+
 export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
 export type DiscoveryProfileRegistryV1 = z.infer<
   typeof discoveryProfileRegistryV1Schema
@@ -118,10 +127,62 @@ export type DiscoveryProfileRegistryV1 = z.infer<
 export type DiscoveryProfileLookup = z.infer<
   typeof discoveryProfileLookupSchema
 >;
+export type DiscoveryProfileProvenance = z.infer<
+  typeof discoveryProfileProvenanceSchema
+>;
+export type ActiveDiscoveryProfileV1 = DiscoveryProfileV1 & {
+  discovery_profile_provenance: DiscoveryProfileProvenance;
+};
+
+/**
+ * Canonical V1 representation used only to bind an active operational profile
+ * to the bounded facts Storage validated. Its field order is deliberate.
+ */
+function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
+  return JSON.stringify({
+    contract_version: "v1",
+    source_key: profile.source_key,
+    profile_version: profile.profile_version,
+    state: profile.state,
+    scope: {
+      country_code: profile.scope.country_code,
+      city_key: profile.scope.city_key,
+      capability: profile.scope.capability,
+      listing_roles: profile.scope.listing_roles,
+    },
+    allowed_hosts: profile.allowed_hosts,
+    allowed_path_prefixes: profile.allowed_path_prefixes,
+    budget: {
+      max_requests: profile.budget.max_requests,
+      max_bytes: profile.budget.max_bytes,
+      max_duration_ms: profile.budget.max_duration_ms,
+      max_redirects: profile.budget.max_redirects,
+      max_concurrency: profile.budget.max_concurrency,
+      max_source_requests: profile.budget.max_source_requests,
+    },
+    permitted_media_types: profile.permitted_media_types,
+  });
+}
+
+/**
+ * Deterministic configuration lineage for fixture capture, not access approval.
+ */
+export function deriveDiscoveryProfileProvenance(
+  input: DiscoveryProfileV1,
+): DiscoveryProfileProvenance {
+  const profile = discoveryProfileV1Schema.parse(input);
+  return {
+    source_key: profile.source_key,
+    profile_version: profile.profile_version,
+    profile_sha256: createHash("sha256")
+      .update(canonicalDiscoveryProfileV1(profile), "utf8")
+      .digest("hex"),
+  };
+}
 
 /** Read-only Storage boundary for bounded discovery profile lookup. */
 export interface DiscoveryProfileRepository {
   findActiveBySourceKey(
     input: DiscoveryProfileLookup,
-  ): Promise<DiscoveryProfileV1 | null>;
+  ): Promise<ActiveDiscoveryProfileV1 | null>;
 }

@@ -11,6 +11,11 @@ or pull request.
 and documentation are complete. Crawler-owned integration remains pending with
 the concurrent Crawler implementation.
 
+**Evolution in progress on 2026-10-09:** replace the fixture capture's obsolete
+access-assessment hash with deterministic, Storage-derived discovery-profile
+provenance. This is a contract-only change; it adds no live access or Crawler
+implementation change.
+
 ## Goal
 
 Provide the smallest temporary, Storage-owned persistence boundary through
@@ -39,6 +44,7 @@ source-configuration module.
 | Fixture location           | Versioned registry at `packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json`.                                                                                                                        | Makes Storage-owned facts reviewable and replaces ad hoc source modules.                           |
 | Validation                 | Strict Zod validation on every registry read; invalid JSON, unknown fields, invalid host/path/media values, invalid budgets, and duplicate active profiles reject before Crawler use.                                  | File-backed configuration must fail closed.                                                        |
 | No authorization semantics | `active` is only operational availability in this temporary fixture. It is not source permission, candidate registration, assessment, trusted review, or canary approval.                                              | Prevents a convenience adapter from widening crawler authority.                                    |
+| Operational provenance     | An active read adds `discovery_profile_provenance` with `source_key`, `profile_version`, and `profile_sha256`, the SHA-256 digest of the canonical complete V1 record.                                                 | Gives fixture capture deterministic configuration lineage without inventing an access assessment.  |
 
 ## Record shape
 
@@ -74,6 +80,14 @@ type DiscoveryProfileV1 = {
     "application/json" | "text/html" | "text/plain"
   )[];
 };
+
+type ActiveDiscoveryProfileV1 = DiscoveryProfileV1 & {
+  discovery_profile_provenance: {
+    source_key: string;
+    profile_version: number;
+    profile_sha256: string;
+  };
+};
 ```
 
 Hosts are bare HTTPS hostnames, paths are absolute prefixes, and every numeric
@@ -97,6 +111,10 @@ approval status.
 5. **Review and documentation** — Review the fail-closed behavior and update
    the package README and architecture navigation with the fixture location and
    replacement boundary.
+6. **Operational provenance evolution** — RED-test and add deterministic
+   `discovery_profile_provenance` to active lookup results. The digest covers a
+   canonical complete validated V1 profile, rather than any candidate or access
+   assessment. Update the contract and replacement documentation.
 
 ## Files expected to change
 
@@ -120,6 +138,8 @@ approval status.
 - Multiple active versions for one source and malformed/unsafe persisted data
   fail closed.
 - The committed fixture parses through the same production adapter path.
+- An active result carries stable profile provenance that changes when a
+  bounded profile fact changes and never mentions an access assessment.
 - Package test, typecheck, lint, and formatting checks pass.
 - No touched code opens a network connection, performs a live request, stores
   candidate/access/review decisions, or introduces a database/object store.

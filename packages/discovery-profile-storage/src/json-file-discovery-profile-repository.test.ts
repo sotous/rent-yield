@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  deriveDiscoveryProfileProvenance,
+  type DiscoveryProfileV1,
+} from "./discovery-profile.js";
 import { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profile-repository.js";
 
 const activeProfile = {
@@ -26,6 +30,13 @@ const activeProfile = {
     max_source_requests: 2,
   },
   permitted_media_types: ["text/html", "application/json"],
+} satisfies DiscoveryProfileV1;
+
+const activeProfileProvenance = {
+  source_key: "ciencuadras",
+  profile_version: 1,
+  profile_sha256:
+    "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -48,6 +59,18 @@ async function writeRegistry(profiles: readonly unknown[]): Promise<string> {
 }
 
 describe("JsonFileDiscoveryProfileRepository", () => {
+  it("derives stable operational provenance from the complete validated profile", () => {
+    expect(deriveDiscoveryProfileProvenance(activeProfile)).toEqual(
+      activeProfileProvenance,
+    );
+    expect(
+      deriveDiscoveryProfileProvenance({
+        ...activeProfile,
+        budget: { ...activeProfile.budget, max_bytes: 65537 },
+      }),
+    ).not.toEqual(activeProfileProvenance);
+  });
+
   it("returns an active profile by source key without exposing unrelated profiles", async () => {
     const path = await writeRegistry([
       activeProfile,
@@ -57,7 +80,10 @@ describe("JsonFileDiscoveryProfileRepository", () => {
 
     await expect(
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
-    ).resolves.toEqual(activeProfile);
+    ).resolves.toEqual({
+      ...activeProfile,
+      discovery_profile_provenance: activeProfileProvenance,
+    });
   });
 
   it("returns null when a source has no active profile", async () => {
@@ -114,6 +140,9 @@ describe("JsonFileDiscoveryProfileRepository", () => {
 
     await expect(
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
-    ).resolves.toEqual(activeProfile);
+    ).resolves.toEqual({
+      ...activeProfile,
+      discovery_profile_provenance: activeProfileProvenance,
+    });
   });
 });

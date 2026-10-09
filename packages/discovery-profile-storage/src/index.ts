@@ -1,8 +1,12 @@
 export {
   discoveryProfileLookupSchema,
+  discoveryProfileProvenanceSchema,
   discoveryProfileRegistryV1Schema,
   discoveryProfileV1Schema,
+  deriveDiscoveryProfileProvenance,
+  type ActiveDiscoveryProfileV1,
   type DiscoveryProfileLookup,
+  type DiscoveryProfileProvenance,
   type DiscoveryProfileRepository,
   type DiscoveryProfileRegistryV1,
   type DiscoveryProfileV1,
