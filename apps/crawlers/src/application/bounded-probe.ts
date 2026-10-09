@@ -9,6 +9,7 @@ import {
   type ProbeResult,
 } from "@rent-yield/listing-storage-contracts";
 import { z } from "zod";
+import type { DiscoveryProfileProvenance } from "@rent-yield/discovery-profile-storage";
 import type {
   ProbeAccessGate,
   ProbeClock,
@@ -93,9 +94,21 @@ export class MemorySourceBudget {
   }
 }
 
+export type ProbeCaptureHandoff = {
+  handoff(input: {
+    source_key: string;
+    response_url: string;
+    content_type: string | null;
+    original_bytes: Uint8Array;
+    discovery_profile_provenance?: DiscoveryProfileProvenance;
+  }): Promise<{ ok: boolean }>;
+};
+
 export type ProbeDependencies = {
   transport: ProbeTransport;
-  access: ProbeAccessGate;
+  access?: ProbeAccessGate;
+  captureHandoff?: ProbeCaptureHandoff;
+  discoveryProfileProvenance?: DiscoveryProfileProvenance;
   clock: ProbeClock;
   sourceBudget: MemorySourceBudget;
 };
@@ -324,15 +337,17 @@ export async function probeListingDiscovery(
   const stop = (reason: StopReason) =>
     finish({ kind: "stopped" as const, reason });
 
-  const access = dependencies.access.probeAccess({
+  const access = dependencies.access?.probeAccess({
     scope: command.scope,
     as_of: command.as_of,
   });
-  assessmentId = access.assessment_id ?? null;
-  assessmentSha256 = access.assessment_sha256 ?? null;
-  if (!access.permitted) return stop(accessReason(access.reason));
-  if (!commandWithinConstraints(command, access.constraints)) {
-    return stop("policy_mismatch");
+  if (access) {
+    assessmentId = access.assessment_id ?? null;
+    assessmentSha256 = access.assessment_sha256 ?? null;
+    if (!access.permitted) return stop(accessReason(access.reason));
+    if (!commandWithinConstraints(command, access.constraints)) {
+      return stop("policy_mismatch");
+    }
   }
 
   let target = command.start_url;
@@ -482,6 +497,25 @@ export async function probeListingDiscovery(
       );
       if (!discoveredResult.ok) return stop(discoveredResult.reason);
       discovered.push(sanitizedUrl(discoveredResult.url));
+    }
+    if (dependencies.captureHandoff) {
+      try {
+        const handoff = await dependencies.captureHandoff.handoff({
+          source_key: command.scope.source_key,
+          response_url: evidenceUrl,
+          content_type: response.content_type,
+          original_bytes: response.body,
+          ...(dependencies.discoveryProfileProvenance
+            ? {
+                discovery_profile_provenance:
+                  dependencies.discoveryProfileProvenance,
+              }
+            : {}),
+        });
+        if (!handoff.ok) return stop("transport_error");
+      } catch {
+        return stop("transport_error");
+      }
     }
     return finish({ kind: "completed", discovered_urls: discovered });
   }

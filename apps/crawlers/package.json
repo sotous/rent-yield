@@ -11,6 +11,7 @@
     "test:fixtures": "vitest run src/application/fixture-directory.test.ts"
   },
   "dependencies": {
+    "@rent-yield/discovery-profile-storage": "workspace:*",
     "@rent-yield/listing-storage-contracts": "workspace:*",
     "parse5": "8.0.0",
     "zod": "4.4.3"

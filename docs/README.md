@@ -8,11 +8,13 @@ reviews. Product requirements and version-one scope live in
 ## Current documentation
 
 - [Architecture](architecture/): system boundaries and implementation design,
-  including the [Crawler runtime MVP runbook](architecture/crawler-runtime-mvp-runbook.md).
+  including the [Crawler runtime MVP runbook](architecture/crawler-runtime-mvp-runbook.md)
+  and [fixture discovery-profile storage](architecture/discovery-profile-storage.md).
 - [API](api/): consumer contracts and API reference material.
 - [Decisions](decisions/): durable technical and product choices.
 - [Research](research/): exploratory findings and market research.
-- [Reviews](reviews/): implementation assessments and ergonomics reviews.
+- [Reviews](reviews/): implementation assessments and ergonomics reviews,
+  including the [discovery-profile storage retrospective](reviews/discovery-profile-storage-retrospective.md).
 
 ## Organization conventions
 

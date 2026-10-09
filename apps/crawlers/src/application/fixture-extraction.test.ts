@@ -55,7 +55,11 @@ function fixture(
           source_key: scope.source_key,
           source_url: "https://example.com/discovery",
           collected_at: at,
-          assessment_sha256: "a".repeat(64),
+          discovery_profile_provenance: {
+            source_key: scope.source_key,
+            profile_version: 1,
+            profile_sha256: "a".repeat(64),
+          },
         }
       : { kind: "synthetic", scenario: "offline extraction", generated_at: at },
     created_at: at,
