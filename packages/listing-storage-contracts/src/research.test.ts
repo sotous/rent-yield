@@ -71,6 +71,19 @@ const fixture = {
   expected_classification: "quarantined",
   supersedes_fixture_id: null,
 };
+const discoveryProfileProvenance = {
+  source_key: "sample",
+  profile_version: 1,
+  profile_sha256: "b".repeat(64),
+};
+const permittedSourceFixtureOrigin = {
+  kind: "permitted_source",
+  source_key: "sample",
+  source_url: "https://example.com/listing",
+  collected_at: instant,
+  discovery_profile_provenance: discoveryProfileProvenance,
+  original_entity_sha256: hash,
+};
 
 describe("research contracts", () => {
   it("accepts a candidate with unresolved evidence and rejects version or authority injection", () => {
@@ -158,6 +171,72 @@ describe("research contracts", () => {
       }).success,
     ).toBe(false);
   });
+  it("binds permitted fixtures to strict operational profile provenance, not an assessment", () => {
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: permittedSourceFixtureOrigin,
+      }).success,
+    ).toBe(true);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          ...permittedSourceFixtureOrigin,
+          discovery_profile_provenance: {
+            ...discoveryProfileProvenance,
+            profile_version: 0,
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          ...permittedSourceFixtureOrigin,
+          discovery_profile_provenance: {
+            ...discoveryProfileProvenance,
+            profile_sha256: "not-a-sha256",
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          ...permittedSourceFixtureOrigin,
+          discovery_profile_provenance: {
+            ...discoveryProfileProvenance,
+            source_key: "different-source",
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          ...permittedSourceFixtureOrigin,
+          assessment_sha256: hash,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      fixtureEnvelopeSchema.safeParse({
+        ...fixture,
+        origin: {
+          kind: "permitted_source",
+          source_key: "sample",
+          source_url: "https://example.com/listing",
+          collected_at: instant,
+          original_entity_sha256: hash,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("distinguishes synthetic fixtures from source captures and excludes binary/raw artifacts", () => {
     expect(fixtureEnvelopeSchema.safeParse(fixture).success).toBe(true);
     expect(
@@ -173,11 +252,7 @@ describe("research contracts", () => {
       fixtureEnvelopeSchema.safeParse({
         ...fixture,
         origin: {
-          kind: "permitted_source",
-          source_key: "sample",
-          source_url: "https://example.com/listing",
-          collected_at: instant,
-          assessment_sha256: hash,
+          ...permittedSourceFixtureOrigin,
           original_entity_sha256: null,
         },
       }).success,
@@ -186,12 +261,8 @@ describe("research contracts", () => {
       fixtureEnvelopeSchema.safeParse({
         ...fixture,
         origin: {
-          kind: "permitted_source",
-          source_key: "sample",
+          ...permittedSourceFixtureOrigin,
           source_url: "https://example.com/listing?utm_source=test#contact",
-          collected_at: instant,
-          assessment_sha256: hash,
-          original_entity_sha256: hash,
         },
       }).success,
     ).toBe(false);

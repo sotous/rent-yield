@@ -31,6 +31,11 @@ borrowing access-assessment terminology. When Crawler needs multiple scopes,
 evolve the repository lookup with an explicit versioned scope query and replace
 the JSON adapter behind the same read-only boundary.
 
+The corresponding persisted-envelope migration is strict and append-only. A
+permitted-source fixture now requires the full operational profile provenance
+object and rejects the former assessment hash; historical envelopes are not
+rewritten, and corrected captures use normal successor lineage.
+
 ## Documentation
 
 The package README explains the consumer and replacement boundary, including

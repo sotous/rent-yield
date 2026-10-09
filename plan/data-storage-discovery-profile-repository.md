@@ -16,6 +16,12 @@ access-assessment hash with deterministic, Storage-derived discovery-profile
 provenance. This is a contract-only change; it adds no live access or Crawler
 implementation change.
 
+**Persisted-envelope migration on 2026-10-09:** the shared fixture-envelope
+contract requires `origin.discovery_profile_provenance` and rejects the obsolete
+`assessment_sha256` field. Existing immutable envelopes are not rewritten; a
+corrected capture is a new append-only envelope that records normal successor
+lineage when applicable.
+
 ## Goal
 
 Provide the smallest temporary, Storage-owned persistence boundary through
