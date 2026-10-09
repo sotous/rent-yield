@@ -76,6 +76,23 @@ const fixture = {
   expected_classification: "quarantined",
   supersedes_fixture_id: null,
 };
+const discoveryProfileProvenance = {
+  source_key: "synthetic-example",
+  profile_version: 1,
+  profile_sha256: "b".repeat(64),
+};
+const permittedSourceFixture = {
+  ...fixture,
+  fixture_id: "fixture-source-1",
+  origin: {
+    kind: "permitted_source",
+    source_key: "synthetic-example",
+    source_url: "https://example.com/listing",
+    collected_at: at,
+    discovery_profile_provenance: discoveryProfileProvenance,
+    original_entity_sha256: digest,
+  },
+};
 const extraction = {
   contract_version: "v1",
   extraction_contract_id: "extraction-1",
@@ -149,6 +166,12 @@ export const researchExamples: readonly {
     schema: "fixture_envelope",
     valid: true,
     value: fixture,
+  },
+  {
+    name: "permitted-source fixture with operational profile lineage",
+    schema: "fixture_envelope",
+    valid: true,
+    value: permittedSourceFixture,
   },
   {
     name: "fixture origin confusion",

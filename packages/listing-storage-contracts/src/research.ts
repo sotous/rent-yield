@@ -95,6 +95,15 @@ export const probeBudgetSchema = z.strictObject({
   max_concurrency: positiveIntegerSchema,
   max_source_requests: positiveIntegerSchema,
 });
+/**
+ * Operational lineage for a fixture's bounded discovery profile. It is not an
+ * access decision, candidate, or assessment reference.
+ */
+export const discoveryProfileProvenanceSchema = z.strictObject({
+  source_key: identifierSchema,
+  profile_version: positiveIntegerSchema,
+  profile_sha256: sha256Schema,
+});
 export const probeResponseEvidenceSchema = z.strictObject({
   url: httpsUrlSchema,
   collected_at: instantSchema,
@@ -158,15 +167,28 @@ export const probeResultSchema = z.strictObject({
   issues: z.array(researchIssueSchema),
 });
 
-export const fixtureOriginSchema = z.discriminatedUnion("kind", [
-  z.strictObject({
+const permittedSourceFixtureOriginSchema = z
+  .strictObject({
     kind: z.literal("permitted_source"),
     source_key: identifierSchema,
     source_url: fixtureSourceUrlSchema,
     collected_at: instantSchema,
-    assessment_sha256: sha256Schema,
+    discovery_profile_provenance: discoveryProfileProvenanceSchema,
     original_entity_sha256: sha256Schema,
-  }),
+  })
+  .superRefine((origin, context) => {
+    if (origin.source_key !== origin.discovery_profile_provenance.source_key) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Fixture origin source key must match discovery profile provenance",
+        path: ["discovery_profile_provenance", "source_key"],
+      });
+    }
+  });
+
+export const fixtureOriginSchema = z.discriminatedUnion("kind", [
+  permittedSourceFixtureOriginSchema,
   z.strictObject({
     kind: z.literal("synthetic"),
     scenario: textSchema,
