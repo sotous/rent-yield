@@ -14,9 +14,16 @@ for a source fail closed. The committed fixture is at
 Every active result also includes derived `discovery_profile_provenance`:
 `source_key`, `profile_version`, and `profile_sha256`. The digest is SHA-256 of
 a canonical complete validated V1 record, so it binds the selected operational
-scope, hosts, paths, budgets, and media types. It is generated at read time and
-is not a new fixture field. Fixture capture uses this object for configuration
-lineage in place of the obsolete `assessment_sha256` provenance.
+scope, hosts, paths, budgets, and media types. It is generated at read time.
+The persisted permitted-source fixture envelope requires this exact object in
+`origin.discovery_profile_provenance`, with a source key that matches the
+origin. Fixture capture uses it for configuration lineage in place of the
+obsolete `assessment_sha256` provenance.
+
+This is a strict append-only migration. Persisted envelopes with the old field
+are rejected rather than silently relabeled. New captures use the validated
+profile provenance and, when correcting a prior fixture, reference it through
+the new envelope's `supersedes_fixture_id`.
 
 Each record scopes an operational discovery run to Colombia, one city, allowed
 listing roles, hosts, path prefixes, budgets, and media types. Source-specific

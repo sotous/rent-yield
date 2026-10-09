@@ -169,12 +169,16 @@ A development fixture is a pair of immutable artifacts:
 For a permitted-source fixture, `origin.source_url` is required and identifies
 the page whose response produced the fixture. The retained URL must use HTTPS
 and must be canonicalized without credentials, query parameters, or a fragment.
-`origin.source_key`, collection time, the governing assessment digest, and the
-original entity-body digest preserve the rest of the acquisition trace.
+`origin.source_key`, collection time, the required
+`origin.discovery_profile_provenance` object, and the original entity-body
+digest preserve the rest of the acquisition trace. The provenance object holds
+the selected profile's source key, positive version, and SHA-256 identity. It
+is operational configuration lineage, not an access-assessment or approval
+claim; its source key must match `origin.source_key`.
 
 A synthetic fixture records only its scenario and generation time. It must not
-claim a real source URL, source key, assessment, or original entity digest. If a
-synthetic scenario needs a URL-shaped value inside its payload, it must use a
+claim a real source URL, source key, discovery-profile provenance, or original
+entity digest. If a synthetic scenario needs a URL-shaped value inside its payload, it must use a
 reserved non-source example and remains synthetic evidence.
 
 Every fixture references the research session that created it. Because fixture

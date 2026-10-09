@@ -34,10 +34,20 @@ assessment could be resolved.
 Fixture envelopes keep the redacted payload separate from its metadata. For a
 permitted source, `origin.source_url` is a canonical HTTPS page URL with no
 credentials, query, or fragment, and `original_entity_sha256` identifies the
-original received bytes without retaining them. Synthetic fixtures cannot
-claim source provenance. `research_session_id` links capture to the research
+original received bytes without retaining them. The required
+`origin.discovery_profile_provenance` object records the Storage-selected
+`source_key`, positive `profile_version`, and exact `profile_sha256`; its source
+key must match the origin source key. This is operational configuration lineage,
+not an access decision. Synthetic fixtures cannot claim source or discovery
+profile provenance. `research_session_id` links capture to the research
 lifecycle; a later methodology proposal pins the fixture. Corrections append a
 new envelope whose `supersedes_fixture_id` points to its immutable predecessor.
+
+This is a strict persisted-envelope migration: an envelope with the former
+`assessment_sha256` field is rejected, rather than being silently relabeled.
+Existing immutable envelopes remain historical artifacts. A replacement capture
+must provide its validated discovery-profile provenance and use a new
+append-only fixture envelope with `supersedes_fixture_id` when appropriate.
 
 The integrity preimages are exact:
 
