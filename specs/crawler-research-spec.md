@@ -60,13 +60,16 @@ It does not provide a production HTTP or DNS adapter, live source access,
 credentials, a browser, scheduling, retries, durable storage, source activation,
 or Rent Model execution.
 
-The first planned live-source boundary is the separately gated
-[`crawler-first-real-world-canary`](../plan/crawler-first-real-world-canary.md).
-It may execute once only after fixture redaction, extraction/provenance,
-methodology validation, effective lookup, source assessment, and canary
-preflight requirements pass.
+The fixture-only workbench remains offline: its candidate, assessment, and
+methodology lifecycle does not authorize a request. The separate
+[`crawler-first-real-world-canary`](../plan/crawler-first-real-world-canary.md)
+MVP is a distinct bounded-discovery path. It consumes one active,
+Storage-owned discovery profile and local preflight/dry-run results; it does
+not require candidate registration, an access assessment, trusted review, or
+an approved methodology. Documentation and passing offline tests do not
+authorize a live request: that requires a separate, explicit user instruction.
 
-## Required Research Lifecycle
+## Fixture-only research lifecycle
 
 ```text
 candidate -> access assessment -> permitted probe -> redacted fixture
@@ -83,9 +86,25 @@ create a new candidate identity and invalidate inherited access.
 Methodology approval is a later and separate authority. A successful probe does
 not approve a source or make a methodology runnable.
 
+## MVP bounded-discovery lifecycle
+
+```text
+active Storage profile -> local preflight and dry run -> explicit user
+authorization -> one bounded request path -> in-memory redaction -> sanitized
+fixture/typed result -> offline replay and review
+```
+
+The active profile is operational configuration, not a permission or approval
+claim. It fixes source key, geography, listing role, hosts, path prefixes,
+budgets, and permitted media types. A caller can narrow but cannot widen it.
+No source substitution, scheduling, retry, authentication, browser automation,
+or evasion belongs to this MVP path. Robots denial, blocked HTTP status,
+authentication or challenge, scope escape, unsafe address, unsupported media
+type, and any budget exhaustion are mandatory typed stops.
+
 ## Bounded Probe Requirements
 
-### Authorization and target scope
+### Fixture-only authorization and target scope
 
 - The access gate supplies the authoritative assessment ID, assessment digest,
   allowed hosts, allowed path prefixes, and maximum budgets.
@@ -115,7 +134,7 @@ current workbench. This derivation must not be reused as production policy.
 - Redirects repeat URL validation and DNS resolution before another request.
 - The mock transport is the only transport supplied by this foundation.
 
-### Budgets and stopping
+### Fixture-only budgets and stopping
 
 The fixture-only memory gate currently caps a probe at:
 
@@ -142,7 +161,7 @@ The probe stops without retry or evasion on policy or robots conflict, `401`,
 non-public or substituted addresses, unexpected HTTP failures, and exhausted
 budgets.
 
-### Receipt evidence
+### Fixture-only receipt evidence
 
 Every result records the gate-supplied assessment reference when available,
 scope, budget, usage, completion time, and a typed outcome. Response evidence is
@@ -218,7 +237,7 @@ behavior only and make no durability claim.
 
 | ID     | Requirement                                                       | Execution ticket | Implementation                                                              | Verification                                           | Status      |
 | ------ | ----------------------------------------------------------------- | ---------------: | --------------------------------------------------------------------------- | ------------------------------------------------------ | ----------- |
-| CR-001 | Fixture/mock-only boundary; no live adapter                       |              1–4 | `apps/crawlers` has only injected ports and memory workflows                | `workbench.test.ts`, `bounded-probe.test.ts`           | Implemented |
+| CR-001 | Fixture/mock-only foundation boundary                             |              1–4 | Foundation workbench has injected ports and memory workflows                | `workbench.test.ts`, `bounded-probe.test.ts`           | Implemented |
 | CR-002 | Strict v1 research and methodology envelopes                      |                2 | `packages/listing-storage-contracts/src`                                    | package schema, catalog, example, and canonical tests  | Implemented |
 | CR-003 | Append-only candidate versions and idempotent retry               |                3 | `source-research.ts`                                                        | `source-research.test.ts`                              | Implemented |
 | CR-004 | Candidate-bound, fail-closed access assessment                    |                3 | `source-research.ts`                                                        | `source-research.test.ts`                              | Implemented |
@@ -236,6 +255,7 @@ behavior only and make no durability claim.
 ## Completion Gates
 
 A foundation ticket is complete only when its Notion state, plan, executable
-behavior, tests, retrospective, and affected documentation agree. Production
-crawling requires a separate approved plan and cannot begin from this
-fixture-only specification alone.
+behavior, tests, retrospective, and affected documentation agree. The bounded
+discovery MVP has its own approved plan and does not change the fixture-only
+foundation's assessment or methodology semantics. Its local preflight/dry run
+is necessary but cannot itself authorize external I/O.

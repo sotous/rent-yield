@@ -1,35 +1,46 @@
 # Colombian Listings Crawlers
 
-This workspace will develop fixture-backed, permitted Colombian residential
-listing crawlers. It is deliberately separate from the frontend, backend
+This workspace contains both the fixture-only Colombian listing research
+foundation and the first bounded-discovery MVP. It is deliberately separate from the frontend, backend
 prototype, and Rent Model: crawlers do not calculate yield or invoke the model.
-Durable database and object storage are owned by the **Data Storage** task;
-this package works through mocked storage ports until that implementation is
-available.
+Durable database and object storage are owned by the **Data Storage** task.
+The MVP uses a replaceable, Storage-owned JSON discovery-profile adapter while
+that durable provider is being designed.
 
-## Planned boundary
+## Boundaries
 
 ```text
-source research -> approved methodology -> source adapter -> parser
+fixture-only research -> assessment/methodology workbench -> parser
                 -> normalizer -> mocked ingestion-sink port
                 -> Data Storage (durable evidence and model snapshots)
+
+Storage active discovery profile -> bounded transport -> in-memory redaction
+  -> sanitized fixture / typed result -> offline replay
 ```
 
 The crawler must preserve both for-sale and for-rent observations. Rental
 evidence is independently collected; a sale asking price never becomes a rent
 model input.
 
-No live source adapter is enabled by this scaffold. Before one is added, its
-terms, robots policy, licensing, rate limits, data-retention policy, and
-applicable privacy obligations must be approved. CAPTCHA bypassing, account
-sharing, and evasive access techniques are out of scope.
+The research workbench has no live adapter. The separate MVP bounded-discovery
+path takes its source scope solely from Storage's active discovery profile and
+local preflight; it intentionally has no candidate-registration,
+access-assessment, trusted-review, or approved-methodology gate. That is not a
+claim of third-party permission. A profile, a dry run, or these docs never
+authorize a live request; each external request requires explicit user
+authorization. CAPTCHA bypassing, account sharing, authentication, proxying,
+browser automation, retries, and evasive access are out of scope.
 
-The source-of-truth behavior is in
+The fixture-only foundation behavior is in
 [the crawler research specification](../../specs/crawler-research-spec.md).
 Foundation execution is tracked in
 [the approved foundation plan](../../plan/crawler-research-and-methodology-foundation.md),
 and the downstream crawler plan is
 [plan/colombian-listing-crawlers-and-ingestion.md](../../plan/colombian-listing-crawlers-and-ingestion.md).
+The bounded-discovery MVP plan is
+[`crawler-first-real-world-canary`](../../plan/crawler-first-real-world-canary.md),
+and its Storage boundary is documented in
+[`discovery-profile-storage`](../../docs/architecture/discovery-profile-storage.md).
 The data architecture is documented in
 [docs/architecture/crawler-ingestion-data-lake.md](../../docs/architecture/crawler-ingestion-data-lake.md).
 
@@ -54,8 +65,8 @@ Tests use in-process synthetic examples; no source requests, credentials,
 database, or object storage are required. Passing schema validation alone proves
 only the shape of an input; fixture capture, replay, validation, trusted review,
 and effective lookup provide the separate checks for redaction, hashes, fixture
-fidelity, and approval eligibility. None of them establishes source permission
-or enables a live adapter.
+fidelity, and approval eligibility within the foundation. None establishes
+source permission or authorizes a live request.
 JSON Schema describes structural constraints; the Zod runtime additionally
 checks refinements such as real calendar dates and review intervals.
 
@@ -152,7 +163,7 @@ retaining the earlier assessment for audit. Registering a corrected candidate
 invalidates inherited access until that candidate version receives its own
 assessment. Declared-set ordering does not change retry identity.
 
-## Bounded probe simulation
+## Fixture-only bounded probe simulation
 
 `probeListingDiscovery` exercises the network boundary through an injected mock
 transport. The access gate supplies the authoritative assessment ID and digest,
@@ -186,10 +197,38 @@ current candidate's `homepage_url` and uses the conservative fixture defaults
 recorded in the crawler specification. Approved methodology `access_scope` and
 budgets must replace that bridge before any production adapter exists.
 
-The transport used by tests is an in-process fake. This module supplies no HTTP
-client, DNS client, browser, proxy, scheduler, credentials, or live-site access.
-Its response classification fields stand in for later adapter behavior; they do
-not prove that a real source has a compatible response shape.
+The transport used by foundation tests is an in-process fake. Its response
+classification fields stand in for later adapter behavior; they do not prove
+that a real source has a compatible response shape.
+
+## MVP bounded discovery readiness
+
+The Storage package owns active discovery profiles and deterministic profile
+provenance. The crawler must load the profile through its read-only repository
+contract; source host, path, budget, media-type, and listing-role facts do not
+belong in a generic crawler application module.
+
+Before any request can be considered, the operator must complete a local
+preflight and dry run that verifies all of the following without DNS or HTTP:
+
+- exactly one active profile resolves for the requested source key;
+- the profile is scoped to Colombia, Barranquilla, and `for_rent` long-term
+  residential discovery;
+- host/path, request, redirect, byte, duration, and concurrency limits are
+  present and cannot be caller-expanded;
+- only permitted media types are configured;
+- the local kill switch is off;
+- the redaction/scanner path, sanitized fixture writer, and typed quarantine
+  output are available; and
+- the complete local lint, typecheck, and offline test suite is green.
+
+Dry run, preflight, and documentation make no external request. The local
+manual command composition exists and has been validated offline; it has not
+been invoked against a live source. Before any live invocation, an operator
+must receive explicit user authorization. On a live run, robots denial, `401`,
+`403`, `429`, login, authentication,
+CAPTCHA/challenge, scope escape, unsafe DNS/address result, unsupported media
+type, or budget exhaustion must stop immediately with no retry or evasion.
 
 ## Redacted fixture capture
 
