@@ -33,6 +33,19 @@ not been invoked against a live source.
    capture, write no fixture, and make no external request.
 4. Stop here until the user explicitly authorizes one live request.
 
+From the repository root, the preflight command is:
+
+```sh
+pnpm --filter @rent-yield/crawlers canary -- --dry-run \
+  --source-key ciencuadras \
+  --profile "$PWD/packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json"
+```
+
+It emits one sanitized JSON line containing the active scope, limits, permitted
+media types, and profile provenance. A successful output confirms local profile
+resolution only; it does not authorize or perform DNS, HTTP, fixture writing,
+or parsing.
+
 ## Bounded live flow after authorization
 
 1. Revalidate profile scope and remaining budgets before each request. Stop

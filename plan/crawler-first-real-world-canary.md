@@ -72,8 +72,11 @@ and media-type limits. The command cannot widen them.
    hostname for TLS, enforce the exact remaining byte allowance before every
    request, and return the received body only through a bounded in-memory
    handoff to redaction.
-3. Add a manual orchestration command with dry run, fixed-scope checks, and a
-   local kill switch.
+3. Add a terminal command that requires exactly one explicit mode: `--dry-run`
+   for local profile/preflight output with no DNS or HTTP, or `--live` for the
+   separately user-authorized bounded invocation. It must reject omitted or
+   conflicting modes, preserve the local kill switch, and print only sanitized
+   typed output.
 4. Keep received bytes in memory until deterministic redaction and the
    prohibited-data scanner pass. Never write the original response to Git.
 5. Write the redacted payload and envelope, replay the parser, and
@@ -86,6 +89,7 @@ and media-type limits. The command cannot widen them.
 
 - Versioned Storage-owned Ciencuadras discovery profile and its deterministic
   provenance.
+- Manual terminal command with a network-free dry-run and an explicit live mode.
 - Sanitized probe receipt.
 - Redacted source-derived fixture envelope and separately hashed payload.
 - Canonical source URL without credentials, query parameters, or fragment.
