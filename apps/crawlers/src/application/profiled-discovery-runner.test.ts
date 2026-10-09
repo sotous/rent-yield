@@ -55,6 +55,13 @@ describe("profiled bounded discovery runner", () => {
     ).resolves.toMatchObject({ ok: false, error: { code: "invalid_input" } });
 
     const request = vi.fn(transport().request);
+    const captured: unknown[] = [];
+    const handoff = {
+      handoff: vi.fn(async (input: unknown) => {
+        captured.push(input);
+        return { ok: true };
+      }),
+    };
     await expect(
       runProfiledListingDiscovery(
         {
@@ -68,6 +75,7 @@ describe("profiled bounded discovery runner", () => {
           transport: { ...transport(), request },
           clock,
           sourceBudget: new MemorySourceBudget(),
+          captureHandoff: handoff,
         },
       ),
     ).resolves.toMatchObject({
@@ -89,6 +97,17 @@ describe("profiled bounded discovery runner", () => {
         url: "https://www.ciencuadras.com/arriendo/barranquilla",
       }),
     );
+    expect(handoff.handoff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        discovery_profile_provenance: {
+          source_key: "ciencuadras",
+          profile_version: 1,
+          profile_sha256:
+            "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+        },
+      }),
+    );
+    expect(captured[0]).not.toHaveProperty("assessment_sha256");
   });
 
   it("stops before transport when Storage has no active profile", async () => {

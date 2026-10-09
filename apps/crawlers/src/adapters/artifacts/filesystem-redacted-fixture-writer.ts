@@ -58,9 +58,6 @@ export async function writeRedactedFixture(input: {
         { encoding: "utf8", flag: "wx" },
       ),
       writeFile(join(destination, payloadFileName(input.artifact)), input.artifact.payload, {
-        encoding: "utf8",
-        flag: "wx",
-      }),
     ]);
     return { ok: true, path: destination };
   } catch {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type {
+  ActiveDiscoveryProfileV1,
   DiscoveryProfileRepository,
-  DiscoveryProfileV1,
 } from "@rent-yield/discovery-profile-storage";
 import {
   MemorySourceBudget,
@@ -16,12 +16,15 @@ const commandSchema = z.strictObject({
   as_of: z.string().datetime({ offset: true }),
 });
 
-type ProfiledDiscoveryDependencies = Omit<ProbeDependencies, "access"> & {
+type ProfiledDiscoveryDependencies = Omit<
+  ProbeDependencies,
+  "access" | "discoveryProfileProvenance"
+> & {
   profiles: DiscoveryProfileRepository;
 };
 
 function startUrlFor(
-  profile: DiscoveryProfileV1,
+  profile: ActiveDiscoveryProfileV1,
 ): { ok: true; value: string } | { ok: false } {
   if (
     profile.allowed_hosts.length !== 1 ||
@@ -88,6 +91,10 @@ export async function runProfiledListingDiscovery(
       transport: dependencies.transport,
       clock: dependencies.clock,
       sourceBudget: dependencies.sourceBudget,
+      discoveryProfileProvenance: profile.discovery_profile_provenance,
+      ...(dependencies.captureHandoff
+        ? { captureHandoff: dependencies.captureHandoff }
+        : {}),
     },
   );
 }

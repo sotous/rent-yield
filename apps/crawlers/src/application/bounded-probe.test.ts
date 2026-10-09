@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MemorySourceBudget, probeListingDiscovery } from "./bounded-probe.js";
 import { MemorySourceResearch } from "./source-research.js";
 import type {
@@ -134,10 +134,17 @@ function run(
   access: ProbeAccessGate = allowed,
   clock = new FakeClock(),
   sourceBudget = new MemorySourceBudget(),
+  captureHandoff?: { handoff(input: unknown): Promise<{ ok: boolean }> },
 ) {
   return probeListingDiscovery(
     { ...command, ...overrides },
-    { transport, access, clock, sourceBudget },
+    {
+      transport,
+      access,
+      clock,
+      sourceBudget,
+      ...(captureHandoff ? { captureHandoff } : {}),
+    },
   );
 }
 
@@ -184,6 +191,54 @@ describe("bounded fixture probe", () => {
         assessment_sha256: access.assessment_sha256,
         outcome: { kind: "completed" },
       },
+    });
+  });
+
+  it("hands a body to the in-memory capture boundary only after successful validation", async () => {
+    const handoff = { handoff: vi.fn(async () => ({ ok: true })) };
+    const transport = new FakeTransport([response()]);
+    await expect(
+      run(
+        transport,
+        {},
+        allowed,
+        new FakeClock(),
+        new MemorySourceBudget(),
+        handoff,
+      ),
+    ).resolves.toMatchObject({ value: { outcome: { kind: "completed" } } });
+    expect(handoff.handoff).toHaveBeenCalledWith({
+      source_key: "synthetic-listings",
+      response_url: "https://fixtures.example/listings",
+      content_type: "text/html",
+      original_bytes: body("RAW_SECRET_BODY"),
+    });
+
+    const blocked = { handoff: vi.fn(async () => ({ ok: true })) };
+    await run(
+      new FakeTransport([response({ status_code: 403 })]),
+      {},
+      allowed,
+      new FakeClock(),
+      new MemorySourceBudget(),
+      blocked,
+    );
+    expect(blocked.handoff).not.toHaveBeenCalled();
+  });
+
+  it("stops when the redaction handoff refuses a bounded capture", async () => {
+    const handoff = { handoff: vi.fn(async () => ({ ok: false })) };
+    await expect(
+      run(
+        new FakeTransport([response()]),
+        {},
+        allowed,
+        new FakeClock(),
+        new MemorySourceBudget(),
+        handoff,
+      ),
+    ).resolves.toMatchObject({
+      value: { outcome: { kind: "stopped", reason: "transport_error" } },
     });
   });
 
