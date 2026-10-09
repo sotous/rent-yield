@@ -70,7 +70,6 @@ describe("JsonFileDiscoveryProfileRepository", () => {
       }),
     ).not.toEqual(activeProfileProvenance);
   });
-
   it("returns an active profile by source key without exposing unrelated profiles", async () => {
     const path = await writeRegistry([
       activeProfile,

@@ -119,7 +119,6 @@ export const discoveryProfileProvenanceSchema = z.strictObject({
   profile_version: positiveSafeIntegerSchema,
   profile_sha256: profileSha256Schema,
 });
-
 export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
 export type DiscoveryProfileRegistryV1 = z.infer<
   typeof discoveryProfileRegistryV1Schema

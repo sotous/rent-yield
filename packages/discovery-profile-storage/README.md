@@ -49,7 +49,6 @@ configuration lineage. It must not rename this digest to `assessment_sha256` or
 infer that it is an access-assessment decision. The additive returned field is
 compatible with consumers that only read the bounded record; consumers replacing
 the obsolete assessment provenance should map all three provenance fields.
-
 A future Data Storage provider may replace the JSON adapter while preserving the
 read-only `DiscoveryProfileRepository` contract. Crawler should depend on that
 contract and must not import source-specific facts from this package's fixture.
