@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { JsonFileDiscoveryProfileRepository } from "@rent-yield/discovery-profile-storage";
-import { runLocalManualBoundedDiscovery } from "./manual-bounded-discovery-command.js";
+import {
+  preflightLocalManualBoundedDiscovery,
+  runLocalManualBoundedDiscovery,
+} from "./manual-bounded-discovery-command.js";
 import { MemorySourceBudget } from "./bounded-probe.js";
 import type { ProbeClock, ProbeTransport } from "../ports/probe-transport.js";
 
@@ -26,22 +29,66 @@ const clock: ProbeClock = {
 };
 const transport: ProbeTransport = {
   resolve: async () => ({ kind: "resolved", addresses: ["93.184.216.34"] }),
-  request: async (input) => ({
-    kind: "response",
-    connected_address: input.validated_addresses[0]!,
-    response: {
-      status_code: 200,
-      content_type: "application/json",
-      body: new TextEncoder().encode(
-        '{"listing":{"id":"one"},"email":"private@example.com"}',
-      ),
-      classification: "listing_discovery",
-      discovered_urls: [],
-    },
-  }),
+  request: async (input) =>
+    input.url.endsWith("/robots.txt")
+      ? {
+          kind: "response",
+          connected_address: input.validated_addresses[0]!,
+          response: {
+            status_code: 200,
+            content_type: "text/plain",
+            body: new TextEncoder().encode("User-agent: *\nDisallow:\n"),
+            classification: "robots_policy" as never,
+          },
+        }
+      : {
+          kind: "response",
+          connected_address: input.validated_addresses[0]!,
+          response: {
+            status_code: 200,
+            content_type: "application/json",
+            body: new TextEncoder().encode(
+              '{"listing":{"id":"one"},"email":"private@example.com"}',
+            ),
+            classification: "listing_discovery",
+            discovered_urls: [],
+          },
+        },
 };
 
 describe("local manual bounded discovery command", () => {
+  it("requires an existing writable non-symlink fixture root and unused fixture id without transport", async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "rent-yield-command-"));
+    roots.push(fixtureRoot);
+
+    await expect(
+      preflightLocalManualBoundedDiscovery(
+        {
+          source_key: "ciencuadras",
+          kill_switch: false,
+          fixtureRoot,
+          fixture_id: "manual-output-1",
+        },
+        { profiles: profiles() },
+      ),
+    ).resolves.toMatchObject({ ok: true });
+
+    await expect(
+      preflightLocalManualBoundedDiscovery(
+        {
+          source_key: "ciencuadras",
+          kill_switch: false,
+          fixtureRoot: "relative-fixtures",
+          fixture_id: "manual-output-2",
+        },
+        { profiles: profiles() },
+      ),
+    ).resolves.toEqual({
+      ok: false,
+      error: { code: "output_unavailable" },
+    });
+  });
+
   it("composes the local profile, bounded transport, deterministic materializer, writer, and quarantine offline", async () => {
     const fixtureRoot = await mkdtemp(join(tmpdir(), "rent-yield-command-"));
     roots.push(fixtureRoot);
@@ -72,9 +119,12 @@ describe("local manual bounded discovery command", () => {
     expect(result).toMatchObject({
       ok: true,
       report: {
-        kind: "quarantined",
-        fixture_id: "manual-command-fixture-1",
-        quarantine: { reason: "manual_parser_not_configured" },
+        result: {
+          kind: "quarantined",
+          fixture_id: "manual-command-fixture-1",
+          quarantine: { reason: "manual_parser_not_configured" },
+        },
+        receipt: expect.objectContaining({ probe_id: "manual-command-1" }),
       },
     });
     await expect(
@@ -87,6 +137,8 @@ describe("local manual bounded discovery command", () => {
 
   it("rejects dry run before using the injected transport", async () => {
     let requested = false;
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "rent-yield-command-"));
+    roots.push(fixtureRoot);
     const result = await runLocalManualBoundedDiscovery(
       {
         contract_version: "v1",
@@ -96,7 +148,7 @@ describe("local manual bounded discovery command", () => {
         kill_switch: false,
         dry_run: true,
         profilePath: "/not-read.json",
-        fixtureRoot: "/not-written",
+        fixtureRoot,
         fixture_id: "manual-command-fixture-2",
       },
       {

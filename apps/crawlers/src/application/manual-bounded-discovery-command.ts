@@ -1,4 +1,7 @@
 import { JsonFileDiscoveryProfileRepository } from "@rent-yield/discovery-profile-storage";
+import { access, lstat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import type { ProbeClock } from "../ports/probe-transport.js";
 import { BoundedHttpsProbeTransport } from "../adapters/transport/bounded-https-probe-transport.js";
 import {
@@ -36,6 +39,76 @@ type LocalCommandDependencies = Partial<
   materialize?: RedactedFixtureMaterializer;
   quarantine?: Parameters<typeof runManualBoundedDiscovery>[1]["quarantine"];
 };
+
+export type LocalManualBoundedDiscoveryPreflight =
+  | {
+      ok: true;
+      profile: Awaited<
+        ReturnType<JsonFileDiscoveryProfileRepository["findActiveBySourceKey"]>
+      >;
+    }
+  | {
+      ok: false;
+      error: {
+        code:
+          "kill_switch_rejected" | "profile_unavailable" | "output_unavailable";
+      };
+    };
+
+const fixtureIdPattern = /^[a-z0-9][a-z0-9-]{0,255}$/;
+
+/**
+ * Verifies the existing artifact root without creating output. An absolute,
+ * writable real directory and an unused safe fixture id prevent a dry run from
+ * approving a later write to a surprising location.
+ */
+async function hasSafeFixtureOutput(input: {
+  fixtureRoot: string;
+  fixture_id: string;
+}): Promise<boolean> {
+  if (
+    !isAbsolute(input.fixtureRoot) ||
+    !fixtureIdPattern.test(input.fixture_id)
+  )
+    return false;
+  try {
+    const root = await lstat(input.fixtureRoot);
+    if (!root.isDirectory() || root.isSymbolicLink()) return false;
+    await access(input.fixtureRoot, constants.W_OK | constants.X_OK);
+    try {
+      await lstat(join(input.fixtureRoot, input.fixture_id));
+      return false;
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === "ENOENT";
+    }
+  } catch {
+    return false;
+  }
+}
+
+/** Local-only readiness check shared by dry-run and live composition. */
+export async function preflightLocalManualBoundedDiscovery(
+  input: Pick<
+    LocalManualBoundedDiscoveryCommand,
+    "source_key" | "kill_switch" | "fixtureRoot" | "fixture_id"
+  >,
+  dependencies: { profiles: JsonFileDiscoveryProfileRepository },
+): Promise<LocalManualBoundedDiscoveryPreflight> {
+  if (input.kill_switch)
+    return { ok: false, error: { code: "kill_switch_rejected" } };
+  if (!(await hasSafeFixtureOutput(input)))
+    return { ok: false, error: { code: "output_unavailable" } };
+  try {
+    const profile = await dependencies.profiles.findActiveBySourceKey({
+      source_key: input.source_key,
+    });
+    return profile
+      ? { ok: true, profile }
+      : { ok: false, error: { code: "profile_unavailable" } };
+  } catch {
+    return { ok: false, error: { code: "profile_unavailable" } };
+  }
+}
 
 /**
  * Builds a valid V2 fixture only from an already-redacted runtime artifact.
@@ -85,6 +158,10 @@ export async function runLocalManualBoundedDiscovery(
   const profiles =
     dependencies.profiles ??
     new JsonFileDiscoveryProfileRepository({ path: input.profilePath });
+  const preflight = await preflightLocalManualBoundedDiscovery(input, {
+    profiles,
+  });
+  if (!preflight.ok) return preflight;
   return runManualBoundedDiscovery(input, {
     profiles,
     transport: dependencies.transport ?? new BoundedHttpsProbeTransport(),

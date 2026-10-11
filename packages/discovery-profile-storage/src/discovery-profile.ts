@@ -33,46 +33,65 @@ const budgetSchema = z
     "Source request budget cannot exceed the total request budget",
   );
 
-export const discoveryProfileV1Schema = z.strictObject({
-  source_key: sourceKeySchema,
-  profile_version: positiveSafeIntegerSchema,
-  state: z.enum(["active", "inactive"]),
-  scope: z.strictObject({
-    country_code: z.literal("CO"),
-    city_key: sourceKeySchema,
-    capability: z.literal("discovery"),
-    listing_roles: z
-      .array(z.enum(["for_rent", "for_sale"]))
+export const discoveryProfileV1Schema = z
+  .strictObject({
+    source_key: sourceKeySchema,
+    profile_version: positiveSafeIntegerSchema,
+    state: z.enum(["active", "inactive"]),
+    scope: z.strictObject({
+      country_code: z.literal("CO"),
+      city_key: sourceKeySchema,
+      capability: z.literal("discovery"),
+      listing_roles: z
+        .array(z.enum(["for_rent", "for_sale"]))
+        .min(1)
+        .max(2)
+        .refine(
+          (roles) => new Set(roles).size === roles.length,
+          "Listing roles must be unique",
+        ),
+    }),
+    allowed_hosts: z
+      .array(hostnameSchema)
       .min(1)
-      .max(2)
       .refine(
-        (roles) => new Set(roles).size === roles.length,
-        "Listing roles must be unique",
+        (hosts) => new Set(hosts).size === hosts.length,
+        "Allowed hosts must be unique",
       ),
-  }),
-  allowed_hosts: z
-    .array(hostnameSchema)
-    .min(1)
-    .refine(
-      (hosts) => new Set(hosts).size === hosts.length,
-      "Allowed hosts must be unique",
-    ),
-  allowed_path_prefixes: z
-    .array(pathPrefixSchema)
-    .min(1)
-    .refine(
-      (paths) => new Set(paths).size === paths.length,
-      "Allowed path prefixes must be unique",
-    ),
-  budget: budgetSchema,
-  permitted_media_types: z
-    .array(z.enum(["application/json", "text/html", "text/plain"]))
-    .min(1)
-    .refine(
-      (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
-      "Media types must be unique",
-    ),
-});
+    allowed_path_prefixes: z
+      .array(pathPrefixSchema)
+      .min(1)
+      .refine(
+        (paths) => new Set(paths).size === paths.length,
+        "Allowed path prefixes must be unique",
+      ),
+    robots_path: pathPrefixSchema,
+    discovery_path: pathPrefixSchema,
+    budget: budgetSchema,
+    permitted_media_types: z
+      .array(z.enum(["application/json", "text/html", "text/plain"]))
+      .min(1)
+      .refine(
+        (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
+        "Media types must be unique",
+      ),
+  })
+  .refine(
+    (profile) => profile.allowed_path_prefixes.includes(profile.robots_path),
+    {
+      path: ["robots_path"],
+      message:
+        "Robots path must be deliberately included in the allowed request paths",
+    },
+  )
+  .refine(
+    (profile) => profile.allowed_path_prefixes.includes(profile.discovery_path),
+    {
+      path: ["discovery_path"],
+      message:
+        "Discovery path must be deliberately included in the allowed request paths",
+    },
+  );
 
 export const discoveryProfileRegistryV1Schema = z
   .strictObject({
@@ -151,6 +170,8 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
     },
     allowed_hosts: profile.allowed_hosts,
     allowed_path_prefixes: profile.allowed_path_prefixes,
+    robots_path: profile.robots_path,
+    discovery_path: profile.discovery_path,
     budget: {
       max_requests: profile.budget.max_requests,
       max_bytes: profile.budget.max_bytes,

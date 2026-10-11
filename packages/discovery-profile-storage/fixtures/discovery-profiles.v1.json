@@ -12,7 +12,9 @@
         "listing_roles": ["for_rent"]
       },
       "allowed_hosts": ["www.ciencuadras.com"],
-      "allowed_path_prefixes": ["/arriendo/barranquilla"],
+      "allowed_path_prefixes": ["/robots.txt", "/arriendo/barranquilla"],
+      "robots_path": "/robots.txt",
+      "discovery_path": "/arriendo/barranquilla",
       "budget": {
         "max_requests": 2,
         "max_bytes": 65536,
@@ -21,7 +23,7 @@
         "max_concurrency": 1,
         "max_source_requests": 2
       },
-      "permitted_media_types": ["text/html", "application/json"]
+      "permitted_media_types": ["text/plain", "text/html", "application/json"]
     }
   ]
 }

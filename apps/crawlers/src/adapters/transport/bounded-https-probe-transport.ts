@@ -6,6 +6,51 @@ import type {
   ProbeTransportOutcome,
 } from "../../ports/probe-transport.js";
 
+type DiscoveryPageClassification =
+  "listing_discovery" | "challenge" | "authentication_required";
+type BoundedDiscoveryResponseClassification =
+  DiscoveryPageClassification | "robots_policy";
+
+/**
+ * Detect only high-confidence blocking pages. A false positive stops the
+ * bounded run; ambiguous pages remain parser/quarantine input rather than
+ * pretending this transport can interpret listings.
+ */
+export function classifyBoundedDiscoveryPage(input: {
+  content_type: string | null;
+  body: Uint8Array;
+}): DiscoveryPageClassification {
+  if (input.content_type !== "text/html") return "listing_discovery";
+  const page = new TextDecoder("utf-8", { fatal: false })
+    .decode(input.body)
+    .toLowerCase();
+  if (
+    /\b(?:captcha|recaptcha|hcaptcha|turnstile)\b/.test(page) ||
+    page.includes("verify you are human") ||
+    page.includes("checking your browser") ||
+    page.includes("unusual traffic")
+  ) {
+    return "challenge";
+  }
+  if (
+    /<input[^>]+type\s*=\s*["']?password\b/i.test(page) ||
+    page.includes("authentication required")
+  ) {
+    return "authentication_required";
+  }
+  return "listing_discovery";
+}
+
+/** Marks only the configured robots endpoint as policy input; it has no capture path. */
+export function classifyBoundedDiscoveryResponse(input: {
+  pathname: string;
+  content_type: string | null;
+  body: Uint8Array;
+}): BoundedDiscoveryResponseClassification {
+  if (input.pathname === "/robots.txt") return "robots_policy";
+  return classifyBoundedDiscoveryPage(input);
+}
+
 /**
  * Minimal HTTPS-only transport. The probe validates returned DNS addresses and
  * supplies them back here; this adapter connects to one validated address with
@@ -87,22 +132,27 @@ export class BoundedHttpsProbeTransport implements ProbeTransport {
               });
             }
           });
-          response.on("end", () =>
+          response.on("end", () => {
+            const body = Buffer.concat(chunks);
             finish({
               kind: "response",
               connected_address: address,
               response: {
                 status_code: response.statusCode ?? 0,
                 content_type,
-                body: Buffer.concat(chunks),
+                body,
                 ...(typeof response.headers.location === "string"
                   ? { redirect_location: response.headers.location }
                   : {}),
-                classification: "listing_discovery",
+                classification: classifyBoundedDiscoveryResponse({
+                  pathname: url.pathname,
+                  content_type,
+                  body,
+                }),
                 discovered_urls: [],
               },
-            }),
-          );
+            });
+          });
         },
       );
       connection.once("timeout", () =>

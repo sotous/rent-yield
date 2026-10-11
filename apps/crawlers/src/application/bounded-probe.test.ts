@@ -463,11 +463,22 @@ describe("bounded fixture probe", () => {
   ] as const)(
     "stops on %s classification without retry",
     async (classification, reason) => {
+      const captureHandoff = { handoff: vi.fn(async () => ({ ok: true })) };
       const transport = new FakeTransport([response({ classification })]);
-      await expect(run(transport)).resolves.toMatchObject({
+      await expect(
+        run(
+          transport,
+          {},
+          allowed,
+          new FakeClock(),
+          new MemorySourceBudget(),
+          captureHandoff,
+        ),
+      ).resolves.toMatchObject({
         value: { outcome: { reason }, usage: { requests: 1 } },
       });
       expect(transport.requests).toHaveLength(1);
+      expect(captureHandoff.handoff).not.toHaveBeenCalled();
     },
   );
 

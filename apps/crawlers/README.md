@@ -230,6 +230,27 @@ must receive explicit user authorization. On a live run, robots denial, `401`,
 CAPTCHA/challenge, scope escape, unsafe DNS/address result, unsupported media
 type, or budget exhaustion must stop immediately with no retry or evasion.
 
+Run the network-free preflight from the repository root:
+
+Choose or create an empty local directory for redacted canary artifacts before
+running it; the dry run verifies that directory but never writes to it.
+
+```sh
+pnpm --filter @rent-yield/crawlers canary -- --dry-run \
+  --source-key ciencuadras \
+  --profile "$PWD/packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json" \
+  --fixtures "$PWD/.canary-fixtures" \
+  --fixture-id ciencuadras-barranquilla-001
+```
+
+It prints one JSON object with `mode: "dry_run"`, the fixed scope, bounded
+budget, permitted media types, and `discovery_profile_provenance`. Before that,
+it verifies that the kill switch is off and that `--fixtures` is an existing,
+writable, non-symlink absolute directory with an unused safe fixture id. It
+performs no DNS lookup, HTTP request, fixture write, or parser run. The command
+rejects an omitted or conflicting mode; only a separately authorized `--live`
+mode may invoke the bounded transport.
+
 ## Redacted fixture capture
 
 `MemoryFixtureCapture` converts a permitted UTF-8 JSON, HTML, or text response

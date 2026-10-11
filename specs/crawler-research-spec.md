@@ -102,6 +102,13 @@ or evasion belongs to this MVP path. Robots denial, blocked HTTP status,
 authentication or challenge, scope escape, unsafe address, unsupported media
 type, and any budget exhaustion are mandatory typed stops.
 
+For the first Ciencuadras canary, the active profile fixes a two-request
+sequence: fetch the declared robots-policy endpoint first, then make one fixed
+discovery request only when the wildcard robots policy permits that path. The
+first run is capture-and-quarantine only: it retains a redacted fixture and
+sanitized receipt/report, but does not select a parser, normalize a listing, or
+submit data to Storage.
+
 ## Bounded Probe Requirements
 
 ### Fixture-only authorization and target scope

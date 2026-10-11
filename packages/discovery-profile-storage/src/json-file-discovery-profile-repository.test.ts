@@ -20,7 +20,9 @@ const activeProfile = {
     listing_roles: ["for_rent"],
   },
   allowed_hosts: ["www.ciencuadras.com"],
-  allowed_path_prefixes: ["/arriendo/barranquilla"],
+  allowed_path_prefixes: ["/robots.txt", "/arriendo/barranquilla"],
+  robots_path: "/robots.txt",
+  discovery_path: "/arriendo/barranquilla",
   budget: {
     max_requests: 2,
     max_bytes: 65536,
@@ -29,14 +31,14 @@ const activeProfile = {
     max_concurrency: 1,
     max_source_requests: 2,
   },
-  permitted_media_types: ["text/html", "application/json"],
+  permitted_media_types: ["text/plain", "text/html", "application/json"],
 } satisfies DiscoveryProfileV1;
 
 const activeProfileProvenance = {
   source_key: "ciencuadras",
   profile_version: 1,
   profile_sha256:
-    "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+    "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -124,6 +126,17 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         allowed_path_prefixes: ["/arriendo/../private"],
         budget: { ...activeProfile.budget, max_source_requests: 3 },
       },
+    ]);
+    const repository = new JsonFileDiscoveryProfileRepository({ path });
+
+    await expect(
+      repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects a profile whose robots path is not deliberately within its allowed request paths", async () => {
+    const path = await writeRegistry([
+      { ...activeProfile, robots_path: "/robots-private.txt" },
     ]);
     const repository = new JsonFileDiscoveryProfileRepository({ path });
 
