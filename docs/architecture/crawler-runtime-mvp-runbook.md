@@ -35,16 +35,22 @@ not been invoked against a live source.
 
 From the repository root, the preflight command is:
 
+Choose or create an empty local directory for redacted canary artifacts first;
+the dry run validates that directory but does not write to it.
+
 ```sh
 pnpm --filter @rent-yield/crawlers canary -- --dry-run \
   --source-key ciencuadras \
-  --profile "$PWD/packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json"
+  --profile "$PWD/packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json" \
+  --fixtures "$PWD/.canary-fixtures" \
+  --fixture-id ciencuadras-barranquilla-001
 ```
 
 It emits one sanitized JSON line containing the active scope, limits, permitted
-media types, and profile provenance. A successful output confirms local profile
-resolution only; it does not authorize or perform DNS, HTTP, fixture writing,
-or parsing.
+media types, and profile provenance. A successful output also confirms that the
+kill switch is off and the proposed fixture root is an existing writable,
+non-symlink absolute directory with an unused safe fixture id. It does not
+authorize or perform DNS, HTTP, fixture writing, or parsing.
 
 ## Bounded live flow after authorization
 
@@ -59,19 +65,17 @@ or parsing.
    its own digest and length. If it is larger, discard its bytes without
    truncation and use explicit no-retained-fixture evidence. The runtime never
    requests a staged reference or object location.
-4. Replay the pinned extraction contract against the sanitized artifact. The
-   local result is one of `normalized`, `quarantined`, `parse_failed`, or
-   `capture_only`.
-5. Emit `parser_drift` for parser/shape failure or `artifact_safety_block` when
-   a fixture cannot be retained safely. These are the only MVP health events;
-   they contain only sanitized identity and error-code metadata. A required
-   failed health handoff fails closed.
-6. Only a nonempty normalized result can become a Storage submission candidate.
-   Quarantined, parse-failed, and capture-only results are returned locally and
-   discarded; they create no durable outcome, receipt, or tombstone.
-7. Deliver the candidate through `DurableSubmissionV2Provider`. Storage alone
-   decides idempotency and returns the immutable accepted receipt or a typed
-   refusal. The Crawler keeps no receipt ledger.
+4. The first live command is intentionally capture-and-quarantine only: it
+   writes the validated redacted fixture and returns
+   `manual_parser_not_configured`. It does not replay, normalize, or submit a
+   source-derived listing.
+5. Its sanitized CLI report includes the probe receipt (scope, limits, usage,
+   status, canonical URL, content type, digest, and typed outcome) plus either
+   the typed stop or fixture/quarantine result. It contains no response body,
+   headers, cookies, or arbitrary source content.
+6. Parser replay, parser-drift health handoff, normalized observations, and
+   durable Storage submission are later slices. They are not implied by a
+   successful first capture.
 
 ## Product-use rule
 

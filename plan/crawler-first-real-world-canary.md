@@ -22,11 +22,12 @@ a block.
 
 ## Goal
 
-Run one manually triggered, tightly bounded request path against Ciencuadras
-for apparent long-term residential rentals in Barranquilla. Convert
-the permitted response into a sanitized probe receipt, one redacted
-source-derived fixture, and one normalized listing observation or typed
-quarantine result.
+Run one manually triggered, tightly bounded Ciencuadras request sequence for
+apparent long-term residential rentals in Barranquilla. It checks the source's
+robots policy first and makes one discovery request only when that policy
+permits the fixed discovery path. Convert the permitted response into a
+sanitized probe receipt, one redacted source-derived fixture, and an explicit
+capture-and-quarantine result.
 
 This milestone proves the development contracts against real source behavior.
 It does not activate scheduled or production crawling.
@@ -41,7 +42,7 @@ It does not activate scheduled or production crawling.
 
 Fixture redaction/integrity and offline extraction/provenance must be complete
 before the live execution task. A checked-in canary configuration declares
-allowed media types, exact discovery/detail paths, and query policy.
+allowed media types, one exact discovery path, and the robots-policy endpoint.
 
 ## Canary scope
 
@@ -49,12 +50,13 @@ allowed media types, exact discovery/detail paths, and query policy.
 - Listing role: `for_rent` and long-term residential only.
 - Source count: Ciencuadras only.
 - Trigger: one manual CLI invocation.
-- Request path: at most one discovery request and one detail request.
+- Request path: one robots-policy request followed by at most one fixed
+  discovery request; no detail request in this first run.
 - Concurrency: one.
 - Redirects: at most one, revalidated before following.
 - Authentication: none.
 - Persistence: sanitized receipt, redacted fixture envelope and payload, and
-  normalized output or quarantine report only.
+  capture-and-quarantine report only.
 - Images and other binaries: excluded.
 - Scheduling, retries, pagination harvesting, and durable cursors: excluded.
 
@@ -64,8 +66,9 @@ and media-type limits. The command cannot widen them.
 ## Proposed approach
 
 1. Load the immutable active Ciencuadras discovery profile from Storage. It
-   declares exact HTTPS host/paths, accepted media types, and conservative
-   budgets.
+   declares exact HTTPS host/path, a robots-policy endpoint, accepted media
+   types, and conservative budgets. Its two-request budget is reserved for
+   robots policy and one discovery request.
 2. Implement a canary-only DNS/HTTPS transport behind the existing bounded
    probe port. Bind connections to validated public addresses and enforce all
    limits while streaming. Disable automatic redirects, preserve the validated
@@ -75,13 +78,15 @@ and media-type limits. The command cannot widen them.
 3. Add a terminal command that requires exactly one explicit mode: `--dry-run`
    for local profile/preflight output with no DNS or HTTP, or `--live` for the
    separately user-authorized bounded invocation. It must reject omitted or
-   conflicting modes, preserve the local kill switch, and print only sanitized
-   typed output.
+   conflicting modes, preserve the local kill switch, validate artifact-output
+   readiness, and print only sanitized typed output. Detect robots denial,
+   login/CAPTCHA/challenge pages, and media-policy mismatches before capture.
 4. Keep received bytes in memory until deterministic redaction and the
    prohibited-data scanner pass. Never write the original response to Git.
-5. Write the redacted payload and envelope, replay the parser, and
-   emit a normalized observation or typed quarantine result with provenance and
-   quality issues.
+5. Write the redacted payload and envelope, and emit a sanitized receipt and
+   capture-and-quarantine report with profile provenance. Parser replay and
+   normalized submission are deferred until a parser is selected from the
+   retained, redacted fixture.
 6. Review the evidence and decide whether to stop, repair, run
    another bounded canary, or propose production-source work.
 
@@ -93,12 +98,10 @@ and media-type limits. The command cannot widen them.
 - Sanitized probe receipt.
 - Redacted source-derived fixture envelope and separately hashed payload.
 - Canonical source URL without credentials, query parameters, or fragment.
-- Normalized observation with a stable `listing_url` when exposed by the
-  source, field provenance, and versioned quality assessment; otherwise a
-  lower-quality `missing_stable_listing_url` observation when stable source ID
-  remains, or an explicit quarantine result when both are absent.
-- Canary run report containing limits, timestamps, artifacts, failures, and no
-  arbitrary response content.
+- Sanitized probe receipt and canary run report containing limits, timestamps,
+  artifacts, failures, and no arbitrary response content.
+- Explicit capture-and-quarantine result carrying profile provenance.
+  Normalization is not a prerequisite of this first canary.
 - Retrospective and updated crawler runbook.
 
 ## Safety and stop conditions
@@ -122,9 +125,10 @@ personal data in committed artifacts.
 1. RED/GREEN transport conformance tests cover validated-address connection
    binding, TLS hostname handling, streaming limits, redirects, timeouts, and
    stop conditions without contacting a live source.
-2. RED/GREEN orchestration tests cover dry run, fixed-scope and kill-switch
-   hard canary limits, redaction-before-write, scanner failure, and typed
-   output.
+2. RED/GREEN orchestration tests cover the robots-then-discovery sequence,
+   dry-run output-path and kill-switch checks, fixed-scope limits, profile media
+   enforcement, challenge detection, redaction-before-write, scanner failure,
+   and typed receipt/report output.
 3. Existing fixture and extraction suites prove deterministic replay before the
    live invocation.
 4. The live execution occurs once, only after its local preflight/dry-run
@@ -134,9 +138,9 @@ personal data in committed artifacts.
 5. Root typecheck, lint, formatting, and tests remain green.
 
 Success means a reviewer can trace one real bounded response from configured
-scope through a sanitized receipt, redacted fixture, and normalized
-observation or quarantine decision. Replaying the retained fixture must produce
-the same result without another network request.
+scope through a sanitized receipt, redacted fixture, and capture-and-quarantine
+decision. A future parser must be able to replay the retained fixture without
+another network request.
 
 ## Risks and assumptions
 
@@ -173,6 +177,26 @@ the same result without another network request.
 - Deduplication, Rent Model execution, yield calculation, or explorer
   publication.
 - Declaring a source production-ready from one canary.
+
+## Implementation retrospective — 2026-10-10
+
+The implementation met the revised MVP boundary: the source profile, not the
+CLI, owns the exact robots and discovery paths; the two-request budget is
+consumed in that order; and a robots denial, unsupported media type, or
+high-confidence challenge/authentication page stops before fixture capture.
+The local command now validates its output target and emits a body-free receipt
+with either a typed stop or capture-and-quarantine report.
+
+The original plan overreached by requiring a detail request, parser replay, and
+normalized submission in the first real-source operation. Those need a pinned
+parser and a separate follow-up decision, so they are intentionally deferred.
+The ergonomics are appropriate for an MVP operator: dry run is explicit and
+network-free, while live mode remains an opt-in command requiring separately
+supplied writable output location and fixture ID.
+
+Offline validation passed across the workspace. No live source request has
+been made; after merge, run the same dry-run command from `main`, review its
+sanitized output, then obtain explicit authorization for the one live command.
 
 ## Execution task set
 

@@ -1,6 +1,7 @@
 import { JsonFileDiscoveryProfileRepository } from "@rent-yield/discovery-profile-storage";
 import { pathToFileURL } from "node:url";
 import {
+  preflightLocalManualBoundedDiscovery,
   runLocalManualBoundedDiscovery,
   type LocalManualBoundedDiscoveryCommand,
 } from "../application/manual-bounded-discovery-command.js";
@@ -25,7 +26,7 @@ type CliDependencies = {
 };
 
 const usage =
-  "Usage: pnpm --filter @rent-yield/crawlers canary -- (--dry-run | --live) --source-key <key> --profile <path> [--fixtures <directory> --fixture-id <id> --probe-id <id> --as-of <ISO-8601> --kill-switch]";
+  "Usage: pnpm --filter @rent-yield/crawlers canary -- (--dry-run | --live) --source-key <key> --profile <path> --fixtures <existing-absolute-directory> --fixture-id <id> [--probe-id <id> --as-of <ISO-8601> --kill-switch]";
 
 /** Parses flags without accepting positional input or caller-supplied scope. */
 export function parseManualBoundedDiscoveryCliArguments(
@@ -65,8 +66,8 @@ export function parseManualBoundedDiscoveryCliArguments(
     throw new Error(`${usage}\nChoose exactly one of --dry-run or --live.`);
   if (!values.source_key || !values.profile)
     throw new Error(`${usage}\n--source-key and --profile are required.`);
-  if (live && (!values.fixtures || !values.fixture_id))
-    throw new Error(`${usage}\n--live requires --fixtures and --fixture-id.`);
+  if (!values.fixtures || !values.fixture_id)
+    throw new Error(`${usage}\n--fixtures and --fixture-id are required.`);
   return {
     mode: dryRun ? "dry_run" : "live",
     source_key: values.source_key,
@@ -123,6 +124,24 @@ export async function executeManualBoundedDiscoveryCli(
     );
     return 1;
   }
+  const localCommand: LocalManualBoundedDiscoveryCommand = {
+    contract_version: "v1",
+    source_key: command.source_key,
+    probe_id: command.probe_id ?? `manual-${command.source_key}-${now()}`,
+    as_of: command.as_of ?? now(),
+    kill_switch: command.kill_switch,
+    dry_run: command.mode === "dry_run",
+    profilePath: command.profile_path,
+    fixtureRoot: command.fixture_root!,
+    fixture_id: command.fixture_id!,
+  };
+  const preflight = await preflightLocalManualBoundedDiscovery(localCommand, {
+    profiles,
+  });
+  if (!preflight.ok) {
+    write(JSON.stringify(preflight));
+    return 1;
+  }
   if (command.mode === "dry_run") {
     write(
       JSON.stringify({
@@ -137,21 +156,9 @@ export async function executeManualBoundedDiscoveryCli(
     );
     return 0;
   }
-  const asOf = command.as_of ?? now();
-  const runInput: LocalManualBoundedDiscoveryCommand = {
-    contract_version: "v1",
-    source_key: command.source_key,
-    probe_id: command.probe_id ?? `manual-${command.source_key}-${asOf}`,
-    as_of: asOf,
-    kill_switch: command.kill_switch,
-    dry_run: false,
-    profilePath: command.profile_path,
-    fixtureRoot: command.fixture_root!,
-    fixture_id: command.fixture_id!,
-  };
   const result = await (
     dependencies.runLocal ?? runLocalManualBoundedDiscovery
-  )(runInput, {});
+  )({ ...localCommand, dry_run: false }, {});
   write(JSON.stringify(result));
   return result.ok ? 0 : 1;
 }

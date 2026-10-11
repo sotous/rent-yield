@@ -4,7 +4,10 @@ export type MockProbeResponse = {
   body: Uint8Array;
   redirect_location?: string;
   classification?:
-    "listing_discovery" | "challenge" | "authentication_required";
+    | "listing_discovery"
+    | "robots_policy"
+    | "challenge"
+    | "authentication_required";
   discovered_urls?: string[];
 };
 

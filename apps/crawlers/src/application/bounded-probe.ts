@@ -36,6 +36,7 @@ const commandSchema = z
     probe_id: z.string().min(1).max(256),
     scope: researchScopeSchema,
     start_url: z.string().min(1).max(4096),
+    robots_url: z.string().min(1).max(4096).optional(),
     allowed_hosts: z
       .array(hostnameSchema)
       .min(1)
@@ -45,6 +46,11 @@ const commandSchema = z
       .min(1)
       .refine((values) => new Set(values).size === values.length),
     budget: probeBudgetSchema,
+    permitted_media_types: z
+      .array(z.enum(["application/json", "text/html", "text/plain"]))
+      .min(1)
+      .refine((values) => new Set(values).size === values.length)
+      .optional(),
     as_of: instantSchema,
   })
   .refine((value) => value.budget.max_redirects <= 19, {
@@ -189,6 +195,60 @@ function sanitizedUrl(url: URL): string {
   copy.search = "";
   copy.hash = "";
   return copy.href;
+}
+
+function normalizedMediaType(value: string | null): string | null {
+  if (value === null) return null;
+  return value.split(";", 1)[0]!.trim().toLowerCase() || null;
+}
+
+/**
+ * Minimal, conservative robots evaluator for this one bounded command. It
+ * evaluates the wildcard group only because the command deliberately supplies
+ * no crawler identity or arbitrary request headers. A malformed UTF-8 policy
+ * is treated as a block rather than guessed around.
+ */
+function robotsDenyDiscovery(body: Uint8Array, discoveryUrl: string): boolean {
+  let policy: string;
+  try {
+    policy = new TextDecoder("utf-8", { fatal: true }).decode(body);
+  } catch {
+    return true;
+  }
+  const rules: Array<{ kind: "allow" | "disallow"; path: string }> = [];
+  let wildcardGroup = false;
+  for (const rawLine of policy.split(/\r?\n/)) {
+    const line = rawLine.split("#", 1)[0]!.trim();
+    if (!line) continue;
+    const separator = line.indexOf(":");
+    if (separator < 0) continue;
+    const field = line.slice(0, separator).trim().toLowerCase();
+    const value = line.slice(separator + 1).trim();
+    if (field === "user-agent") {
+      wildcardGroup = value === "*";
+      continue;
+    }
+    if (
+      wildcardGroup &&
+      (field === "allow" || field === "disallow") &&
+      value.length > 0
+    ) {
+      rules.push({ kind: field, path: value });
+    }
+  }
+  const pathname = new URL(discoveryUrl).pathname;
+  const matching = rules
+    .filter((rule) => pathname.startsWith(rule.path))
+    .sort((left, right) => right.path.length - left.path.length);
+  if (matching.length === 0) return false;
+  const longest = matching[0]!;
+  return (
+    longest.kind === "disallow" &&
+    !matching.some(
+      (rule) =>
+        rule.kind === "allow" && rule.path.length === longest.path.length,
+    )
+  );
 }
 
 function validateTarget(
@@ -350,7 +410,8 @@ export async function probeListingDiscovery(
     }
   }
 
-  let target = command.start_url;
+  let target = command.robots_url ?? command.start_url;
+  let checkingRobots = command.robots_url !== undefined;
   let base: string | undefined;
   while (true) {
     usage.duration_ms = dependencies.clock.nowMs() - startedAt;
@@ -465,9 +526,22 @@ export async function probeListingDiscovery(
     if (response.status_code < 200 || response.status_code >= 400) {
       return stop("transport_error");
     }
-    if (response.classification === "challenge") return stop("challenge");
+    if (response.classification === "challenge") {
+      response.body.fill(0);
+      return stop("challenge");
+    }
     if (response.classification === "authentication_required") {
+      response.body.fill(0);
       return stop("authentication_required");
+    }
+    const mediaType = normalizedMediaType(response.content_type);
+    if (
+      command.permitted_media_types &&
+      (!mediaType ||
+        !command.permitted_media_types.includes(mediaType as never))
+    ) {
+      response.body.fill(0);
+      return stop("policy_mismatch");
     }
     if (response.redirect_location !== undefined) {
       usage.redirects += 1;
@@ -485,6 +559,23 @@ export async function probeListingDiscovery(
       continue;
     }
     if (response.status_code >= 300) return stop("transport_error");
+    if (checkingRobots) {
+      if (response.classification !== "robots_policy") {
+        return stop("transport_error");
+      }
+      const deniedByRobots = robotsDenyDiscovery(
+        response.body,
+        command.start_url,
+      );
+      response.body.fill(0);
+      if (deniedByRobots) {
+        return stop("robots_conflict");
+      }
+      target = command.start_url;
+      base = undefined;
+      checkingRobots = false;
+      continue;
+    }
     if (response.classification !== "listing_discovery") {
       return stop("transport_error");
     }

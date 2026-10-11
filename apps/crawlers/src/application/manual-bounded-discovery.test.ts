@@ -34,6 +34,18 @@ const transport = (request = vi.fn()) =>
     }),
     request: async (input) => {
       request(input);
+      if (input.url.endsWith("/robots.txt")) {
+        return {
+          kind: "response" as const,
+          connected_address: input.validated_addresses[0]!,
+          response: {
+            status_code: 200,
+            content_type: "text/plain",
+            body: new TextEncoder().encode("User-agent: *\nDisallow:\n"),
+            classification: "robots_policy" as never,
+          },
+        };
+      }
       return {
         kind: "response" as const,
         connected_address: input.validated_addresses[0]!,
@@ -117,15 +129,26 @@ describe("manual bounded discovery", () => {
     ).resolves.toMatchObject({
       ok: true,
       report: {
-        kind: "quarantined",
-        fixture_id: "manual-ciencuadras-1",
-        quarantine: { reason: "parser_not_selected" },
-        discovery_profile_provenance: {
-          source_key: "ciencuadras",
-          profile_version: 1,
-          profile_sha256:
-            "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+        result: {
+          kind: "quarantined",
+          fixture_id: "manual-ciencuadras-1",
+          quarantine: { reason: "parser_not_selected" },
+          discovery_profile_provenance: {
+            source_key: "ciencuadras",
+            profile_version: 1,
+            profile_sha256: expect.any(String),
+          },
         },
+        receipt: expect.objectContaining({
+          probe_id: "manual-probe-1",
+          response_evidence: expect.arrayContaining([
+            expect.objectContaining({
+              body: expect.objectContaining({
+                byte_length: expect.any(Number),
+              }),
+            }),
+          ]),
+        }),
       },
     });
     expect(materializedInputs[0]).toMatchObject({
@@ -133,7 +156,7 @@ describe("manual bounded discovery", () => {
         source_key: "ciencuadras",
         profile_version: 1,
         profile_sha256:
-          "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+          "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
       },
     });
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(

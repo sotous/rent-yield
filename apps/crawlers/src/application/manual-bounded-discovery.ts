@@ -5,6 +5,7 @@ import type {
 import { writeRedactedFixture } from "../adapters/artifacts/filesystem-redacted-fixture-writer.js";
 import { type FixtureArtifact } from "./fixture-capture.js";
 import { MemorySourceBudget, type ProbeDependencies } from "./bounded-probe.js";
+import type { ProbeResult } from "@rent-yield/listing-storage-contracts";
 import {
   createRedactingProbeCaptureHandoff,
   type RedactedProbeArtifactWriter,
@@ -42,15 +43,19 @@ type ManualBoundedDiscoveryDependencies = Omit<
 export type ManualBoundedDiscoveryResult =
   | {
       ok: true;
-      report:
-        | {
-            kind: "quarantined";
-            fixture_id: string;
-            fixture_path: string;
-            quarantine: { reason: string };
-            discovery_profile_provenance: DiscoveryProfileProvenance;
-          }
-        | { kind: "stopped"; reason: string };
+      report: {
+        /** Sanitized receipt: it contains hashes and metadata, never body bytes. */
+        receipt: ProbeResult;
+        result:
+          | {
+              kind: "quarantined";
+              fixture_id: string;
+              fixture_path: string;
+              quarantine: { reason: string };
+              discovery_profile_provenance: DiscoveryProfileProvenance;
+            }
+          | { kind: "stopped"; reason: string };
+      };
     }
   | {
       ok: false;
@@ -59,6 +64,7 @@ export type ManualBoundedDiscoveryResult =
           | "kill_switch_rejected"
           | "dry_run_rejected"
           | "profile_unavailable"
+          | "output_unavailable"
           | "capture_handoff_failed"
           | "invalid_input";
       };
@@ -85,8 +91,9 @@ export async function runManualBoundedDiscovery(
     return { ok: false, error: { code: "kill_switch_rejected" } };
   if (input.dry_run) return { ok: false, error: { code: "dry_run_rejected" } };
 
-  let report:
-    Extract<ManualBoundedDiscoveryResult, { ok: true }>["report"] | undefined;
+  let result:
+    | Extract<ManualBoundedDiscoveryResult, { ok: true }>["report"]["result"]
+    | undefined;
   let handoffFailed = false;
   const write: RedactedProbeArtifactWriter = async (capture) => {
     const provenance = capture.discovery_profile_provenance;
@@ -118,7 +125,7 @@ export async function runManualBoundedDiscovery(
       fixture: materialized.artifact,
       discovery_profile_provenance: provenance,
     });
-    report = {
+    result = {
       kind: "quarantined",
       fixture_id: materialized.artifact.envelope.fixture_id,
       fixture_path: persisted.path,
@@ -153,10 +160,13 @@ export async function runManualBoundedDiscovery(
   if (probed.value.outcome.kind !== "completed")
     return {
       ok: true,
-      report: { kind: "stopped", reason: probed.value.outcome.reason },
+      report: {
+        receipt: probed.value,
+        result: { kind: "stopped", reason: probed.value.outcome.reason },
+      },
     };
-  return report
-    ? { ok: true, report }
+  return result
+    ? { ok: true, report: { receipt: probed.value, result } }
     : { ok: false, error: { code: "capture_handoff_failed" } };
 }
 

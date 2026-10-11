@@ -23,17 +23,18 @@ type ProfiledDiscoveryDependencies = Omit<
   profiles: DiscoveryProfileRepository;
 };
 
-function startUrlFor(
+function configuredUrlsFor(
   profile: ActiveDiscoveryProfileV1,
-): { ok: true; value: string } | { ok: false } {
+): { ok: true; robots_url: string; discovery_url: string } | { ok: false } {
   if (
     profile.allowed_hosts.length !== 1 ||
-    profile.allowed_path_prefixes.length !== 1
+    !profile.allowed_path_prefixes.includes(profile.robots_path)
   )
     return { ok: false };
   return {
     ok: true,
-    value: `https://${profile.allowed_hosts[0]!}${profile.allowed_path_prefixes[0]!}`,
+    robots_url: `https://${profile.allowed_hosts[0]!}${profile.robots_path}`,
+    discovery_url: `https://${profile.allowed_hosts[0]!}${profile.discovery_path}`,
   };
 }
 
@@ -69,8 +70,8 @@ export async function runProfiledListingDiscovery(
       ok: false as const,
       error: { code: "profile_unavailable" as const },
     };
-  const startUrl = startUrlFor(profile);
-  if (!startUrl.ok)
+  const urls = configuredUrlsFor(profile);
+  if (!urls.ok || profile.discovery_path === profile.robots_path)
     return {
       ok: false as const,
       error: { code: "profile_unavailable" as const },
@@ -81,10 +82,12 @@ export async function runProfiledListingDiscovery(
       contract_version: command.contract_version,
       probe_id: command.probe_id,
       scope: { ...profile.scope, source_key: profile.source_key },
-      start_url: startUrl.value,
+      start_url: urls.discovery_url,
+      robots_url: urls.robots_url,
       allowed_hosts: profile.allowed_hosts,
       allowed_path_prefixes: profile.allowed_path_prefixes,
       budget: profile.budget,
+      permitted_media_types: profile.permitted_media_types,
       as_of: command.as_of,
     },
     {
