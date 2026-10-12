@@ -11,7 +11,7 @@ import { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profil
 
 const activeProfile = {
   source_key: "ciencuadras",
-  profile_version: 2,
+  profile_version: 3,
   state: "active",
   scope: {
     country_code: "CO",
@@ -25,7 +25,7 @@ const activeProfile = {
   discovery_path: "/arriendo/barranquilla",
   budget: {
     max_requests: 2,
-    max_bytes: 262144,
+    max_bytes: 10485760,
     max_duration_ms: 10000,
     max_redirects: 1,
     max_concurrency: 1,
@@ -36,9 +36,9 @@ const activeProfile = {
 
 const activeProfileProvenance = {
   source_key: "ciencuadras",
-  profile_version: 2,
+  profile_version: 3,
   profile_sha256:
-    "8b9ee61bdcd0623b661d2371aa8b9ceea652a8f20e1eb24f321974737173d740",
+    "7e5e00ea00f72ba02226a35e90a83f97327c6a6d11026ab8c34ba62ea5f7f9f8",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -99,7 +99,7 @@ describe("JsonFileDiscoveryProfileRepository", () => {
   it("rejects a registry that tries to activate two versions for one source", async () => {
     const path = await writeRegistry([
       activeProfile,
-      { ...activeProfile, profile_version: 2 },
+      { ...activeProfile, profile_version: 4 },
     ]);
     const repository = new JsonFileDiscoveryProfileRepository({ path });
 

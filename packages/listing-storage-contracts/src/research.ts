@@ -156,6 +156,7 @@ export const probeResultSchema = z.strictObject({
         "path_blocked",
         "ip_blocked",
         "budget_exhausted",
+        "capture_limit_exceeded",
         "redirect_blocked",
         "transport_error",
         "access_unknown",

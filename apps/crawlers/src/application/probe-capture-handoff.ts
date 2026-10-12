@@ -38,13 +38,16 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
     content_type: string | null;
     original_bytes: Uint8Array;
     discovery_profile_provenance?: DiscoveryProfileProvenance;
-  }): Promise<{ ok: true } | { ok: false }>;
+  }): Promise<
+    | { ok: true }
+    | { ok: false; reason: "capture_limit_exceeded" | "capture_rejected" }
+  >;
 } {
   return {
     async handoff(input) {
       if (!supportedContentType(input.content_type)) {
         input.original_bytes.fill(0);
-        return { ok: false };
+        return { ok: false, reason: "capture_rejected" };
       }
       const prepared = await prepareFixtureArtifact(
         {
@@ -54,7 +57,9 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         },
         { disposeOriginal: () => input.original_bytes.fill(0) },
       );
-      if (!prepared.ok) return { ok: false };
+      if (!prepared.ok) return { ok: false, reason: "capture_rejected" };
+      if (prepared.artifact.kind === "no_retained_bytes")
+        return { ok: false, reason: "capture_limit_exceeded" };
       try {
         await dependencies.write({
           source_key: input.source_key,
@@ -70,7 +75,7 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         });
         return { ok: true };
       } catch {
-        return { ok: false };
+        return { ok: false, reason: "capture_rejected" };
       }
     },
   };

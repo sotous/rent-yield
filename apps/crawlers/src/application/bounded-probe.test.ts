@@ -134,7 +134,14 @@ function run(
   access: ProbeAccessGate = allowed,
   clock = new FakeClock(),
   sourceBudget = new MemorySourceBudget(),
-  captureHandoff?: { handoff(input: unknown): Promise<{ ok: boolean }> },
+  captureHandoff?: {
+    handoff(
+      input: unknown,
+    ): Promise<
+      | { ok: true }
+      | { ok: false; reason: "capture_limit_exceeded" | "capture_rejected" }
+    >;
+  },
 ) {
   return probeListingDiscovery(
     { ...command, ...overrides },
@@ -195,7 +202,7 @@ describe("bounded fixture probe", () => {
   });
 
   it("hands a body to the in-memory capture boundary only after successful validation", async () => {
-    const handoff = { handoff: vi.fn(async () => ({ ok: true })) };
+    const handoff = { handoff: vi.fn(async () => ({ ok: true as const })) };
     const transport = new FakeTransport([response()]);
     await expect(
       run(
@@ -214,7 +221,7 @@ describe("bounded fixture probe", () => {
       original_bytes: body("RAW_SECRET_BODY"),
     });
 
-    const blocked = { handoff: vi.fn(async () => ({ ok: true })) };
+    const blocked = { handoff: vi.fn(async () => ({ ok: true as const })) };
     await run(
       new FakeTransport([response({ status_code: 403 })]),
       {},
@@ -227,7 +234,12 @@ describe("bounded fixture probe", () => {
   });
 
   it("stops when the redaction handoff refuses a bounded capture", async () => {
-    const handoff = { handoff: vi.fn(async () => ({ ok: false })) };
+    const handoff = {
+      handoff: vi.fn(async () => ({
+        ok: false as const,
+        reason: "capture_rejected" as const,
+      })),
+    };
     await expect(
       run(
         new FakeTransport([response()]),
@@ -239,6 +251,29 @@ describe("bounded fixture probe", () => {
       ),
     ).resolves.toMatchObject({
       value: { outcome: { kind: "stopped", reason: "transport_error" } },
+    });
+  });
+
+  it("preserves a typed capture-limit stop from the handoff", async () => {
+    const handoff = {
+      handoff: vi.fn(async () => ({
+        ok: false as const,
+        reason: "capture_limit_exceeded" as const,
+      })),
+    };
+    await expect(
+      run(
+        new FakeTransport([response()]),
+        {},
+        allowed,
+        new FakeClock(),
+        new MemorySourceBudget(),
+        handoff,
+      ),
+    ).resolves.toMatchObject({
+      value: {
+        outcome: { kind: "stopped", reason: "capture_limit_exceeded" },
+      },
     });
   });
 
@@ -463,7 +498,9 @@ describe("bounded fixture probe", () => {
   ] as const)(
     "stops on %s classification without retry",
     async (classification, reason) => {
-      const captureHandoff = { handoff: vi.fn(async () => ({ ok: true })) };
+      const captureHandoff = {
+        handoff: vi.fn(async () => ({ ok: true as const })),
+      };
       const transport = new FakeTransport([response({ classification })]);
       await expect(
         run(

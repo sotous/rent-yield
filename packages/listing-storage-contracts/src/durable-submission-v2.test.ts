@@ -196,6 +196,7 @@ function memoryProvider(): DurableSubmissionV2Provider &
 
 describe("DurableSubmissionV2 contract", () => {
   it("derives complete outcome identity and bounds inline UTF-8 bytes", () => {
+    expect(MAX_INLINE_REDACTED_BYTES_V2).toBe(10 * 1024 * 1024);
     const outcome = submission.outcome;
     if (outcome.kind !== "complete") throw new Error("expected complete");
     expect(canonicalOutcomeDigestV2(outcome)).toBe(

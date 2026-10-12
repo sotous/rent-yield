@@ -46,8 +46,10 @@ describe("fixture runtime artifact pipeline", () => {
     const result = await prepareFixtureArtifact(
       {
         content_type: "text/plain",
+        // Separators avoid exercising pathological long-token regex cases;
+        // this test is concerned with the byte-retention boundary.
         original_bytes: new TextEncoder().encode(
-          "a".repeat(MAX_INLINE_REDACTED_BYTES_V2 + 1),
+          "safe ".repeat(Math.ceil((MAX_INLINE_REDACTED_BYTES_V2 + 1) / 5)),
         ),
         disposition: "inline_redacted",
       },
