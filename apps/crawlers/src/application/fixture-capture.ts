@@ -372,7 +372,8 @@ function sanitizeHtmlAttributes(
 
 function sanitizeHtmlChildren(
   parent:
-    DefaultTreeAdapterTypes.DocumentFragment | DefaultTreeAdapterTypes.Element,
+    | DefaultTreeAdapterTypes.DocumentFragment
+    | DefaultTreeAdapterTypes.Element,
   inheritedCategory: string | null = null,
 ): void {
   parent.childNodes =

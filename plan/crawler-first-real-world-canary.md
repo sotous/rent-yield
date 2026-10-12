@@ -247,6 +247,22 @@ technical failsafe. The handoff now emits the explicit
 This preserves redaction-before-write and raw-body disposal; it does not retain
 an original response or broaden any live request scope.
 
+## Canary iteration 5 — 2026-10-12
+
+With both the transport and inline-fixture limits at 10 MiB, the next
+authorized run again completed the 496,229-byte discovery response (496,809
+bytes including robots) in 2.264 seconds and made no redirects. No fixture was
+written because the in-memory capture path rejected the HTML before its writer,
+but the old result exposed this only as `transport_error`.
+
+The remediation keeps that rejection raw-free and observable: HTML may first
+strip removable media and `data-*` attributes, then must pass the final
+prohibited-data scan; non-HTML embedded binary and any remaining prohibited
+data still stop. Manual output now returns a constrained `capture_rejected`
+reason (rather than an ambiguous transport failure). No live retry is made by
+the remediation itself; one remains separately user-authorized work after
+review of the merged change.
+
 ## Execution task set
 
 1. Define the Storage-owned Ciencuadras discovery profile and executable

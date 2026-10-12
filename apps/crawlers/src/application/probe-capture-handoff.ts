@@ -73,7 +73,11 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         { disposeOriginal: () => input.original_bytes.fill(0) },
       );
       if (!prepared.ok)
-        return { ok: false, reason: "capture_rejected", code: prepared.error.code };
+        return {
+          ok: false,
+          reason: "capture_rejected",
+          code: prepared.error.code,
+        };
       if (prepared.artifact.kind === "no_retained_bytes")
         return { ok: false, reason: "capture_limit_exceeded" };
       try {

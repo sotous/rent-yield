@@ -226,17 +226,31 @@ describe("manual bounded discovery capture diagnostics", () => {
             kind: "resolved",
             addresses: ["93.184.216.34"],
           }),
-          request: async (input) => ({
-            kind: "response",
-            connected_address: input.validated_addresses[0]!,
-            response: {
-              status_code: 200,
-              content_type: "text/plain",
-              body: new Uint8Array([0, 1]),
-              classification: "listing_discovery",
-              discovered_urls: [],
-            },
-          }),
+          request: async (input) =>
+            input.url.endsWith("/robots.txt")
+              ? {
+                  kind: "response",
+                  connected_address: input.validated_addresses[0]!,
+                  response: {
+                    status_code: 200,
+                    content_type: "text/plain",
+                    body: new TextEncoder().encode(
+                      "User-agent: *\\nDisallow:\\n",
+                    ),
+                    classification: "robots_policy" as never,
+                  },
+                }
+              : {
+                  kind: "response",
+                  connected_address: input.validated_addresses[0]!,
+                  response: {
+                    status_code: 200,
+                    content_type: "text/plain",
+                    body: new Uint8Array([0, 1]),
+                    classification: "listing_discovery",
+                    discovered_urls: [],
+                  },
+                },
         },
         clock,
         sourceBudget: new MemorySourceBudget(),
