@@ -66,9 +66,12 @@ export async function prepareFixtureArtifact(
         .digest("hex"),
       original_body_byte_length: Buffer.byteLength(original, "utf8"),
     };
+    const originalSafetyIssues = scanProhibitedFixtureData(original);
     if (
-      scanProhibitedFixtureData(original).some(
-        (issue) => issue === "embedded_binary" || issue === "embedded_control",
+      originalSafetyIssues.some(
+        (issue) =>
+          issue === "embedded_control" ||
+          (input.content_type !== "text/html" && issue === "embedded_binary"),
       )
     )
       return { ok: false, error: { code: "prohibited_data" } };

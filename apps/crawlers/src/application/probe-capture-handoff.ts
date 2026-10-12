@@ -14,6 +14,12 @@ export type RedactedProbeArtifactWriter = (input: {
 }) => Promise<void>;
 
 type SupportedContentType = "application/json" | "text/html" | "text/plain";
+export type CaptureRejectionCode =
+  | "unsupported_content_type"
+  | "invalid_encoding"
+  | "invalid_payload"
+  | "prohibited_data"
+  | "artifact_write_failed";
 
 function supportedContentType(
   value: string | null,
@@ -40,14 +46,23 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
     discovery_profile_provenance?: DiscoveryProfileProvenance;
   }): Promise<
     | { ok: true }
-    | { ok: false; reason: "capture_limit_exceeded" | "capture_rejected" }
+    | { ok: false; reason: "capture_limit_exceeded" }
+    | {
+        ok: false;
+        reason: "capture_rejected";
+        code: CaptureRejectionCode;
+      }
   >;
 } {
   return {
     async handoff(input) {
       if (!supportedContentType(input.content_type)) {
         input.original_bytes.fill(0);
-        return { ok: false, reason: "capture_rejected" };
+        return {
+          ok: false,
+          reason: "capture_rejected",
+          code: "unsupported_content_type",
+        };
       }
       const prepared = await prepareFixtureArtifact(
         {
@@ -57,7 +72,8 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         },
         { disposeOriginal: () => input.original_bytes.fill(0) },
       );
-      if (!prepared.ok) return { ok: false, reason: "capture_rejected" };
+      if (!prepared.ok)
+        return { ok: false, reason: "capture_rejected", code: prepared.error.code };
       if (prepared.artifact.kind === "no_retained_bytes")
         return { ok: false, reason: "capture_limit_exceeded" };
       try {
@@ -75,7 +91,11 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         });
         return { ok: true };
       } catch {
-        return { ok: false, reason: "capture_rejected" };
+        return {
+          ok: false,
+          reason: "capture_rejected",
+          code: "artifact_write_failed",
+        };
       }
     },
   };
