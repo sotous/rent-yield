@@ -194,9 +194,30 @@ The ergonomics are appropriate for an MVP operator: dry run is explicit and
 network-free, while live mode remains an opt-in command requiring separately
 supplied writable output location and fixture ID.
 
-Offline validation passed across the workspace. No live source request has
-been made; after merge, run the same dry-run command from `main`, review its
-sanitized output, then obtain explicit authorization for the one live command.
+Offline validation passed across the workspace. The later authorized live run
+is recorded in the iteration below; any subsequent run still requires a
+merged-main dry run and new explicit authorization.
+
+## Canary iteration 2 — 2026-10-12
+
+The first authorized run proved the robots-first sequence and all stopping
+boundaries. Its robots response used 580 bytes; the discovery response reached
+the remaining 64,956 bytes, exhausting the 65,536-byte total budget before a
+complete body could be redacted. The command retained no original body and
+wrote no fixture.
+
+This iteration changes only the Storage-owned `max_bytes` budget from 65,536
+bytes (64 KiB) to 262,144 bytes (256 KiB). It preserves one robots-policy
+request followed by at most one discovery request, one redirect, one concurrent
+request, ten-second duration, the same host/path/media scope, and every typed
+stop condition. It does not authorize a retry: after offline validation and a
+merged-main dry run, a new explicit user authorization is required for one
+separate live invocation.
+
+Success is a complete bounded discovery response that can pass redaction and
+produce a source-derived fixture or a typed quarantine result. A second budget
+exhaustion remains a valid stop and triggers evidence review rather than an
+automatic limit increase.
 
 ## Execution task set
 

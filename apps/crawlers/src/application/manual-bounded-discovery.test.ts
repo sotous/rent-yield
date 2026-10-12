@@ -135,7 +135,7 @@ describe("manual bounded discovery", () => {
           quarantine: { reason: "parser_not_selected" },
           discovery_profile_provenance: {
             source_key: "ciencuadras",
-            profile_version: 1,
+            profile_version: 2,
             profile_sha256: expect.any(String),
           },
         },
@@ -154,9 +154,9 @@ describe("manual bounded discovery", () => {
     expect(materializedInputs[0]).toMatchObject({
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 1,
+        profile_version: 2,
         profile_sha256:
-          "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
+          "8b9ee61bdcd0623b661d2371aa8b9ceea652a8f20e1eb24f321974737173d740",
       },
     });
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(

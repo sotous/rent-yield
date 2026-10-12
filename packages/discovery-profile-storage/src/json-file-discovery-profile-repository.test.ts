@@ -11,7 +11,7 @@ import { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profil
 
 const activeProfile = {
   source_key: "ciencuadras",
-  profile_version: 1,
+  profile_version: 2,
   state: "active",
   scope: {
     country_code: "CO",
@@ -25,7 +25,7 @@ const activeProfile = {
   discovery_path: "/arriendo/barranquilla",
   budget: {
     max_requests: 2,
-    max_bytes: 65536,
+    max_bytes: 262144,
     max_duration_ms: 10000,
     max_redirects: 1,
     max_concurrency: 1,
@@ -36,9 +36,9 @@ const activeProfile = {
 
 const activeProfileProvenance = {
   source_key: "ciencuadras",
-  profile_version: 1,
+  profile_version: 2,
   profile_sha256:
-    "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
+    "8b9ee61bdcd0623b661d2371aa8b9ceea652a8f20e1eb24f321974737173d740",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
