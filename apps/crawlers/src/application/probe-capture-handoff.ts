@@ -14,6 +14,12 @@ export type RedactedProbeArtifactWriter = (input: {
 }) => Promise<void>;
 
 type SupportedContentType = "application/json" | "text/html" | "text/plain";
+export type CaptureRejectionCode =
+  | "unsupported_content_type"
+  | "invalid_encoding"
+  | "invalid_payload"
+  | "prohibited_data"
+  | "artifact_write_failed";
 
 function supportedContentType(
   value: string | null,
@@ -38,13 +44,15 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
     content_type: string | null;
     original_bytes: Uint8Array;
     discovery_profile_provenance?: DiscoveryProfileProvenance;
-  }): Promise<{ ok: true } | { ok: false }>;
+  }): Promise<
+    { ok: true } | { ok: false; error: { code: CaptureRejectionCode } }
+  >;
 } {
   return {
     async handoff(input) {
       if (!supportedContentType(input.content_type)) {
         input.original_bytes.fill(0);
-        return { ok: false };
+        return { ok: false, error: { code: "unsupported_content_type" } };
       }
       const prepared = await prepareFixtureArtifact(
         {
@@ -54,7 +62,7 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         },
         { disposeOriginal: () => input.original_bytes.fill(0) },
       );
-      if (!prepared.ok) return { ok: false };
+      if (!prepared.ok) return { ok: false, error: prepared.error };
       try {
         await dependencies.write({
           source_key: input.source_key,
@@ -70,7 +78,7 @@ export function createRedactingProbeCaptureHandoff(dependencies: {
         });
         return { ok: true };
       } catch {
-        return { ok: false };
+        return { ok: false, error: { code: "artifact_write_failed" } };
       }
     },
   };

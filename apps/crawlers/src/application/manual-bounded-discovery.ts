@@ -7,6 +7,7 @@ import { type FixtureArtifact } from "./fixture-capture.js";
 import { MemorySourceBudget, type ProbeDependencies } from "./bounded-probe.js";
 import {
   createRedactingProbeCaptureHandoff,
+  type CaptureRejectionCode,
   type RedactedProbeArtifactWriter,
 } from "./probe-capture-handoff.js";
 import { runProfiledListingDiscovery } from "./profiled-discovery-runner.js";
@@ -62,6 +63,10 @@ export type ManualBoundedDiscoveryResult =
           | "capture_handoff_failed"
           | "invalid_input";
       };
+    }
+  | {
+      ok: false;
+      error: { code: "capture_rejected"; reason: CaptureRejectionCode };
     };
 
 /**
@@ -88,6 +93,7 @@ export async function runManualBoundedDiscovery(
   let report:
     Extract<ManualBoundedDiscoveryResult, { ok: true }>["report"] | undefined;
   let handoffFailed = false;
+  let captureRejection: CaptureRejectionCode | undefined;
   const write: RedactedProbeArtifactWriter = async (capture) => {
     const provenance = capture.discovery_profile_provenance;
     if (!provenance) {
@@ -127,7 +133,14 @@ export async function runManualBoundedDiscovery(
     };
   };
 
-  const captureHandoff = createRedactingProbeCaptureHandoff({ write });
+  const redactingHandoff = createRedactingProbeCaptureHandoff({ write });
+  const captureHandoff = {
+    async handoff(input: Parameters<typeof redactingHandoff.handoff>[0]) {
+      const result = await redactingHandoff.handoff(input);
+      if (!result.ok) captureRejection = result.error.code;
+      return result;
+    },
+  };
   const probed = await runProfiledListingDiscovery(
     {
       contract_version: input.contract_version,
@@ -148,6 +161,11 @@ export async function runManualBoundedDiscovery(
       },
     };
   }
+  if (captureRejection)
+    return {
+      ok: false,
+      error: { code: "capture_rejected", reason: captureRejection },
+    };
   if (handoffFailed)
     return { ok: false, error: { code: "capture_handoff_failed" } };
   if (probed.value.outcome.kind !== "completed")

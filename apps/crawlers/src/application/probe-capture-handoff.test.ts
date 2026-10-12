@@ -54,7 +54,23 @@ describe("redacting probe capture handoff", () => {
         content_type: "text/plain",
         original_bytes: new Uint8Array([0, 1]),
       }),
-    ).resolves.toEqual({ ok: false });
+    ).resolves.toEqual({ ok: false, error: { code: "prohibited_data" } });
     expect(write).not.toHaveBeenCalled();
+  });
+
+  it("returns a typed writer rejection without exposing source bytes", async () => {
+    const handoff = createRedactingProbeCaptureHandoff({
+      write: async () => {
+        throw new Error("disk unavailable");
+      },
+    });
+    await expect(
+      handoff.handoff({
+        source_key: "source-a",
+        response_url: "https://fixtures.example/listings",
+        content_type: "text/plain",
+        original_bytes: new TextEncoder().encode("rent 1800000 COP"),
+      }),
+    ).resolves.toEqual({ ok: false, error: { code: "artifact_write_failed" } });
   });
 });

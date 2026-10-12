@@ -182,3 +182,49 @@ describe("manual bounded discovery", () => {
     },
   );
 });
+
+describe("manual bounded discovery capture diagnostics", () => {
+  it("reports a sanitized capture rejection instead of collapsing it into transport failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "rent-yield-manual-"));
+    roots.push(root);
+    const result = await runManualBoundedDiscovery(
+      {
+        contract_version: "v1",
+        source_key: "ciencuadras",
+        probe_id: "manual-probe-rejection",
+        as_of: "2026-10-12T00:00:00.000Z",
+        kill_switch: false,
+        dry_run: false,
+      },
+      {
+        profiles: profiles(),
+        transport: {
+          resolve: async () => ({
+            kind: "resolved",
+            addresses: ["93.184.216.34"],
+          }),
+          request: async (input) => ({
+            kind: "response",
+            connected_address: input.validated_addresses[0]!,
+            response: {
+              status_code: 200,
+              content_type: "text/plain",
+              body: new Uint8Array([0, 1]),
+              classification: "listing_discovery",
+              discovered_urls: [],
+            },
+          }),
+        },
+        clock,
+        sourceBudget: new MemorySourceBudget(),
+        fixtureRoot: root,
+        materialize: async () => ({ ok: false }),
+        quarantine: async () => ({ reason: "unused" }),
+      },
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "capture_rejected", reason: "prohibited_data" },
+    });
+  });
+});
