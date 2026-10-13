@@ -12,7 +12,7 @@ import { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profil
 
 const activeProfile = {
   source_key: "ciencuadras",
-  profile_version: 1,
+  profile_version: 2,
   state: "active",
   scope: {
     country_code: "CO",
@@ -36,16 +36,20 @@ const activeProfile = {
     kind: "html_anchor_href",
     extractor_version: "html-anchor-href-v1",
     candidate_hosts: ["www.ciencuadras.com"],
-    candidate_path_prefixes: ["/reviewed-listings/"],
+    extractor_artifact_sha256:
+      "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+    candidate_path_prefixes: ["/inmueble/"],
     allow_no_candidates: true,
+    allow_no_candidates_rationale:
+      "A valid discovery page can expose no qualifying /inmueble/ anchors without invalidating capture.",
   },
 } satisfies DiscoveryProfileV1;
 
 const activeProfileProvenance = {
   source_key: "ciencuadras",
-  profile_version: 1,
+  profile_version: 2,
   profile_sha256:
-    "d17dff8df35783f6f70dabe8f9b285955eafa351a07c361d2b158a2e510c0db3",
+    "c5d63a80998f99e5f0659664982e66801f21bffe17dc2a7bcc7dbb091fc7bd9a",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -147,10 +151,16 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         ...activeProfile,
         extraction: {
           ...activeProfile.extraction,
-          candidate_path_prefixes: [
-            "/reviewed-listings/",
-            "/reviewed-listings/",
-          ],
+          candidate_path_prefixes: ["/inmueble/", "/inmueble/"],
+        },
+      },
+    ]);
+    const invalidArtifact = await writeRegistry([
+      {
+        ...activeProfile,
+        extraction: {
+          ...activeProfile.extraction,
+          extractor_artifact_sha256: "not-a-sha256",
         },
       },
     ]);
@@ -170,6 +180,11 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         path: ambiguousPrefix,
       }).findActiveBySourceKey({ source_key: "ciencuadras" }),
     ).rejects.toThrow();
+    await expect(
+      new JsonFileDiscoveryProfileRepository({
+        path: invalidArtifact,
+      }).findActiveBySourceKey({ source_key: "ciencuadras" }),
+    ).rejects.toThrow();
   });
 
   it("does not expose an extractor provenance until Storage marks a rule reviewed", () => {
@@ -182,8 +197,10 @@ describe("JsonFileDiscoveryProfileRepository", () => {
     expect(deriveDiscoveryExtractionProvenance(activeProfile)).toEqual({
       kind: "html_anchor_href",
       version: "html-anchor-href-v1",
+      extractor_artifact_sha256:
+        "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
       config_sha256:
-        "ed168bef8b00891f6a33900e20a5ca9befc57279f0ed52890aeb244f8b4ec789",
+        "e4bf38048ec506752ec5f32e1533279be18aa8dcc9dfd207443e74ff32cd19b3",
     });
   });
 
@@ -193,7 +210,7 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         ...activeProfile,
         extraction: {
           ...activeProfile.extraction,
-          extractor_version: "html-anchor-href-v2",
+          extractor_artifact_sha256: "c".repeat(64),
         },
       }),
     ).not.toEqual(activeProfileProvenance);
@@ -223,12 +240,11 @@ describe("JsonFileDiscoveryProfileRepository", () => {
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
     ).resolves.toEqual({
       ...activeProfile,
-      extraction: { state: "unreviewed" },
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 1,
+        profile_version: 2,
         profile_sha256:
-          "5a9e72d87a402ae25dee06123f3b1572295a12683502df6bc0bd8432aa5b5de7",
+          "c5d63a80998f99e5f0659664982e66801f21bffe17dc2a7bcc7dbb091fc7bd9a",
       },
     });
   });
