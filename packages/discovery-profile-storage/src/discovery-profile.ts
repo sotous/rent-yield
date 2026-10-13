@@ -19,6 +19,18 @@ const pathPrefixSchema = z
       !value.split("/").includes(".."),
     "Expected an absolute path prefix without authority, traversal, query, or fragment",
   );
+const reviewedExtractionRuleSchema = z.strictObject({
+  state: z.literal("reviewed"),
+  kind: z.literal("html_anchor_href"),
+  extractor_version: sourceKeySchema,
+  candidate_hosts: z.array(hostnameSchema).min(1),
+  candidate_path_prefixes: z.array(pathPrefixSchema).min(1),
+  allow_no_candidates: z.boolean(),
+});
+const extractionRuleSchema = z.discriminatedUnion("state", [
+  z.strictObject({ state: z.literal("unreviewed") }),
+  reviewedExtractionRuleSchema,
+]);
 const budgetSchema = z
   .strictObject({
     max_requests: positiveSafeIntegerSchema,
@@ -68,6 +80,7 @@ export const discoveryProfileV1Schema = z
     robots_path: pathPrefixSchema,
     discovery_path: pathPrefixSchema,
     budget: budgetSchema,
+    extraction: extractionRuleSchema,
     permitted_media_types: z
       .array(z.enum(["application/json", "text/html", "text/plain"]))
       .min(1)
@@ -91,7 +104,17 @@ export const discoveryProfileV1Schema = z
       message:
         "Discovery path must be deliberately included in the allowed request paths",
     },
-  );
+  )
+  .superRefine((profile, context) => {
+    if (profile.extraction.state !== "reviewed") return;
+    for (const [index, host] of profile.extraction.candidate_hosts.entries())
+      if (!profile.allowed_hosts.includes(host))
+        context.addIssue({
+          code: "custom",
+          path: ["extraction", "candidate_hosts", index],
+          message: "Candidate hosts must be within the profile allowed hosts",
+        });
+  });
 
 export const discoveryProfileRegistryV1Schema = z
   .strictObject({
@@ -139,6 +162,15 @@ export const discoveryProfileProvenanceSchema = z.strictObject({
   profile_sha256: profileSha256Schema,
 });
 export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
+export type DiscoveryExtractionRuleV1 = z.infer<typeof extractionRuleSchema>;
+export type ReviewedDiscoveryExtractionRuleV1 = z.infer<
+  typeof reviewedExtractionRuleSchema
+>;
+export type DiscoveryExtractionProvenance = {
+  kind: ReviewedDiscoveryExtractionRuleV1["kind"];
+  version: string;
+  config_sha256: string;
+};
 export type DiscoveryProfileRegistryV1 = z.infer<
   typeof discoveryProfileRegistryV1Schema
 >;
@@ -180,8 +212,43 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
       max_concurrency: profile.budget.max_concurrency,
       max_source_requests: profile.budget.max_source_requests,
     },
+    extraction:
+      profile.extraction.state === "reviewed"
+        ? {
+            state: profile.extraction.state,
+            kind: profile.extraction.kind,
+            extractor_version: profile.extraction.extractor_version,
+            candidate_hosts: profile.extraction.candidate_hosts,
+            candidate_path_prefixes: profile.extraction.candidate_path_prefixes,
+            allow_no_candidates: profile.extraction.allow_no_candidates,
+          }
+        : { state: profile.extraction.state },
     permitted_media_types: profile.permitted_media_types,
   });
+}
+
+export function deriveDiscoveryExtractionProvenance(
+  input: DiscoveryProfileV1,
+): DiscoveryExtractionProvenance | null {
+  const profile = discoveryProfileV1Schema.parse(input);
+  const rule = profile.extraction;
+  if (rule.state !== "reviewed") return null;
+  return {
+    kind: rule.kind,
+    version: rule.extractor_version,
+    config_sha256: createHash("sha256")
+      .update(
+        JSON.stringify({
+          kind: rule.kind,
+          extractor_version: rule.extractor_version,
+          candidate_hosts: rule.candidate_hosts,
+          candidate_path_prefixes: rule.candidate_path_prefixes,
+          allow_no_candidates: rule.allow_no_candidates,
+        }),
+        "utf8",
+      )
+      .digest("hex"),
+  };
 }
 
 /**

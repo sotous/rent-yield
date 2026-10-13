@@ -31,6 +31,7 @@ const activeProfile = {
     max_concurrency: 1,
     max_source_requests: 2,
   },
+  extraction: { state: "unreviewed" },
   permitted_media_types: ["text/plain", "text/html", "application/json"],
 } satisfies DiscoveryProfileV1;
 

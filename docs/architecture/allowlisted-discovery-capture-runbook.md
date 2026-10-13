@@ -15,6 +15,21 @@ candidate path prefixes. Command flags select only the source key, profile
 file, and an explicit observation-output location; they cannot widen that
 configuration.
 
+## Current live status
+
+Live execution is blocked. The current Ciencuadras profile has an
+`unreviewed` extraction rule, so it intentionally supplies no candidate
+host/path policy to the extractor. The 2026-10-12 bounded response established
+only that robots-first transport completed; its whole-page capture was rejected
+and no artifact was retained. It cannot be used to infer a candidate route.
+
+The next unblocker is a reviewed, versioned Storage extraction rule with the
+exact candidate host and non-empty path-prefix allowlist, an extractor version
+matching the shipped generic extractor, and passing offline profile,
+extractor, observation-writer, and command checks. A successful dry run then
+verifies that exact configuration without network access. It does not itself
+authorize a request or broaden the rule.
+
 ## Preconditions
 
 - The merged tree contains the approved extraction profile with one exact,
