@@ -135,7 +135,7 @@ describe("manual bounded discovery", () => {
           quarantine: { reason: "parser_not_selected" },
           discovery_profile_provenance: {
             source_key: "ciencuadras",
-            profile_version: 1,
+            profile_version: 3,
             profile_sha256: expect.any(String),
           },
         },
@@ -154,9 +154,9 @@ describe("manual bounded discovery", () => {
     expect(materializedInputs[0]).toMatchObject({
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 1,
+        profile_version: 3,
         profile_sha256:
-          "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
+          "7e5e00ea00f72ba02226a35e90a83f97327c6a6d11026ab8c34ba62ea5f7f9f8",
       },
     });
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(
@@ -204,4 +204,64 @@ describe("manual bounded discovery", () => {
       expect(quarantine).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("manual bounded discovery capture diagnostics", () => {
+  it("reports a sanitized capture rejection instead of collapsing it into transport failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "rent-yield-manual-"));
+    roots.push(root);
+    const result = await runManualBoundedDiscovery(
+      {
+        contract_version: "v1",
+        source_key: "ciencuadras",
+        probe_id: "manual-probe-rejection",
+        as_of: "2026-10-12T00:00:00.000Z",
+        kill_switch: false,
+        dry_run: false,
+      },
+      {
+        profiles: profiles(),
+        transport: {
+          resolve: async () => ({
+            kind: "resolved",
+            addresses: ["93.184.216.34"],
+          }),
+          request: async (input) =>
+            input.url.endsWith("/robots.txt")
+              ? {
+                  kind: "response",
+                  connected_address: input.validated_addresses[0]!,
+                  response: {
+                    status_code: 200,
+                    content_type: "text/plain",
+                    body: new TextEncoder().encode(
+                      "User-agent: *\\nDisallow:\\n",
+                    ),
+                    classification: "robots_policy" as never,
+                  },
+                }
+              : {
+                  kind: "response",
+                  connected_address: input.validated_addresses[0]!,
+                  response: {
+                    status_code: 200,
+                    content_type: "text/plain",
+                    body: new Uint8Array([0, 1]),
+                    classification: "listing_discovery",
+                    discovered_urls: [],
+                  },
+                },
+        },
+        clock,
+        sourceBudget: new MemorySourceBudget(),
+        fixtureRoot: root,
+        materialize: async () => ({ ok: false }),
+        quarantine: async () => ({ reason: "unused" }),
+      },
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "capture_rejected", reason: "prohibited_data" },
+    });
+  });
 });

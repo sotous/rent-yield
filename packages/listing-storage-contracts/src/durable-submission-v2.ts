@@ -11,7 +11,8 @@ import {
 } from "./primitives.js";
 
 const v2 = z.literal("v2");
-export const MAX_INLINE_REDACTED_BYTES_V2 = 65_536;
+/** MVP technical failsafe for a fully redacted inline fixture, not a source gate. */
+export const MAX_INLINE_REDACTED_BYTES_V2 = 10 * 1024 * 1024;
 const identitySchema = z.strictObject({
   source_key: identifierSchema,
   capture_event_id: identifierSchema,

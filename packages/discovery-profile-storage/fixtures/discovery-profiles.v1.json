@@ -3,7 +3,7 @@
   "profiles": [
     {
       "source_key": "ciencuadras",
-      "profile_version": 1,
+      "profile_version": 3,
       "state": "active",
       "scope": {
         "country_code": "CO",
@@ -17,7 +17,7 @@
       "discovery_path": "/arriendo/barranquilla",
       "budget": {
         "max_requests": 2,
-        "max_bytes": 65536,
+        "max_bytes": 10485760,
         "max_duration_ms": 10000,
         "max_redirects": 1,
         "max_concurrency": 1,

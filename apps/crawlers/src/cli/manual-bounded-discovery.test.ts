@@ -93,7 +93,7 @@ describe("manual bounded-discovery CLI", () => {
       mode: "dry_run",
       source_key: "ciencuadras",
       discovery_profile_provenance: {
-        profile_version: 1,
+        profile_version: 3,
       },
     });
   });

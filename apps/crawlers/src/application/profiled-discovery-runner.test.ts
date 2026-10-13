@@ -174,7 +174,7 @@ describe("profiled bounded discovery runner", () => {
     const handoff = {
       handoff: vi.fn(async (input: unknown) => {
         captured.push(input);
-        return { ok: true };
+        return { ok: true as const };
       }),
     };
     await expect(
@@ -216,9 +216,9 @@ describe("profiled bounded discovery runner", () => {
       expect.objectContaining({
         discovery_profile_provenance: {
           source_key: "ciencuadras",
-          profile_version: 1,
+          profile_version: 3,
           profile_sha256:
-            "1a96cdea09813f85f6cb608503bb10ec129f0abef606a0ea43a0cdc735efad67",
+            "7e5e00ea00f72ba02226a35e90a83f97327c6a6d11026ab8c34ba62ea5f7f9f8",
         },
       }),
     );
@@ -247,7 +247,9 @@ describe("profiled bounded discovery runner", () => {
   });
 
   it("stops before capture when the response media type is outside Storage's active profile", async () => {
-    const handoff = { handoff: vi.fn(async () => ({ ok: true })) };
+    const handoff = {
+      handoff: vi.fn(async () => ({ ok: true as const })),
+    };
     const plainTextTransport: ProbeTransport = {
       resolve: async () => ({
         kind: "resolved",

@@ -194,9 +194,74 @@ The ergonomics are appropriate for an MVP operator: dry run is explicit and
 network-free, while live mode remains an opt-in command requiring separately
 supplied writable output location and fixture ID.
 
-Offline validation passed across the workspace. No live source request has
-been made; after merge, run the same dry-run command from `main`, review its
-sanitized output, then obtain explicit authorization for the one live command.
+Offline validation passed across the workspace. The later authorized live run
+is recorded in the iteration below; any subsequent run still requires a
+merged-main dry run and new explicit authorization.
+
+## Canary iteration 2 — 2026-10-12
+
+The first authorized run proved the robots-first sequence and all stopping
+boundaries. Its robots response used 580 bytes; the discovery response reached
+the remaining 64,956 bytes, exhausting the 65,536-byte total budget before a
+complete body could be redacted. The command retained no original body and
+wrote no fixture.
+
+This iteration changed only the Storage-owned `max_bytes` budget from 65,536
+bytes (64 KiB) to 262,144 bytes (256 KiB). It preserved one robots-policy
+request followed by at most one discovery request, one redirect, one concurrent
+request, ten-second duration, the same host/path/media scope, and every typed
+stop condition. The separately authorized run also exhausted this budget, after
+receiving 261,564 discovery bytes; no fixture or original body was retained.
+
+Success is a complete bounded discovery response that can pass redaction and
+produce a source-derived fixture or a typed quarantine result. A second budget
+exhaustion remains a valid stop and triggers evidence review rather than an
+automatic limit increase.
+
+## Canary iteration 3 — 2026-10-12
+
+The first two attempts established that the configured discovery page exceeds
+both 64 KiB and 256 KiB. For the MVP, byte size is not a source-approval or
+business gate: the active Storage profile now uses a 10 MiB technical failsafe
+(`max_bytes: 10,485,760`) to prevent an unbounded in-memory response while
+allowing ordinary modern listing pages to complete. The profile is advanced to
+version 3 so any fixture or receipt attributes this change unambiguously.
+
+The request count, duration, redirects, concurrency, host/path scope, media
+policy, robots-first order, redaction-before-write rule, and all typed blocks
+remain unchanged. This explicit user-authorized invocation tests the new
+profile once; it does not establish a precedent for automatic retries or a
+further automatic limit increase.
+
+## Canary iteration 4 — 2026-10-12
+
+The version-3 run received the complete 496,229-byte discovery response within
+the 10 MiB transport cap. It then exposed a separate, older 64 KiB
+inline-redacted-fixture contract limit: the artifact handoff correctly declined
+to persist an oversized redacted payload, but reported it as a generic
+`transport_error`.
+
+For the MVP, the inline redacted-fixture limit is raised to the same 10 MiB
+technical failsafe. The handoff now emits the explicit
+`capture_limit_exceeded` typed stop if that limit is reached in the future.
+This preserves redaction-before-write and raw-body disposal; it does not retain
+an original response or broaden any live request scope.
+
+## Canary iteration 5 — 2026-10-12
+
+With both the transport and inline-fixture limits at 10 MiB, the next
+authorized run again completed the 496,229-byte discovery response (496,809
+bytes including robots) in 2.264 seconds and made no redirects. No fixture was
+written because the in-memory capture path rejected the HTML before its writer,
+but the old result exposed this only as `transport_error`.
+
+The remediation keeps that rejection raw-free and observable: HTML may first
+strip removable media and `data-*` attributes, then must pass the final
+prohibited-data scan; non-HTML embedded binary and any remaining prohibited
+data still stop. Manual output now returns a constrained `capture_rejected`
+reason (rather than an ambiguous transport failure). No live retry is made by
+the remediation itself; one remains separately user-authorized work after
+review of the merged change.
 
 ## Execution task set
 

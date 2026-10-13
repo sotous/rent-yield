@@ -107,7 +107,10 @@ export type ProbeCaptureHandoff = {
     content_type: string | null;
     original_bytes: Uint8Array;
     discovery_profile_provenance?: DiscoveryProfileProvenance;
-  }): Promise<{ ok: boolean }>;
+  }): Promise<
+    | { ok: true }
+    | { ok: false; reason: "capture_limit_exceeded" | "capture_rejected" }
+  >;
 };
 
 export type ProbeDependencies = {
@@ -603,7 +606,12 @@ export async function probeListingDiscovery(
               }
             : {}),
         });
-        if (!handoff.ok) return stop("transport_error");
+        if (!handoff.ok)
+          return stop(
+            handoff.reason === "capture_limit_exceeded"
+              ? "capture_limit_exceeded"
+              : "transport_error",
+          );
       } catch {
         return stop("transport_error");
       }

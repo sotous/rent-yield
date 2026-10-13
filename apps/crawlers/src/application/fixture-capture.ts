@@ -351,6 +351,8 @@ function sanitizeHtmlAttributes(
     const name = attribute.name.toLowerCase();
     if (
       name.startsWith("on") ||
+      attribute.value.trim().toLowerCase().startsWith("data:") ||
+      (name.startsWith("data-") && /(image|media|src|url)/iu.test(name)) ||
       name === "style" ||
       name === "src" ||
       name === "srcset" ||
@@ -370,7 +372,8 @@ function sanitizeHtmlAttributes(
 
 function sanitizeHtmlChildren(
   parent:
-    DefaultTreeAdapterTypes.DocumentFragment | DefaultTreeAdapterTypes.Element,
+    | DefaultTreeAdapterTypes.DocumentFragment
+    | DefaultTreeAdapterTypes.Element,
   inheritedCategory: string | null = null,
 ): void {
   parent.childNodes =

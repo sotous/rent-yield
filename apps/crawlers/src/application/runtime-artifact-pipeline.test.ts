@@ -46,8 +46,10 @@ describe("fixture runtime artifact pipeline", () => {
     const result = await prepareFixtureArtifact(
       {
         content_type: "text/plain",
+        // Separators avoid exercising pathological long-token regex cases;
+        // this test is concerned with the byte-retention boundary.
         original_bytes: new TextEncoder().encode(
-          "a".repeat(MAX_INLINE_REDACTED_BYTES_V2 + 1),
+          "safe ".repeat(Math.ceil((MAX_INLINE_REDACTED_BYTES_V2 + 1) / 5)),
         ),
         disposition: "inline_redacted",
       },
@@ -82,5 +84,30 @@ describe("fixture runtime artifact pipeline", () => {
     });
 
     expect(dispose).toHaveBeenCalledOnce();
+  });
+});
+
+// Regression: a real bounded HTML discovery response may include removable
+// embedded-media attributes. They must be stripped before final safety scan.
+describe("HTML embedded-media sanitization", () => {
+  it("removes data attributes and embedded-media tags before the final prohibited scan", async () => {
+    const result = await prepareFixtureArtifact(
+      {
+        content_type: "text/html",
+        original_bytes: new TextEncoder().encode(
+          '<div data-image="data:image/png;base64,AAAA">rent 1800000 COP</div><img src="data:image/png;base64,BBBB">',
+        ),
+        disposition: "inline_redacted",
+      },
+      { disposeOriginal: () => undefined },
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      artifact: { kind: "inline_redacted" },
+    });
+    if (result.ok && result.artifact.kind === "inline_redacted") {
+      expect(result.artifact.bytes).not.toContain("data:");
+      expect(result.artifact.bytes).not.toContain("<img");
+    }
   });
 });
