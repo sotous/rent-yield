@@ -7,15 +7,20 @@ import {
   researchScopeSchema,
   type ProbeResponseEvidence,
   type ProbeResult,
+  type DiscoveryObservationV1,
 } from "@rent-yield/listing-storage-contracts";
 import { z } from "zod";
-import type { DiscoveryProfileProvenance } from "@rent-yield/discovery-profile-storage";
+import type {
+  DiscoveryExtractionRuleV1,
+  DiscoveryProfileProvenance,
+} from "@rent-yield/discovery-profile-storage";
 import type {
   ProbeAccessGate,
   ProbeClock,
   ProbeTransport,
   ProbeTransportOutcome,
 } from "../ports/probe-transport.js";
+import type { DiscoveryResponseProcessor } from "./discovery-response-processor.js";
 
 const hostnameSchema = z
   .string()
@@ -117,6 +122,9 @@ export type ProbeDependencies = {
   transport: ProbeTransport;
   access?: ProbeAccessGate;
   captureHandoff?: ProbeCaptureHandoff;
+  discoveryResponseProcessor?: DiscoveryResponseProcessor;
+  discoveryExtraction?: DiscoveryExtractionRuleV1;
+  discoveryExtractionProvenance?: DiscoveryObservationV1["extractor"] | null;
   discoveryProfileProvenance?: DiscoveryProfileProvenance;
   clock: ProbeClock;
   sourceBudget: MemorySourceBudget;
@@ -612,6 +620,48 @@ export async function probeListingDiscovery(
               ? "capture_limit_exceeded"
               : "transport_error",
           );
+      } catch {
+        return stop("transport_error");
+      }
+    }
+    if (dependencies.discoveryResponseProcessor) {
+      if (command.scope.capability !== "discovery") {
+        response.body.fill(0);
+        return stop("transport_error");
+      }
+      const discoveryProfileProvenance =
+        dependencies.discoveryProfileProvenance;
+      const discoveryExtraction = dependencies.discoveryExtraction;
+      if (!discoveryProfileProvenance || !discoveryExtraction) {
+        // A processor must never receive a body without Storage-owned
+        // provenance and an explicit rule. Dispose it before the typed stop.
+        response.body.fill(0);
+        return stop("transport_error");
+      }
+      try {
+        const processed = await dependencies.discoveryResponseProcessor.process(
+          {
+            source_key: command.scope.source_key,
+            scope: {
+              country_code: command.scope.country_code,
+              city_key: command.scope.city_key,
+              capability: command.scope.capability,
+              listing_roles: command.scope.listing_roles,
+            },
+            response_url: evidenceUrl,
+            content_type: response.content_type,
+            original_bytes: response.body,
+            response: {
+              canonical_url: evidenceUrl,
+              body_sha256: digest(response.body),
+              body_byte_length: response.body.byteLength,
+            },
+            discovery_profile_provenance: discoveryProfileProvenance,
+            extraction: discoveryExtraction,
+            extractor: dependencies.discoveryExtractionProvenance ?? null,
+          },
+        );
+        if (!processed.ok) return stop("transport_error");
       } catch {
         return stop("transport_error");
       }

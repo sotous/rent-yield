@@ -27,10 +27,12 @@ export const discoveryProfileProvenanceV1Schema = z.strictObject({
   profile_sha256: sha256Schema,
 });
 
+/** Versioned Storage configuration identity for the generic extractor. */
 export const discoveryExtractionRuleV1Schema = z.strictObject({
   kind: z.literal("html_anchor_href"),
   version: identifierSchema,
   config_sha256: sha256Schema,
+  artifact_sha256: sha256Schema,
 });
 
 export const discoveryObservationV1Schema = z

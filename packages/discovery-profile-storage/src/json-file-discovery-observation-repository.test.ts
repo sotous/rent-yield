@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,6 +26,7 @@ const observation = {
     kind: "html_anchor_href",
     version: "html-anchor-href-v1",
     config_sha256: "b".repeat(64),
+    artifact_sha256: "d".repeat(64),
   },
   response: {
     canonical_url: "https://source.example/search",
@@ -71,6 +72,16 @@ describe("JsonFileDiscoveryObservationRepository", () => {
     await expect(
       repository.append({ ...observation, observation_id: "observation-2" }),
     ).rejects.toThrow("already contains a different observation");
+  });
+
+  it("rejects a malformed existing target without replacing it", async () => {
+    const path = await destination();
+    await writeFile(path, "{ not-json", "utf8");
+
+    await expect(
+      new JsonFileDiscoveryObservationRepository({ path }).append(observation),
+    ).rejects.toThrow("invalid JSON");
+    await expect(readFile(path, "utf8")).resolves.toBe("{ not-json");
   });
 
   it("rejects invalid data before creating a file", async () => {

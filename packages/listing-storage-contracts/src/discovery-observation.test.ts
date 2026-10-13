@@ -25,6 +25,7 @@ const observation = {
     kind: "html_anchor_href",
     version: "html-anchor-href-v1",
     config_sha256: "b".repeat(64),
+    artifact_sha256: "d".repeat(64),
   },
   response: {
     canonical_url: "https://www.ciencuadras.com/arriendo/barranquilla",

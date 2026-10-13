@@ -3,6 +3,8 @@ import type {
   ActiveDiscoveryProfileV1,
   DiscoveryProfileRepository,
 } from "@rent-yield/discovery-profile-storage";
+import { deriveDiscoveryExtractionProvenance } from "@rent-yield/discovery-profile-storage";
+import { htmlAnchorHrefExtractor } from "./discovery-response-extractor.js";
 import {
   MemorySourceBudget,
   probeListingDiscovery,
@@ -18,7 +20,10 @@ const commandSchema = z.strictObject({
 
 type ProfiledDiscoveryDependencies = Omit<
   ProbeDependencies,
-  "access" | "discoveryProfileProvenance"
+  | "access"
+  | "discoveryExtraction"
+  | "discoveryExtractionProvenance"
+  | "discoveryProfileProvenance"
 > & {
   profiles: DiscoveryProfileRepository;
 };
@@ -95,6 +100,22 @@ export async function runProfiledListingDiscovery(
       clock: dependencies.clock,
       sourceBudget: dependencies.sourceBudget,
       discoveryProfileProvenance: profile.discovery_profile_provenance,
+      discoveryExtraction: profile.extraction,
+      discoveryExtractionProvenance:
+        (() => {
+          const provenance = deriveDiscoveryExtractionProvenance(profile);
+          return provenance
+            ? {
+                ...provenance,
+                artifact_sha256: htmlAnchorHrefExtractor.sha256,
+              }
+            : null;
+        })(),
+      ...(dependencies.discoveryResponseProcessor
+        ? {
+            discoveryResponseProcessor: dependencies.discoveryResponseProcessor,
+          }
+        : {}),
       ...(dependencies.captureHandoff
         ? { captureHandoff: dependencies.captureHandoff }
         : {}),

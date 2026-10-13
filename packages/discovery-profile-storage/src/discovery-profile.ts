@@ -230,7 +230,11 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
 export function deriveDiscoveryExtractionProvenance(
   input: DiscoveryProfileV1,
 ): DiscoveryExtractionProvenance | null {
-  const profile = discoveryProfileV1Schema.parse(input);
+  const { discovery_profile_provenance: _provenance, ...unboundProfile } =
+    input as DiscoveryProfileV1 & {
+      discovery_profile_provenance?: unknown;
+    };
+  const profile = discoveryProfileV1Schema.parse(unboundProfile);
   const rule = profile.extraction;
   if (rule.state !== "reviewed") return null;
   return {
