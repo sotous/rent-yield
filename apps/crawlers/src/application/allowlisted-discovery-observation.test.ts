@@ -36,6 +36,10 @@ const profile: ActiveDiscoveryProfileV1 = {
     state: "reviewed",
     kind: "html_anchor_href",
     extractor_version: "html-anchor-href-v1",
+    extractor_artifact_sha256:
+      "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+    allow_no_candidates_rationale:
+      "A valid discovery response can contain no matching anchors.",
     candidate_hosts: ["listings.example.com"],
     candidate_path_prefixes: ["/rentals"],
     allow_no_candidates: true,

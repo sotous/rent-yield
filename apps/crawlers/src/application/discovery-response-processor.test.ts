@@ -11,6 +11,10 @@ const extraction = {
   state: "reviewed" as const,
   kind: "html_anchor_href" as const,
   extractor_version: "html-anchor-href-v1",
+  extractor_artifact_sha256:
+    "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+  allow_no_candidates_rationale:
+    "A valid discovery response can contain no matching anchors.",
   candidate_hosts: ["listings.example.com"],
   candidate_path_prefixes: ["/rentals"],
   allow_no_candidates: true,
@@ -78,7 +82,7 @@ describe("discovery response processor", () => {
       }),
     });
     expect(JSON.stringify(append.mock.calls)).not.toContain("<a href");
-    expect(JSON.stringify(append.mock.calls)).not.toContain("/search\">two");
+    expect(JSON.stringify(append.mock.calls)).not.toContain('/search">two');
   });
 
   it("returns a typed no-candidates result without writing when the rule disallows it", async () => {

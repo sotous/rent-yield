@@ -4,7 +4,6 @@ import type {
   DiscoveryProfileRepository,
 } from "@rent-yield/discovery-profile-storage";
 import { deriveDiscoveryExtractionProvenance } from "@rent-yield/discovery-profile-storage";
-import { htmlAnchorHrefExtractor } from "./discovery-response-extractor.js";
 import {
   MemorySourceBudget,
   probeListingDiscovery,
@@ -101,16 +100,17 @@ export async function runProfiledListingDiscovery(
       sourceBudget: dependencies.sourceBudget,
       discoveryProfileProvenance: profile.discovery_profile_provenance,
       discoveryExtraction: profile.extraction,
-      discoveryExtractionProvenance:
-        (() => {
-          const provenance = deriveDiscoveryExtractionProvenance(profile);
-          return provenance
-            ? {
-                ...provenance,
-                artifact_sha256: htmlAnchorHrefExtractor.sha256,
-              }
-            : null;
-        })(),
+      discoveryExtractionProvenance: (() => {
+        const provenance = deriveDiscoveryExtractionProvenance(profile);
+        return provenance
+          ? {
+              kind: provenance.kind,
+              version: provenance.version,
+              config_sha256: provenance.config_sha256,
+              artifact_sha256: provenance.extractor_artifact_sha256,
+            }
+          : null;
+      })(),
       ...(dependencies.discoveryResponseProcessor
         ? {
             discoveryResponseProcessor: dependencies.discoveryResponseProcessor,
