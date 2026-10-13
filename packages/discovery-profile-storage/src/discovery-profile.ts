@@ -3,6 +3,8 @@ import { z } from "zod";
 
 const sourceKeySchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/);
 const positiveSafeIntegerSchema = z.number().int().positive().safe();
+const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+const reviewedRationaleSchema = z.string().trim().min(1).max(1024);
 const hostnameSchema = z
   .string()
   .regex(
@@ -23,14 +25,29 @@ const reviewedExtractionRuleSchema = z.strictObject({
   state: z.literal("reviewed"),
   kind: z.literal("html_anchor_href"),
   extractor_version: sourceKeySchema,
-  candidate_hosts: z.array(hostnameSchema).min(1),
-  candidate_path_prefixes: z.array(pathPrefixSchema).min(1),
+  extractor_artifact_sha256: sha256Schema,
+  candidate_hosts: z
+    .array(hostnameSchema)
+    .min(1)
+    .refine(
+      (hosts) => new Set(hosts).size === hosts.length,
+      "Candidate hosts must be unique",
+    ),
+  candidate_path_prefixes: z
+    .array(pathPrefixSchema)
+    .min(1)
+    .refine(
+      (paths) => new Set(paths).size === paths.length,
+      "Candidate path prefixes must be unique",
+    ),
   allow_no_candidates: z.boolean(),
+  allow_no_candidates_rationale: reviewedRationaleSchema,
 });
 const extractionRuleSchema = z.discriminatedUnion("state", [
   z.strictObject({ state: z.literal("unreviewed") }),
   reviewedExtractionRuleSchema,
 ]);
+
 const budgetSchema = z
   .strictObject({
     max_requests: positiveSafeIntegerSchema,
@@ -77,8 +94,6 @@ export const discoveryProfileV1Schema = z
         (paths) => new Set(paths).size === paths.length,
         "Allowed path prefixes must be unique",
       ),
-    robots_path: pathPrefixSchema,
-    discovery_path: pathPrefixSchema,
     budget: budgetSchema,
     extraction: extractionRuleSchema,
     permitted_media_types: z
@@ -89,22 +104,6 @@ export const discoveryProfileV1Schema = z
         "Media types must be unique",
       ),
   })
-  .refine(
-    (profile) => profile.allowed_path_prefixes.includes(profile.robots_path),
-    {
-      path: ["robots_path"],
-      message:
-        "Robots path must be deliberately included in the allowed request paths",
-    },
-  )
-  .refine(
-    (profile) => profile.allowed_path_prefixes.includes(profile.discovery_path),
-    {
-      path: ["discovery_path"],
-      message:
-        "Discovery path must be deliberately included in the allowed request paths",
-    },
-  )
   .superRefine((profile, context) => {
     if (profile.extraction.state !== "reviewed") return;
     for (const [index, host] of profile.extraction.candidate_hosts.entries())
@@ -154,14 +153,16 @@ export const discoveryProfileLookupSchema = z.strictObject({
   source_key: sourceKeySchema,
 });
 
-const profileSha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
-
 export const discoveryProfileProvenanceSchema = z.strictObject({
   source_key: sourceKeySchema,
   profile_version: positiveSafeIntegerSchema,
-  profile_sha256: profileSha256Schema,
+  profile_sha256: sha256Schema,
 });
+
 export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
+export type DiscoveryProfileRegistryV1 = z.infer<
+  typeof discoveryProfileRegistryV1Schema
+>;
 export type DiscoveryExtractionRuleV1 = z.infer<typeof extractionRuleSchema>;
 export type ReviewedDiscoveryExtractionRuleV1 = z.infer<
   typeof reviewedExtractionRuleSchema
@@ -169,11 +170,9 @@ export type ReviewedDiscoveryExtractionRuleV1 = z.infer<
 export type DiscoveryExtractionProvenance = {
   kind: ReviewedDiscoveryExtractionRuleV1["kind"];
   version: string;
+  extractor_artifact_sha256: string;
   config_sha256: string;
 };
-export type DiscoveryProfileRegistryV1 = z.infer<
-  typeof discoveryProfileRegistryV1Schema
->;
 export type DiscoveryProfileLookup = z.infer<
   typeof discoveryProfileLookupSchema
 >;
@@ -202,8 +201,6 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
     },
     allowed_hosts: profile.allowed_hosts,
     allowed_path_prefixes: profile.allowed_path_prefixes,
-    robots_path: profile.robots_path,
-    discovery_path: profile.discovery_path,
     budget: {
       max_requests: profile.budget.max_requests,
       max_bytes: profile.budget.max_bytes,
@@ -218,15 +215,20 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
             state: profile.extraction.state,
             kind: profile.extraction.kind,
             extractor_version: profile.extraction.extractor_version,
+            extractor_artifact_sha256:
+              profile.extraction.extractor_artifact_sha256,
             candidate_hosts: profile.extraction.candidate_hosts,
             candidate_path_prefixes: profile.extraction.candidate_path_prefixes,
             allow_no_candidates: profile.extraction.allow_no_candidates,
+            allow_no_candidates_rationale:
+              profile.extraction.allow_no_candidates_rationale,
           }
         : { state: profile.extraction.state },
     permitted_media_types: profile.permitted_media_types,
   });
 }
 
+/** Deterministic lineage for a reviewed Storage-owned candidate rule. */
 export function deriveDiscoveryExtractionProvenance(
   input: DiscoveryProfileV1,
 ): DiscoveryExtractionProvenance | null {
@@ -240,14 +242,17 @@ export function deriveDiscoveryExtractionProvenance(
   return {
     kind: rule.kind,
     version: rule.extractor_version,
+    extractor_artifact_sha256: rule.extractor_artifact_sha256,
     config_sha256: createHash("sha256")
       .update(
         JSON.stringify({
           kind: rule.kind,
           extractor_version: rule.extractor_version,
+          extractor_artifact_sha256: rule.extractor_artifact_sha256,
           candidate_hosts: rule.candidate_hosts,
           candidate_path_prefixes: rule.candidate_path_prefixes,
           allow_no_candidates: rule.allow_no_candidates,
+          allow_no_candidates_rationale: rule.allow_no_candidates_rationale,
         }),
         "utf8",
       )

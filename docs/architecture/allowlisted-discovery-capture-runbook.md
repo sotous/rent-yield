@@ -17,18 +17,17 @@ configuration.
 
 ## Current live status
 
-Live execution is blocked. The current Ciencuadras profile has an
-`unreviewed` extraction rule, so it intentionally supplies no candidate
-host/path policy to the extractor. The 2026-10-12 bounded response established
-only that robots-first transport completed; its whole-page capture was rejected
-and no artifact was retained. It cannot be used to infer a candidate route.
+The Ciencuadras profile now carries a reviewed, versioned candidate rule for
+generic `html_anchor_href` extraction: host `www.ciencuadras.com`, exact path
+prefix `/inmueble/`, and the versioned generic extractor artifact recorded in
+the profile. The rule is based on reviewed public indexed evidence; no source
+body is retained in the profile or runbook. It identifies listing candidates
+only—it does not classify every candidate as rental or residential.
 
-The next unblocker is a reviewed, versioned Storage extraction rule with the
-exact candidate host and non-empty path-prefix allowlist, an extractor version
-matching the shipped generic extractor, and passing offline profile,
-extractor, observation-writer, and command checks. A successful dry run then
-verifies that exact configuration without network access. It does not itself
-authorize a request or broaden the rule.
+`allow_no_candidates` is explicitly permitted because a valid discovery page
+can expose no qualifying `/inmueble/` anchors without invalidating capture. A
+successful dry run verifies this exact configuration without network access. It
+does not itself authorize a request or broaden the rule.
 
 ## Preconditions
 

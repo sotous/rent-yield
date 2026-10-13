@@ -3,7 +3,7 @@
   "profiles": [
     {
       "source_key": "ciencuadras",
-      "profile_version": 3,
+      "profile_version": 2,
       "state": "active",
       "scope": {
         "country_code": "CO",
@@ -12,20 +12,25 @@
         "listing_roles": ["for_rent"]
       },
       "allowed_hosts": ["www.ciencuadras.com"],
-      "allowed_path_prefixes": ["/robots.txt", "/arriendo/barranquilla"],
-      "robots_path": "/robots.txt",
-      "discovery_path": "/arriendo/barranquilla",
+      "allowed_path_prefixes": ["/arriendo/barranquilla"],
       "budget": {
         "max_requests": 2,
-        "max_bytes": 10485760,
+        "max_bytes": 65536,
         "max_duration_ms": 10000,
         "max_redirects": 1,
         "max_concurrency": 1,
         "max_source_requests": 2
       },
-      "permitted_media_types": ["text/plain", "text/html", "application/json"],
+      "permitted_media_types": ["text/html", "application/json"],
       "extraction": {
-        "state": "unreviewed"
+        "state": "reviewed",
+        "kind": "html_anchor_href",
+        "extractor_version": "html-anchor-href-v1",
+        "extractor_artifact_sha256": "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+        "candidate_hosts": ["www.ciencuadras.com"],
+        "candidate_path_prefixes": ["/inmueble/"],
+        "allow_no_candidates": true,
+        "allow_no_candidates_rationale": "A valid discovery page can expose no qualifying /inmueble/ anchors without invalidating capture."
       }
     }
   ]
