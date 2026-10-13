@@ -124,3 +124,5 @@ export * from "./conformance.js";
 export * from "./durable-submission-v2.js";
 export * from "./durable-submission-v2.vectors.js";
 export * from "./durable-submission-v2.conformance.js";
+
+export * from "./discovery-observation.js";

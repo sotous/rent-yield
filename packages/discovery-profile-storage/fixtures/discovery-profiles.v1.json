@@ -21,7 +21,10 @@
         "max_concurrency": 1,
         "max_source_requests": 2
       },
-      "permitted_media_types": ["text/html", "application/json"]
+      "permitted_media_types": ["text/html", "application/json"],
+      "extraction": {
+        "state": "unreviewed"
+      }
     }
   ]
 }

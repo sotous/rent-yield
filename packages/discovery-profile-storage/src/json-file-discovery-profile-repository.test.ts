@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  deriveDiscoveryExtractionProvenance,
   deriveDiscoveryProfileProvenance,
   type DiscoveryProfileV1,
 } from "./discovery-profile.js";
@@ -30,13 +31,21 @@ const activeProfile = {
     max_source_requests: 2,
   },
   permitted_media_types: ["text/html", "application/json"],
+  extraction: {
+    state: "reviewed",
+    kind: "html_anchor_href",
+    extractor_version: "html-anchor-href-v1",
+    candidate_hosts: ["www.ciencuadras.com"],
+    candidate_path_prefixes: ["/reviewed-listings/"],
+    allow_no_candidates: true,
+  },
 } satisfies DiscoveryProfileV1;
 
 const activeProfileProvenance = {
   source_key: "ciencuadras",
   profile_version: 1,
   profile_sha256:
-    "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+    "d17dff8df35783f6f70dabe8f9b285955eafa351a07c361d2b158a2e510c0db3",
 };
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -118,6 +127,78 @@ describe("JsonFileDiscoveryProfileRepository", () => {
     ).rejects.toThrow();
   });
 
+  it("rejects missing, ambiguous, or broader extraction rules", async () => {
+    const missingRule = await writeRegistry([
+      Object.fromEntries(
+        Object.entries(activeProfile).filter(([key]) => key !== "extraction"),
+      ),
+    ]);
+    const broaderHost = await writeRegistry([
+      {
+        ...activeProfile,
+        extraction: {
+          ...activeProfile.extraction,
+          candidate_hosts: ["other.example.com"],
+        },
+      },
+    ]);
+    const ambiguousPrefix = await writeRegistry([
+      {
+        ...activeProfile,
+        extraction: {
+          ...activeProfile.extraction,
+          candidate_path_prefixes: [
+            "/reviewed-listings/",
+            "/reviewed-listings/",
+          ],
+        },
+      },
+    ]);
+
+    await expect(
+      new JsonFileDiscoveryProfileRepository({
+        path: missingRule,
+      }).findActiveBySourceKey({ source_key: "ciencuadras" }),
+    ).rejects.toThrow();
+    await expect(
+      new JsonFileDiscoveryProfileRepository({
+        path: broaderHost,
+      }).findActiveBySourceKey({ source_key: "ciencuadras" }),
+    ).rejects.toThrow();
+    await expect(
+      new JsonFileDiscoveryProfileRepository({
+        path: ambiguousPrefix,
+      }).findActiveBySourceKey({ source_key: "ciencuadras" }),
+    ).rejects.toThrow();
+  });
+
+  it("does not expose an extractor provenance until Storage marks a rule reviewed", () => {
+    expect(
+      deriveDiscoveryExtractionProvenance({
+        ...activeProfile,
+        extraction: { state: "unreviewed" },
+      }),
+    ).toBeNull();
+    expect(deriveDiscoveryExtractionProvenance(activeProfile)).toEqual({
+      kind: "html_anchor_href",
+      version: "html-anchor-href-v1",
+      config_sha256:
+        "ed168bef8b00891f6a33900e20a5ca9befc57279f0ed52890aeb244f8b4ec789",
+    });
+  });
+
+  it("binds extraction configuration into deterministic profile provenance", () => {
+    expect(
+      deriveDiscoveryProfileProvenance({
+        ...activeProfile,
+        extraction: {
+          ...activeProfile.extraction,
+          extractor_version: "html-anchor-href-v2",
+        },
+      }),
+    ).not.toEqual(activeProfileProvenance);
+  });
+
   it("rejects a profile with an unsafe path or contradictory request budget", async () => {
     const path = await writeRegistry([
       {
@@ -142,7 +223,13 @@ describe("JsonFileDiscoveryProfileRepository", () => {
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
     ).resolves.toEqual({
       ...activeProfile,
-      discovery_profile_provenance: activeProfileProvenance,
+      extraction: { state: "unreviewed" },
+      discovery_profile_provenance: {
+        source_key: "ciencuadras",
+        profile_version: 1,
+        profile_sha256:
+          "5a9e72d87a402ae25dee06123f3b1572295a12683502df6bc0bd8432aa5b5de7",
+      },
     });
   });
 });
