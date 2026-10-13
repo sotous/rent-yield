@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ActiveDiscoveryProfileV1 } from "@rent-yield/discovery-profile-storage";
+import { JsonFileDiscoveryProfileRepository } from "@rent-yield/discovery-profile-storage";
 import { runAllowlistedDiscoveryObservation } from "./allowlisted-discovery-observation.js";
 import { MemorySourceBudget } from "./bounded-probe.js";
 
@@ -64,6 +65,51 @@ const command = (observation_path: string, dry_run = false) => ({
 });
 
 describe("allowlisted discovery observation", () => {
+  it("runs the reviewed profile preflight without DNS, HTTP, or output", async () => {
+    const resolve = vi.fn();
+    const result = await runAllowlistedDiscoveryObservation(
+      command("/tmp/no-write", true),
+      {
+        profiles: { findActiveBySourceKey: async () => profile },
+        clock,
+        sourceBudget: new MemorySourceBudget(),
+        transport: { resolve, request: vi.fn() },
+      },
+    );
+    expect(result).toEqual({
+      ok: true,
+      report: {
+        kind: "dry_run",
+        source_key: "source-a",
+        profile_sha256: "a".repeat(64),
+      },
+    });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it("preflights the reviewed Ciencuadras profile without using transport", async () => {
+    const resolve = vi.fn();
+    const result = await runAllowlistedDiscoveryObservation(
+      { ...command("/tmp/no-write", true), source_key: "ciencuadras" },
+      {
+        profiles: new JsonFileDiscoveryProfileRepository({
+          path: new URL(
+            "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+            import.meta.url,
+          ).pathname,
+        }),
+        clock,
+        sourceBudget: new MemorySourceBudget(),
+        transport: { resolve, request: vi.fn() },
+      },
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      report: { kind: "dry_run", source_key: "ciencuadras" },
+    });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
   it("writes only a schema-valid observation from configured candidate URLs", async () => {
     const root = await mkdtemp(join(tmpdir(), "rent-yield-observation-"));
     roots.push(root);
