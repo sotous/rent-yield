@@ -48,3 +48,11 @@ unresolved in this record.
 After that update is merged, run the network-free preflight and
 then one bounded live invocation. No live response may be used to discover or
 widen the rule.
+
+## Canary result
+
+On 2026-10-16, the reviewed profile passed network-free preflight. The single
+authorized robots-first live invocation then stopped with the typed result
+`budget_exhausted`. It wrote no observation file and retained no response
+body. This result does not authorize a retry or a broader budget; a subsequent
+attempt requires a separately reviewed operational change.
