@@ -3,8 +3,6 @@ import { z } from "zod";
 
 const sourceKeySchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/);
 const positiveSafeIntegerSchema = z.number().int().positive().safe();
-const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
-const reviewedRationaleSchema = z.string().trim().min(1).max(1024);
 const hostnameSchema = z
   .string()
   .regex(
@@ -21,33 +19,21 @@ const pathPrefixSchema = z
       !value.split("/").includes(".."),
     "Expected an absolute path prefix without authority, traversal, query, or fragment",
   );
-const reviewedExtractionRuleSchema = z.strictObject({
-  state: z.literal("reviewed"),
-  kind: z.literal("html_anchor_href"),
-  extractor_version: sourceKeySchema,
-  extractor_artifact_sha256: sha256Schema,
-  candidate_hosts: z
-    .array(hostnameSchema)
-    .min(1)
-    .refine(
-      (hosts) => new Set(hosts).size === hosts.length,
-      "Candidate hosts must be unique",
-    ),
-  candidate_path_prefixes: z
-    .array(pathPrefixSchema)
-    .min(1)
-    .refine(
-      (paths) => new Set(paths).size === paths.length,
-      "Candidate path prefixes must be unique",
-    ),
-  allow_no_candidates: z.boolean(),
-  allow_no_candidates_rationale: reviewedRationaleSchema,
-});
-const extractionRuleSchema = z.discriminatedUnion("state", [
-  z.strictObject({ state: z.literal("unreviewed") }),
-  reviewedExtractionRuleSchema,
-]);
-
+const profileSha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+const uniqueHostsSchema = z
+  .array(hostnameSchema)
+  .min(1)
+  .refine(
+    (hosts) => new Set(hosts).size === hosts.length,
+    "Allowed hosts must be unique",
+  );
+const uniquePathPrefixesSchema = z
+  .array(pathPrefixSchema)
+  .min(1)
+  .refine(
+    (paths) => new Set(paths).size === paths.length,
+    "Allowed path prefixes must be unique",
+  );
 const budgetSchema = z
   .strictObject({
     max_requests: positiveSafeIntegerSchema,
@@ -62,63 +48,53 @@ const budgetSchema = z
     "Source request budget cannot exceed the total request budget",
   );
 
-export const discoveryProfileV1Schema = z
-  .strictObject({
-    source_key: sourceKeySchema,
-    profile_version: positiveSafeIntegerSchema,
-    state: z.enum(["active", "inactive"]),
-    scope: z.strictObject({
-      country_code: z.literal("CO"),
-      city_key: sourceKeySchema,
-      capability: z.literal("discovery"),
-      listing_roles: z
-        .array(z.enum(["for_rent", "for_sale"]))
-        .min(1)
-        .max(2)
-        .refine(
-          (roles) => new Set(roles).size === roles.length,
-          "Listing roles must be unique",
-        ),
-    }),
-    allowed_hosts: z
-      .array(hostnameSchema)
-      .min(1)
-      .refine(
-        (hosts) => new Set(hosts).size === hosts.length,
-        "Allowed hosts must be unique",
-      ),
-    allowed_path_prefixes: z
-      .array(pathPrefixSchema)
-      .min(1)
-      .refine(
-        (paths) => new Set(paths).size === paths.length,
-        "Allowed path prefixes must be unique",
-      ),
-    budget: budgetSchema,
-    extraction: extractionRuleSchema,
-    permitted_media_types: z
-      .array(z.enum(["application/json", "text/html", "text/plain"]))
-      .min(1)
-      .refine(
-        (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
-        "Media types must be unique",
-      ),
-  })
-  .superRefine((profile, context) => {
-    if (profile.extraction.state !== "reviewed") return;
-    for (const [index, host] of profile.extraction.candidate_hosts.entries())
-      if (!profile.allowed_hosts.includes(host))
-        context.addIssue({
-          code: "custom",
-          path: ["extraction", "candidate_hosts", index],
-          message: "Candidate hosts must be within the profile allowed hosts",
-        });
-  });
+const candidateUrlExtractionSchema = z.discriminatedUnion("state", [
+  z.strictObject({ state: z.literal("unreviewed") }),
+  z.strictObject({
+    state: z.literal("reviewed"),
+    kind: z.literal("html_anchor_href"),
+    extractor_id: z.literal("html-anchor-href-v1"),
+    extractor_artifact_sha256: profileSha256Schema,
+    allowed_hosts: uniqueHostsSchema,
+    allowed_path_prefixes: uniquePathPrefixesSchema,
+    allow_no_candidates_rationale: z.string().trim().min(1),
+  }),
+]);
 
-export const discoveryProfileRegistryV1Schema = z
+export const discoveryProfileV2Schema = z.strictObject({
+  source_key: sourceKeySchema,
+  profile_version: positiveSafeIntegerSchema,
+  state: z.enum(["active", "inactive"]),
+  scope: z.strictObject({
+    country_code: z.literal("CO"),
+    city_key: sourceKeySchema,
+    capability: z.literal("discovery"),
+    listing_roles: z
+      .array(z.enum(["for_rent", "for_sale"]))
+      .min(1)
+      .max(2)
+      .refine(
+        (roles) => new Set(roles).size === roles.length,
+        "Listing roles must be unique",
+      ),
+  }),
+  allowed_hosts: uniqueHostsSchema,
+  allowed_path_prefixes: uniquePathPrefixesSchema,
+  budget: budgetSchema,
+  permitted_media_types: z
+    .array(z.enum(["application/json", "text/html", "text/plain"]))
+    .min(1)
+    .refine(
+      (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
+      "Media types must be unique",
+    ),
+  candidate_url_extraction: candidateUrlExtractionSchema,
+});
+
+export const discoveryProfileRegistryV2Schema = z
   .strictObject({
-    contract_version: z.literal("v1"),
-    profiles: z.array(discoveryProfileV1Schema),
+    contract_version: z.literal("v2"),
+    profiles: z.array(discoveryProfileV2Schema),
   })
   .superRefine((registry, context) => {
     const seenVersions = new Set<string>();
@@ -156,40 +132,41 @@ export const discoveryProfileLookupSchema = z.strictObject({
 export const discoveryProfileProvenanceSchema = z.strictObject({
   source_key: sourceKeySchema,
   profile_version: positiveSafeIntegerSchema,
-  profile_sha256: sha256Schema,
+  profile_sha256: profileSha256Schema,
+  candidate_url_extraction: z.discriminatedUnion("state", [
+    z.strictObject({ state: z.literal("unreviewed") }),
+    z.strictObject({
+      state: z.literal("reviewed"),
+      extractor_id: z.literal("html-anchor-href-v1"),
+      extractor_artifact_sha256: profileSha256Schema,
+    }),
+  ]),
 });
 
-export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
-export type DiscoveryProfileRegistryV1 = z.infer<
-  typeof discoveryProfileRegistryV1Schema
+export type CandidateUrlExtractionV2 = z.infer<
+  typeof candidateUrlExtractionSchema
 >;
-export type DiscoveryExtractionRuleV1 = z.infer<typeof extractionRuleSchema>;
-export type ReviewedDiscoveryExtractionRuleV1 = z.infer<
-  typeof reviewedExtractionRuleSchema
+export type DiscoveryProfileV2 = z.infer<typeof discoveryProfileV2Schema>;
+export type DiscoveryProfileRegistryV2 = z.infer<
+  typeof discoveryProfileRegistryV2Schema
 >;
-export type DiscoveryExtractionProvenance = {
-  kind: ReviewedDiscoveryExtractionRuleV1["kind"];
-  version: string;
-  extractor_artifact_sha256: string;
-  config_sha256: string;
-};
 export type DiscoveryProfileLookup = z.infer<
   typeof discoveryProfileLookupSchema
 >;
 export type DiscoveryProfileProvenance = z.infer<
   typeof discoveryProfileProvenanceSchema
 >;
-export type ActiveDiscoveryProfileV1 = DiscoveryProfileV1 & {
+export type ActiveDiscoveryProfileV2 = DiscoveryProfileV2 & {
   discovery_profile_provenance: DiscoveryProfileProvenance;
 };
 
 /**
- * Canonical V1 representation used only to bind an active operational profile
- * to the bounded facts Storage validated. Its field order is deliberate.
+ * Canonical V2 representation used only to bind a profile to Storage-validated
+ * operational and reviewed-extraction facts. Its field order is deliberate.
  */
-function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
+function canonicalDiscoveryProfileV2(profile: DiscoveryProfileV2): string {
   return JSON.stringify({
-    contract_version: "v1",
+    contract_version: "v2",
     source_key: profile.source_key,
     profile_version: profile.profile_version,
     state: profile.state,
@@ -209,70 +186,32 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
       max_concurrency: profile.budget.max_concurrency,
       max_source_requests: profile.budget.max_source_requests,
     },
-    extraction:
-      profile.extraction.state === "reviewed"
-        ? {
-            state: profile.extraction.state,
-            kind: profile.extraction.kind,
-            extractor_version: profile.extraction.extractor_version,
-            extractor_artifact_sha256:
-              profile.extraction.extractor_artifact_sha256,
-            candidate_hosts: profile.extraction.candidate_hosts,
-            candidate_path_prefixes: profile.extraction.candidate_path_prefixes,
-            allow_no_candidates: profile.extraction.allow_no_candidates,
-            allow_no_candidates_rationale:
-              profile.extraction.allow_no_candidates_rationale,
-          }
-        : { state: profile.extraction.state },
     permitted_media_types: profile.permitted_media_types,
+    candidate_url_extraction: profile.candidate_url_extraction,
   });
 }
 
-/** Deterministic lineage for a reviewed Storage-owned candidate rule. */
-export function deriveDiscoveryExtractionProvenance(
-  input: DiscoveryProfileV1,
-): DiscoveryExtractionProvenance | null {
-  const { discovery_profile_provenance: _provenance, ...unboundProfile } =
-    input as DiscoveryProfileV1 & {
-      discovery_profile_provenance?: unknown;
-    };
-  const profile = discoveryProfileV1Schema.parse(unboundProfile);
-  const rule = profile.extraction;
-  if (rule.state !== "reviewed") return null;
-  return {
-    kind: rule.kind,
-    version: rule.extractor_version,
-    extractor_artifact_sha256: rule.extractor_artifact_sha256,
-    config_sha256: createHash("sha256")
-      .update(
-        JSON.stringify({
-          kind: rule.kind,
-          extractor_version: rule.extractor_version,
-          extractor_artifact_sha256: rule.extractor_artifact_sha256,
-          candidate_hosts: rule.candidate_hosts,
-          candidate_path_prefixes: rule.candidate_path_prefixes,
-          allow_no_candidates: rule.allow_no_candidates,
-          allow_no_candidates_rationale: rule.allow_no_candidates_rationale,
-        }),
-        "utf8",
-      )
-      .digest("hex"),
-  };
-}
-
-/**
- * Deterministic configuration lineage for fixture capture, not access approval.
- */
+/** Deterministic configuration lineage for fixture capture, not access approval. */
 export function deriveDiscoveryProfileProvenance(
-  input: DiscoveryProfileV1,
+  input: DiscoveryProfileV2,
 ): DiscoveryProfileProvenance {
-  const profile = discoveryProfileV1Schema.parse(input);
+  const profile = discoveryProfileV2Schema.parse(input);
+  const extractionProvenance =
+    profile.candidate_url_extraction.state === "reviewed"
+      ? {
+          state: "reviewed" as const,
+          extractor_id: profile.candidate_url_extraction.extractor_id,
+          extractor_artifact_sha256:
+            profile.candidate_url_extraction.extractor_artifact_sha256,
+        }
+      : { state: "unreviewed" as const };
   return {
     source_key: profile.source_key,
     profile_version: profile.profile_version,
     profile_sha256: createHash("sha256")
-      .update(canonicalDiscoveryProfileV1(profile), "utf8")
+      .update(canonicalDiscoveryProfileV2(profile), "utf8")
       .digest("hex"),
+    candidate_url_extraction: extractionProvenance,
   };
 }
 
@@ -280,5 +219,5 @@ export function deriveDiscoveryProfileProvenance(
 export interface DiscoveryProfileRepository {
   findActiveBySourceKey(
     input: DiscoveryProfileLookup,
-  ): Promise<ActiveDiscoveryProfileV1 | null>;
+  ): Promise<ActiveDiscoveryProfileV2 | null>;
 }

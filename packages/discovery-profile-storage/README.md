@@ -3,26 +3,34 @@
 This package is the temporary Storage-owned persistence boundary for bounded
 discovery profiles. Its JSON adapter is deliberately read-only and fixture-only:
 it lets Crawler request the one operationally active profile for a known source
-without taking ownership of source facts or file parsing.
+without taking ownership of source-specific extraction behavior or file parsing.
 
 ## Public contract
 
 `DiscoveryProfileRepository.findActiveBySourceKey({ source_key })` resolves to
-one validated `ActiveDiscoveryProfileV1` or `null`. An active profile includes
-its complete bounded configuration and deterministic profile provenance.
+one validated `ActiveDiscoveryProfileV2` or `null`. The active result extends
+the persisted `DiscoveryProfileV2` with:
 
-The required `extraction` rule is a strict discriminated union. An
-`unreviewed` rule supplies no candidate configuration and must not run an
-extractor. A `reviewed` rule is limited to declarative `html_anchor_href`
-extraction with a versioned extractor identity, exact extractor-artifact hash,
-candidate host/path allowlists, and an explicit no-candidates policy/rationale.
-It contains no CSS selector, script, source body, or imperative source logic.
+```ts
+discovery_profile_provenance: {
+  source_key: string;
+  profile_version: number;
+  profile_sha256: string;
+  candidate_url_extraction:
+    | { state: "unreviewed" }
+    | {
+        state: "reviewed";
+        extractor_id: "html-anchor-href-v1";
+        extractor_artifact_sha256: string;
+      };
+}
+```
 
-`deriveDiscoveryExtractionProvenance` returns `null` for an unreviewed rule.
-For a reviewed rule it returns the extractor kind/version, its exact artifact
-hash, and a deterministic configuration hash. The complete rule also feeds the
-profile provenance hash, so a candidate-rule or extractor change cannot be
-silently substituted.
+`profile_sha256` is the SHA-256 of a canonical V2 representation of the complete
+validated profile: its version, operational state, scope, discovery-run bounds,
+every budget limit, media types, and candidate-URL extraction rule. It is
+deterministic for the same profile and changes if any bounded fact changes. The
+provenance object is derived at read time; it is not a persisted fixture field.
 
 The repository rejects a registry with invalid JSON or schema, duplicate
 source/profile versions, or more than one active profile for a source. It never
@@ -30,10 +38,11 @@ chooses a profile arbitrarily.
 
 `JsonFileDiscoveryProfileRepository` is the initial adapter. Point it at the
 versioned registry in
-[`fixtures/discovery-profiles.v1.json`](fixtures/discovery-profiles.v1.json).
+[`fixtures/discovery-profiles.v2.json`](fixtures/discovery-profiles.v2.json).
 It validates that every profile has Colombia/city/discovery-role scope, bounded
-hosts and path prefixes, bounded request limits, and an explicit permitted media
-type list before returning any record.
+hosts and path prefixes, bounded request limits, an explicit permitted media
+type list, and a strict candidate-URL extraction state before returning any
+record.
 
 ## Boundary and replacement
 
@@ -42,6 +51,26 @@ fixture is available for the crawler to read; it does **not** represent source
 permission, candidate registration, access assessment, trusted review, or
 canary approval. This package makes no live request and has no write, database,
 or object-storage operation.
+
+Fixture capture should record `discovery_profile_provenance` as its operational
+configuration lineage. It must not rename this digest to `assessment_sha256` or
+infer that it is an access-assessment decision. The additive returned field is
+compatible with consumers that only read the bounded record; consumers replacing
+the obsolete assessment provenance should map all three provenance fields.
+
+`candidate_url_extraction` is a strict union. An `unreviewed` entry carries no
+rule fields and cannot authorize extraction. A `reviewed` entry is limited to
+the generic `html_anchor_href` kind, the versioned extractor identity and its
+artifact SHA-256, exact host/detail-path allowlists, and a nonempty rationale
+for zero candidates. The current Ciencuadras reviewed rule uses
+`www.ciencuadras.com` with detail paths under `/inmueble/`; its discovery start
+path `/arriendo/barranquilla` is not an extraction fallback.
+
+Storage persists this configuration only. Crawler owns generic in-memory HTML
+anchor extraction, canonicalization, filtering, deduplication, and response-byte
+disposal. This package never stores discovery HTML, DOM data, candidate or
+rejected URLs, contact details, exact addresses, headers, cookies, tokens, or
+raw response bodies.
 
 A future Data Storage provider may replace the JSON adapter while preserving the
 read-only `DiscoveryProfileRepository` contract. Crawler should depend on that
