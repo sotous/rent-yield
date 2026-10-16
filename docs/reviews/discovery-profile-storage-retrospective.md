@@ -31,6 +31,13 @@ borrowing access-assessment terminology. When Crawler needs multiple scopes,
 evolve the repository lookup with an explicit versioned scope query and replace
 the JSON adapter behind the same read-only boundary.
 
+The 2026-10-13 V2 follow-up replaces the V1 fixture registry with a strict
+candidate-URL extraction state. It records no source response or extracted URL:
+the approved Ciencuadras reviewed entry contains only generic extractor identity
+and artifact digest, exact host/detail-prefix allowlists, and a zero-candidate
+rationale. Discovery-run bounds remain separate from the detail extraction
+rule, so `/arriendo/barranquilla` cannot silently become a detail-path fallback.
+
 The corresponding persisted-envelope migration is strict and append-only. A
 permitted-source fixture now requires the full operational profile provenance
 object and rejects the former assessment hash; historical envelopes are not
@@ -39,6 +46,7 @@ rewritten, and corrected captures use normal successor lineage.
 ## Documentation
 
 The package README explains the consumer and replacement boundary, including
-the exact derived provenance fields. The architecture note records the fixture
-path, fail-closed semantics, canonical profile digest, and the fact that
-`active` is not authorization.
+the exact derived provenance fields and the reviewed/unreviewed union. The
+architecture note records the V2 fixture path, fail-closed semantics, canonical
+profile digest, the Storage/Crawler division of responsibility, and the fact
+that `active` is not authorization.

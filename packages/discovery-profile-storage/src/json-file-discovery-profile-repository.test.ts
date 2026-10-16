@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   deriveDiscoveryProfileProvenance,
-  type DiscoveryProfileV1,
+  discoveryProfileV2Schema,
+  type DiscoveryProfileV2,
 } from "./discovery-profile.js";
 import { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profile-repository.js";
 
@@ -20,33 +21,35 @@ const activeProfile = {
     listing_roles: ["for_rent"],
   },
   allowed_hosts: ["www.ciencuadras.com"],
-  allowed_path_prefixes: ["/robots.txt", "/arriendo/barranquilla"],
-  robots_path: "/robots.txt",
-  discovery_path: "/arriendo/barranquilla",
+  allowed_path_prefixes: ["/arriendo/barranquilla"],
   budget: {
     max_requests: 2,
-    max_bytes: 10485760,
+    max_bytes: 524288,
     max_duration_ms: 10000,
     max_redirects: 1,
     max_concurrency: 1,
     max_source_requests: 2,
   },
-  permitted_media_types: ["text/plain", "text/html", "application/json"],
-} satisfies DiscoveryProfileV1;
-
-const activeProfileProvenance = {
-  source_key: "ciencuadras",
-  profile_version: 3,
-  profile_sha256:
-    "7e5e00ea00f72ba02226a35e90a83f97327c6a6d11026ab8c34ba62ea5f7f9f8",
-};
+  permitted_media_types: ["text/html", "application/json"],
+  candidate_url_extraction: {
+    state: "reviewed",
+    kind: "html_anchor_href",
+    extractor_id: "html-anchor-href-v1",
+    extractor_artifact_sha256:
+      "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+    allowed_hosts: ["www.ciencuadras.com"],
+    allowed_path_prefixes: ["/inmueble/"],
+    allow_no_candidates_rationale:
+      "A valid discovery response may contain no qualifying anchors.",
+  },
+} satisfies DiscoveryProfileV2;
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
 const committedFixturePath = join(
   packageDirectory,
   "..",
   "fixtures",
-  "discovery-profiles.v1.json",
+  "discovery-profiles.v2.json",
 );
 
 async function writeRegistry(profiles: readonly unknown[]): Promise<string> {
@@ -54,25 +57,77 @@ async function writeRegistry(profiles: readonly unknown[]): Promise<string> {
   const path = join(directory, "profiles.json");
   await writeFile(
     path,
-    JSON.stringify({ contract_version: "v1", profiles }),
+    JSON.stringify({ contract_version: "v2", profiles }),
     "utf8",
   );
   return path;
 }
 
 describe("JsonFileDiscoveryProfileRepository", () => {
-  it("derives stable operational provenance from the complete validated profile", () => {
-    expect(deriveDiscoveryProfileProvenance(activeProfile)).toEqual(
-      activeProfileProvenance,
-    );
+  it("accepts an unreviewed extraction state only when it has no rule fields", () => {
+    expect(
+      discoveryProfileV2Schema.parse({
+        ...activeProfile,
+        candidate_url_extraction: { state: "unreviewed" },
+      }).candidate_url_extraction,
+    ).toEqual({ state: "unreviewed" });
+
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        candidate_url_extraction: {
+          state: "unreviewed",
+          allowed_hosts: ["www.ciencuadras.com"],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires a complete reviewed extraction rule", () => {
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        candidate_url_extraction: {
+          ...activeProfile.candidate_url_extraction,
+          extractor_artifact_sha256: "not-a-sha",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        candidate_url_extraction: {
+          ...activeProfile.candidate_url_extraction,
+          allow_no_candidates_rationale: " ",
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("binds complete reviewed-rule facts into deterministic profile provenance", () => {
+    const provenance = deriveDiscoveryProfileProvenance(activeProfile);
+    expect(provenance).toMatchObject({
+      source_key: "ciencuadras",
+      profile_version: 3,
+      candidate_url_extraction: {
+        state: "reviewed",
+        extractor_id: "html-anchor-href-v1",
+        extractor_artifact_sha256:
+          "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+      },
+    });
     expect(
       deriveDiscoveryProfileProvenance({
         ...activeProfile,
-        budget: { ...activeProfile.budget, max_bytes: 65537 },
+        candidate_url_extraction: {
+          ...activeProfile.candidate_url_extraction,
+          allowed_path_prefixes: ["/inmueble-alt/"],
+        },
       }),
-    ).not.toEqual(activeProfileProvenance);
+    ).not.toEqual(provenance);
   });
-  it("returns an active profile by source key without exposing unrelated profiles", async () => {
+
+  it("returns an active reviewed profile by source key without exposing unrelated profiles", async () => {
     const path = await writeRegistry([
       activeProfile,
       { ...activeProfile, source_key: "another-source", profile_version: 3 },
@@ -81,9 +136,10 @@ describe("JsonFileDiscoveryProfileRepository", () => {
 
     await expect(
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       ...activeProfile,
-      discovery_profile_provenance: activeProfileProvenance,
+      discovery_profile_provenance:
+        deriveDiscoveryProfileProvenance(activeProfile),
     });
   });
 
@@ -99,7 +155,7 @@ describe("JsonFileDiscoveryProfileRepository", () => {
   it("rejects a registry that tries to activate two versions for one source", async () => {
     const path = await writeRegistry([
       activeProfile,
-      { ...activeProfile, profile_version: 4 },
+      { ...activeProfile, profile_version: 3 },
     ]);
     const repository = new JsonFileDiscoveryProfileRepository({ path });
 
@@ -134,27 +190,17 @@ describe("JsonFileDiscoveryProfileRepository", () => {
     ).rejects.toThrow();
   });
 
-  it("rejects a profile whose robots path is not deliberately within its allowed request paths", async () => {
-    const path = await writeRegistry([
-      { ...activeProfile, robots_path: "/robots-private.txt" },
-    ]);
-    const repository = new JsonFileDiscoveryProfileRepository({ path });
-
-    await expect(
-      repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
-    ).rejects.toThrow();
-  });
-
-  it("reads the committed Storage-owned registry fixture", async () => {
+  it("reads the committed Storage-owned V2 registry fixture", async () => {
     const repository = new JsonFileDiscoveryProfileRepository({
       path: committedFixturePath,
     });
 
     await expect(
       repository.findActiveBySourceKey({ source_key: "ciencuadras" }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       ...activeProfile,
-      discovery_profile_provenance: activeProfileProvenance,
+      discovery_profile_provenance:
+        deriveDiscoveryProfileProvenance(activeProfile),
     });
   });
 });

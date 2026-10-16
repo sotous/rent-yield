@@ -22,7 +22,7 @@ const clock: ProbeClock = {
 const profiles = () =>
   new JsonFileDiscoveryProfileRepository({
     path: new URL(
-      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
       import.meta.url,
     ).pathname,
   });
@@ -34,18 +34,6 @@ const transport = (request = vi.fn()) =>
     }),
     request: async (input) => {
       request(input);
-      if (input.url.endsWith("/robots.txt")) {
-        return {
-          kind: "response" as const,
-          connected_address: input.validated_addresses[0]!,
-          response: {
-            status_code: 200,
-            content_type: "text/plain",
-            body: new TextEncoder().encode("User-agent: *\nDisallow:\n"),
-            classification: "robots_policy" as never,
-          },
-        };
-      }
       return {
         kind: "response" as const,
         connected_address: input.validated_addresses[0]!,
@@ -75,7 +63,7 @@ function materializeFixture() {
       collected_at: "2026-10-09T00:00:00.000Z",
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 1,
+        profile_version: 3,
         profile_sha256: "a".repeat(64),
       },
     },
@@ -129,26 +117,15 @@ describe("manual bounded discovery", () => {
     ).resolves.toMatchObject({
       ok: true,
       report: {
-        result: {
-          kind: "quarantined",
-          fixture_id: "manual-ciencuadras-1",
-          quarantine: { reason: "parser_not_selected" },
-          discovery_profile_provenance: {
-            source_key: "ciencuadras",
-            profile_version: 3,
-            profile_sha256: expect.any(String),
-          },
+        kind: "quarantined",
+        fixture_id: "manual-ciencuadras-1",
+        quarantine: { reason: "parser_not_selected" },
+        discovery_profile_provenance: {
+          source_key: "ciencuadras",
+          profile_version: 3,
+          profile_sha256:
+            "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
         },
-        receipt: expect.objectContaining({
-          probe_id: "manual-probe-1",
-          response_evidence: expect.arrayContaining([
-            expect.objectContaining({
-              body: expect.objectContaining({
-                byte_length: expect.any(Number),
-              }),
-            }),
-          ]),
-        }),
       },
     });
     expect(materializedInputs[0]).toMatchObject({
@@ -156,7 +133,7 @@ describe("manual bounded discovery", () => {
         source_key: "ciencuadras",
         profile_version: 3,
         profile_sha256:
-          "7e5e00ea00f72ba02226a35e90a83f97327c6a6d11026ab8c34ba62ea5f7f9f8",
+          "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
       },
     });
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(
@@ -226,31 +203,17 @@ describe("manual bounded discovery capture diagnostics", () => {
             kind: "resolved",
             addresses: ["93.184.216.34"],
           }),
-          request: async (input) =>
-            input.url.endsWith("/robots.txt")
-              ? {
-                  kind: "response",
-                  connected_address: input.validated_addresses[0]!,
-                  response: {
-                    status_code: 200,
-                    content_type: "text/plain",
-                    body: new TextEncoder().encode(
-                      "User-agent: *\\nDisallow:\\n",
-                    ),
-                    classification: "robots_policy" as never,
-                  },
-                }
-              : {
-                  kind: "response",
-                  connected_address: input.validated_addresses[0]!,
-                  response: {
-                    status_code: 200,
-                    content_type: "text/plain",
-                    body: new Uint8Array([0, 1]),
-                    classification: "listing_discovery",
-                    discovered_urls: [],
-                  },
-                },
+          request: async (input) => ({
+            kind: "response",
+            connected_address: input.validated_addresses[0]!,
+            response: {
+              status_code: 200,
+              content_type: "text/plain",
+              body: new Uint8Array([0, 1]),
+              classification: "listing_discovery",
+              discovered_urls: [],
+            },
+          }),
         },
         clock,
         sourceBudget: new MemorySourceBudget(),

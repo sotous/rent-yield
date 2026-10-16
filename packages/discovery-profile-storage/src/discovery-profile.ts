@@ -19,6 +19,21 @@ const pathPrefixSchema = z
       !value.split("/").includes(".."),
     "Expected an absolute path prefix without authority, traversal, query, or fragment",
   );
+const profileSha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+const uniqueHostsSchema = z
+  .array(hostnameSchema)
+  .min(1)
+  .refine(
+    (hosts) => new Set(hosts).size === hosts.length,
+    "Allowed hosts must be unique",
+  );
+const uniquePathPrefixesSchema = z
+  .array(pathPrefixSchema)
+  .min(1)
+  .refine(
+    (paths) => new Set(paths).size === paths.length,
+    "Allowed path prefixes must be unique",
+  );
 const budgetSchema = z
   .strictObject({
     max_requests: positiveSafeIntegerSchema,
@@ -33,70 +48,53 @@ const budgetSchema = z
     "Source request budget cannot exceed the total request budget",
   );
 
-export const discoveryProfileV1Schema = z
-  .strictObject({
-    source_key: sourceKeySchema,
-    profile_version: positiveSafeIntegerSchema,
-    state: z.enum(["active", "inactive"]),
-    scope: z.strictObject({
-      country_code: z.literal("CO"),
-      city_key: sourceKeySchema,
-      capability: z.literal("discovery"),
-      listing_roles: z
-        .array(z.enum(["for_rent", "for_sale"]))
-        .min(1)
-        .max(2)
-        .refine(
-          (roles) => new Set(roles).size === roles.length,
-          "Listing roles must be unique",
-        ),
-    }),
-    allowed_hosts: z
-      .array(hostnameSchema)
-      .min(1)
-      .refine(
-        (hosts) => new Set(hosts).size === hosts.length,
-        "Allowed hosts must be unique",
-      ),
-    allowed_path_prefixes: z
-      .array(pathPrefixSchema)
-      .min(1)
-      .refine(
-        (paths) => new Set(paths).size === paths.length,
-        "Allowed path prefixes must be unique",
-      ),
-    robots_path: pathPrefixSchema,
-    discovery_path: pathPrefixSchema,
-    budget: budgetSchema,
-    permitted_media_types: z
-      .array(z.enum(["application/json", "text/html", "text/plain"]))
-      .min(1)
-      .refine(
-        (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
-        "Media types must be unique",
-      ),
-  })
-  .refine(
-    (profile) => profile.allowed_path_prefixes.includes(profile.robots_path),
-    {
-      path: ["robots_path"],
-      message:
-        "Robots path must be deliberately included in the allowed request paths",
-    },
-  )
-  .refine(
-    (profile) => profile.allowed_path_prefixes.includes(profile.discovery_path),
-    {
-      path: ["discovery_path"],
-      message:
-        "Discovery path must be deliberately included in the allowed request paths",
-    },
-  );
+const candidateUrlExtractionSchema = z.discriminatedUnion("state", [
+  z.strictObject({ state: z.literal("unreviewed") }),
+  z.strictObject({
+    state: z.literal("reviewed"),
+    kind: z.literal("html_anchor_href"),
+    extractor_id: z.literal("html-anchor-href-v1"),
+    extractor_artifact_sha256: profileSha256Schema,
+    allowed_hosts: uniqueHostsSchema,
+    allowed_path_prefixes: uniquePathPrefixesSchema,
+    allow_no_candidates_rationale: z.string().trim().min(1),
+  }),
+]);
 
-export const discoveryProfileRegistryV1Schema = z
+export const discoveryProfileV2Schema = z.strictObject({
+  source_key: sourceKeySchema,
+  profile_version: positiveSafeIntegerSchema,
+  state: z.enum(["active", "inactive"]),
+  scope: z.strictObject({
+    country_code: z.literal("CO"),
+    city_key: sourceKeySchema,
+    capability: z.literal("discovery"),
+    listing_roles: z
+      .array(z.enum(["for_rent", "for_sale"]))
+      .min(1)
+      .max(2)
+      .refine(
+        (roles) => new Set(roles).size === roles.length,
+        "Listing roles must be unique",
+      ),
+  }),
+  allowed_hosts: uniqueHostsSchema,
+  allowed_path_prefixes: uniquePathPrefixesSchema,
+  budget: budgetSchema,
+  permitted_media_types: z
+    .array(z.enum(["application/json", "text/html", "text/plain"]))
+    .min(1)
+    .refine(
+      (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
+      "Media types must be unique",
+    ),
+  candidate_url_extraction: candidateUrlExtractionSchema,
+});
+
+export const discoveryProfileRegistryV2Schema = z
   .strictObject({
-    contract_version: z.literal("v1"),
-    profiles: z.array(discoveryProfileV1Schema),
+    contract_version: z.literal("v2"),
+    profiles: z.array(discoveryProfileV2Schema),
   })
   .superRefine((registry, context) => {
     const seenVersions = new Set<string>();
@@ -131,16 +129,26 @@ export const discoveryProfileLookupSchema = z.strictObject({
   source_key: sourceKeySchema,
 });
 
-const profileSha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
-
 export const discoveryProfileProvenanceSchema = z.strictObject({
   source_key: sourceKeySchema,
   profile_version: positiveSafeIntegerSchema,
   profile_sha256: profileSha256Schema,
+  candidate_url_extraction: z.discriminatedUnion("state", [
+    z.strictObject({ state: z.literal("unreviewed") }),
+    z.strictObject({
+      state: z.literal("reviewed"),
+      extractor_id: z.literal("html-anchor-href-v1"),
+      extractor_artifact_sha256: profileSha256Schema,
+    }),
+  ]),
 });
-export type DiscoveryProfileV1 = z.infer<typeof discoveryProfileV1Schema>;
-export type DiscoveryProfileRegistryV1 = z.infer<
-  typeof discoveryProfileRegistryV1Schema
+
+export type CandidateUrlExtractionV2 = z.infer<
+  typeof candidateUrlExtractionSchema
+>;
+export type DiscoveryProfileV2 = z.infer<typeof discoveryProfileV2Schema>;
+export type DiscoveryProfileRegistryV2 = z.infer<
+  typeof discoveryProfileRegistryV2Schema
 >;
 export type DiscoveryProfileLookup = z.infer<
   typeof discoveryProfileLookupSchema
@@ -148,17 +156,17 @@ export type DiscoveryProfileLookup = z.infer<
 export type DiscoveryProfileProvenance = z.infer<
   typeof discoveryProfileProvenanceSchema
 >;
-export type ActiveDiscoveryProfileV1 = DiscoveryProfileV1 & {
+export type ActiveDiscoveryProfileV2 = DiscoveryProfileV2 & {
   discovery_profile_provenance: DiscoveryProfileProvenance;
 };
 
 /**
- * Canonical V1 representation used only to bind an active operational profile
- * to the bounded facts Storage validated. Its field order is deliberate.
+ * Canonical V2 representation used only to bind a profile to Storage-validated
+ * operational and reviewed-extraction facts. Its field order is deliberate.
  */
-function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
+function canonicalDiscoveryProfileV2(profile: DiscoveryProfileV2): string {
   return JSON.stringify({
-    contract_version: "v1",
+    contract_version: "v2",
     source_key: profile.source_key,
     profile_version: profile.profile_version,
     state: profile.state,
@@ -170,8 +178,6 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
     },
     allowed_hosts: profile.allowed_hosts,
     allowed_path_prefixes: profile.allowed_path_prefixes,
-    robots_path: profile.robots_path,
-    discovery_path: profile.discovery_path,
     budget: {
       max_requests: profile.budget.max_requests,
       max_bytes: profile.budget.max_bytes,
@@ -181,22 +187,31 @@ function canonicalDiscoveryProfileV1(profile: DiscoveryProfileV1): string {
       max_source_requests: profile.budget.max_source_requests,
     },
     permitted_media_types: profile.permitted_media_types,
+    candidate_url_extraction: profile.candidate_url_extraction,
   });
 }
 
-/**
- * Deterministic configuration lineage for fixture capture, not access approval.
- */
+/** Deterministic configuration lineage for fixture capture, not access approval. */
 export function deriveDiscoveryProfileProvenance(
-  input: DiscoveryProfileV1,
+  input: DiscoveryProfileV2,
 ): DiscoveryProfileProvenance {
-  const profile = discoveryProfileV1Schema.parse(input);
+  const profile = discoveryProfileV2Schema.parse(input);
+  const extractionProvenance =
+    profile.candidate_url_extraction.state === "reviewed"
+      ? {
+          state: "reviewed" as const,
+          extractor_id: profile.candidate_url_extraction.extractor_id,
+          extractor_artifact_sha256:
+            profile.candidate_url_extraction.extractor_artifact_sha256,
+        }
+      : { state: "unreviewed" as const };
   return {
     source_key: profile.source_key,
     profile_version: profile.profile_version,
     profile_sha256: createHash("sha256")
-      .update(canonicalDiscoveryProfileV1(profile), "utf8")
+      .update(canonicalDiscoveryProfileV2(profile), "utf8")
       .digest("hex"),
+    candidate_url_extraction: extractionProvenance,
   };
 }
 
@@ -204,5 +219,5 @@ export function deriveDiscoveryProfileProvenance(
 export interface DiscoveryProfileRepository {
   findActiveBySourceKey(
     input: DiscoveryProfileLookup,
-  ): Promise<ActiveDiscoveryProfileV1 | null>;
+  ): Promise<ActiveDiscoveryProfileV2 | null>;
 }

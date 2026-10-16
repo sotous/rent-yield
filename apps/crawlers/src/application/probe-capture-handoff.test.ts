@@ -21,7 +21,8 @@ describe("redacting probe capture handoff", () => {
           source_key: "source-a",
           profile_version: 1,
           profile_sha256:
-            "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+            "5a9e72d87a402ae25dee06123f3b1572295a12683502df6bc0bd8432aa5b5de7",
+          candidate_url_extraction: { state: "unreviewed" as const },
         },
       }),
     ).resolves.toEqual({ ok: true });
@@ -34,7 +35,8 @@ describe("redacting probe capture handoff", () => {
           source_key: "source-a",
           profile_version: 1,
           profile_sha256:
-            "e29f1353e04b6425ce4385b343b3df1862213f0b7d2a18eb0b6d338cf7c533fc",
+            "5a9e72d87a402ae25dee06123f3b1572295a12683502df6bc0bd8432aa5b5de7",
+          candidate_url_extraction: { state: "unreviewed" as const },
         },
       }),
     );

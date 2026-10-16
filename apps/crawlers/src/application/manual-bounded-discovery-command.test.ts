@@ -19,7 +19,7 @@ afterEach(async () => {
 const profiles = () =>
   new JsonFileDiscoveryProfileRepository({
     path: new URL(
-      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
       import.meta.url,
     ).pathname,
   });
@@ -102,7 +102,7 @@ describe("local manual bounded discovery command", () => {
         kill_switch: false,
         dry_run: false,
         profilePath: new URL(
-          "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+          "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
           import.meta.url,
         ).pathname,
         fixtureRoot,

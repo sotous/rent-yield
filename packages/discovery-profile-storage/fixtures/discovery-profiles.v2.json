@@ -1,0 +1,36 @@
+{
+  "contract_version": "v2",
+  "profiles": [
+    {
+      "source_key": "ciencuadras",
+      "profile_version": 3,
+      "state": "active",
+      "scope": {
+        "country_code": "CO",
+        "city_key": "barranquilla",
+        "capability": "discovery",
+        "listing_roles": ["for_rent"]
+      },
+      "allowed_hosts": ["www.ciencuadras.com"],
+      "allowed_path_prefixes": ["/arriendo/barranquilla"],
+      "budget": {
+        "max_requests": 2,
+        "max_bytes": 524288,
+        "max_duration_ms": 10000,
+        "max_redirects": 1,
+        "max_concurrency": 1,
+        "max_source_requests": 2
+      },
+      "permitted_media_types": ["text/html", "application/json"],
+      "candidate_url_extraction": {
+        "state": "reviewed",
+        "kind": "html_anchor_href",
+        "extractor_id": "html-anchor-href-v1",
+        "extractor_artifact_sha256": "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+        "allowed_hosts": ["www.ciencuadras.com"],
+        "allowed_path_prefixes": ["/inmueble/"],
+        "allow_no_candidates_rationale": "A valid discovery response may contain no qualifying anchors."
+      }
+    }
+  ]
+}
