@@ -1,14 +1,15 @@
 export {
   discoveryProfileLookupSchema,
   discoveryProfileProvenanceSchema,
-  discoveryProfileRegistryV1Schema,
-  discoveryProfileV1Schema,
+  discoveryProfileRegistryV2Schema,
+  discoveryProfileV2Schema,
   deriveDiscoveryProfileProvenance,
-  type ActiveDiscoveryProfileV1,
+  type ActiveDiscoveryProfileV2,
+  type CandidateUrlExtractionV2,
   type DiscoveryProfileLookup,
   type DiscoveryProfileProvenance,
   type DiscoveryProfileRepository,
-  type DiscoveryProfileRegistryV1,
-  type DiscoveryProfileV1,
+  type DiscoveryProfileRegistryV2,
+  type DiscoveryProfileV2,
 } from "./discovery-profile.js";
 export { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profile-repository.js";

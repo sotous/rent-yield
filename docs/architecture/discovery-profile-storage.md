@@ -9,12 +9,15 @@ Crawler asks for an active profile by `source_key`. Storage validates the whole
 registry and either returns exactly one profile or returns `null`; invalid JSON,
 invalid records, duplicate source/profile versions, and multiple active profiles
 for a source fail closed. The committed fixture is at
-[`packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json`](../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json).
+[`packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json`](../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json).
 
 Every active result also includes derived `discovery_profile_provenance`:
-`source_key`, `profile_version`, and `profile_sha256`. The digest is SHA-256 of
-a canonical complete validated V1 record, so it binds the selected operational
-scope, hosts, paths, budgets, and media types. It is generated at read time.
+`source_key`, `profile_version`, `profile_sha256`, and a compact
+candidate-extraction provenance state. For a reviewed rule, that state repeats
+the generic extractor ID and artifact SHA-256. The digest is SHA-256 of a
+canonical complete validated V2 record, so it binds the selected operational
+scope, hosts, paths, budgets, media types, and extraction rule. It is generated
+at read time.
 The persisted permitted-source fixture envelope requires this exact object in
 `origin.discovery_profile_provenance`, with a source key that matches the
 origin. Fixture capture uses it for configuration lineage in place of the
@@ -26,9 +29,14 @@ profile provenance and, when correcting a prior fixture, reference it through
 the new envelope's `supersedes_fixture_id`.
 
 Each record scopes an operational discovery run to Colombia, one city, allowed
-listing roles, hosts, path prefixes, budgets, and media types. Source-specific
-values belong to that Storage fixture rather than generic crawler application
-code.
+listing roles, hosts, path prefixes, budgets, and media types. V2 adds a strict
+`candidate_url_extraction` union: `unreviewed` contains no rule fields, while a
+`reviewed` entry declares generic extractor identity, extractor artifact hash,
+exact detail hosts and path prefixes, and a zero-candidate rationale. The
+approved Ciencuadras rule permits only `www.ciencuadras.com` paths beginning
+`/inmueble/`; `/arriendo/barranquilla` remains solely the discovery start path.
+Source-specific values belong to that Storage fixture rather than generic
+crawler application code.
 
 `active` is only fixture availability. It is not approval to contact a source
 and does not encode candidate registration, access assessment, trusted review,
@@ -38,3 +46,9 @@ no database or object-storage dependency.
 The JSON file is a replaceable MVP adapter. A later Data Storage provider must
 preserve the read-only repository behavior while evolving its lookup inputs
 explicitly when multi-city or multi-capability discovery is needed.
+
+Storage does not parse HTML, canonicalize URLs, or retain response bytes.
+Crawler owns generic in-memory extraction, filtering, deduplication, and byte
+disposal. The profile registry must never store HTML, DOM data, candidate or
+rejected URLs, contact data, exact addresses, headers, cookies, tokens, or raw
+response bodies.

@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import {
   discoveryProfileLookupSchema,
-  discoveryProfileRegistryV1Schema,
+  discoveryProfileRegistryV2Schema,
   deriveDiscoveryProfileProvenance,
-  type ActiveDiscoveryProfileV1,
+  type ActiveDiscoveryProfileV2,
   type DiscoveryProfileRepository,
 } from "./discovery-profile.js";
 
@@ -16,7 +16,7 @@ export class JsonFileDiscoveryProfileRepository implements DiscoveryProfileRepos
 
   async findActiveBySourceKey(input: {
     source_key: string;
-  }): Promise<ActiveDiscoveryProfileV1 | null> {
+  }): Promise<ActiveDiscoveryProfileV2 | null> {
     const lookup = discoveryProfileLookupSchema.parse(input);
     const registry = await this.#readRegistry();
     const matches = registry.profiles.filter(
@@ -45,6 +45,6 @@ export class JsonFileDiscoveryProfileRepository implements DiscoveryProfileRepos
     } catch {
       throw new Error("Discovery profile registry is invalid JSON");
     }
-    return discoveryProfileRegistryV1Schema.parse(parsed);
+    return discoveryProfileRegistryV2Schema.parse(parsed);
   }
 }
