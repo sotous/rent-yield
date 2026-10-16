@@ -126,14 +126,22 @@ describe("allowlisted discovery observation", () => {
         request: async (request) => ({
           kind: "response" as const,
           connected_address: request.validated_addresses[0]!,
-          response: {
-            status_code: 200,
-            content_type: "text/html",
-            body: new TextEncoder().encode(
-              '<a href="/rentals/one">one</a><a href="/ignored">no</a>',
-            ),
-            classification: "listing_discovery" as const,
-          },
+          response:
+            new URL(request.url).pathname === "/robots.txt"
+              ? {
+                  status_code: 200,
+                  content_type: "text/plain",
+                  body: new TextEncoder().encode("User-agent: *\nAllow: /"),
+                  classification: "listing_discovery" as const,
+                }
+              : {
+                  status_code: 200,
+                  content_type: "text/html",
+                  body: new TextEncoder().encode(
+                    '<a href="/rentals/one">one</a><a href="/ignored">no</a>',
+                  ),
+                  classification: "listing_discovery" as const,
+                },
         }),
       },
     });
@@ -174,5 +182,40 @@ describe("allowlisted discovery observation", () => {
       error: { code: "extraction_rule_unreviewed" },
     });
     expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it("stops after robots denial without requesting discovery or retaining robots bytes", async () => {
+    const original = new TextEncoder().encode(
+      "User-agent: *\nDisallow: /arriendo/barranquilla",
+    );
+    const request = vi.fn(async (input) => ({
+      kind: "response" as const,
+      connected_address: input.validated_addresses[0]!,
+      response: {
+        status_code: 200,
+        content_type: "text/plain",
+        body: original,
+        classification: "listing_discovery" as const,
+      },
+    }));
+    await expect(
+      runAllowlistedDiscoveryObservation(command("/tmp/no-write"), {
+        profiles: { findActiveBySourceKey: async () => profile },
+        clock,
+        sourceBudget: new MemorySourceBudget(),
+        transport: {
+          resolve: async () => ({
+            kind: "resolved" as const,
+            addresses: ["93.184.216.34"],
+          }),
+          request,
+        },
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      report: { kind: "stopped", reason: "robots_conflict" },
+    });
+    expect(request).toHaveBeenCalledOnce();
+    expect([...original].every((byte) => byte === 0)).toBe(true);
   });
 });

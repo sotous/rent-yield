@@ -2,6 +2,7 @@ import {
   JsonFileDiscoveryObservationRepository,
   type DiscoveryProfileRepository,
 } from "@rent-yield/discovery-profile-storage";
+import { isIP } from "node:net";
 import type { DiscoveryObservationV1 } from "@rent-yield/listing-storage-contracts";
 import { createDiscoveryResponseProcessor } from "./discovery-response-processor.js";
 import { MemorySourceBudget, type ProbeDependencies } from "./bounded-probe.js";
@@ -16,6 +17,23 @@ type Dependencies = Omit<
   | "discoveryExtractionProvenance"
   | "discoveryProfileProvenance"
 > & { profiles: DiscoveryProfileRepository };
+
+function publicAddress(address: string): boolean {
+  if (isIP(address) !== 4) return false;
+  const [first = Number.NaN, second = Number.NaN] = address
+    .split(".")
+    .map(Number);
+  return !(
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    first >= 224 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && (second === 0 || second === 168))
+  );
+}
 
 export type AllowlistedDiscoveryObservationResult =
   | {
@@ -74,6 +92,87 @@ export async function runAllowlistedDiscoveryObservation(
         profile_sha256: profile.discovery_profile_provenance.profile_sha256,
       },
     };
+
+  // Robots is a bounded, body-discarding gate. It deliberately precedes the
+  // discovery probe and consumes one of the active profile's two requests.
+  const robotsUrl = `https://${profile.allowed_hosts[0]!}/robots.txt`;
+  const startedAt = dependencies.clock.nowMs();
+  let robots;
+  try {
+    const resolution = await dependencies.transport.resolve({
+      hostname: profile.allowed_hosts[0]!,
+      timeout_ms: profile.budget.max_duration_ms,
+    });
+    if (
+      resolution.kind !== "resolved" ||
+      resolution.addresses.length === 0 ||
+      resolution.addresses.some((address) => !publicAddress(address))
+    )
+      return {
+        ok: true,
+        report: { kind: "stopped", reason: "robots_unavailable" },
+      };
+    if (
+      !dependencies.sourceBudget.tryStartRequest(
+        profile.source_key,
+        profile.budget.max_source_requests,
+        profile.budget.max_concurrency,
+      )
+    )
+      return {
+        ok: true,
+        report: { kind: "stopped", reason: "budget_exhausted" },
+      };
+    try {
+      robots = await dependencies.transport.request({
+        method: "GET",
+        url: robotsUrl,
+        validated_addresses: resolution.addresses,
+        max_response_bytes: profile.budget.max_bytes,
+        timeout_ms:
+          profile.budget.max_duration_ms -
+          (dependencies.clock.nowMs() - startedAt),
+      });
+    } finally {
+      dependencies.sourceBudget.finishRequest(profile.source_key);
+    }
+  } catch {
+    return {
+      ok: true,
+      report: { kind: "stopped", reason: "robots_unavailable" },
+    };
+  }
+  if (robots.kind !== "response") {
+    robots.partial_body.fill(0);
+    return {
+      ok: true,
+      report: { kind: "stopped", reason: "robots_unavailable" },
+    };
+  }
+  const robotsBody = robots.response.body;
+  try {
+    const contentType = robots.response.content_type?.toLowerCase() ?? "";
+    const denied = new TextDecoder("utf-8", { fatal: true })
+      .decode(robotsBody)
+      .split(/\r?\n/)
+      .some((line) =>
+        /^\s*disallow\s*:\s*\/arriendo\/barranquilla\s*$/i.test(line),
+      );
+    if (
+      robots.response.status_code < 200 ||
+      robots.response.status_code >= 300 ||
+      !contentType.startsWith("text/plain") ||
+      denied
+    )
+      return {
+        ok: true,
+        report: { kind: "stopped", reason: "robots_conflict" },
+      };
+  } catch {
+    return { ok: true, report: { kind: "stopped", reason: "robots_conflict" } };
+  } finally {
+    robotsBody.fill(0);
+  }
 
   let written: DiscoveryObservationV1 | undefined;
   const processor = createDiscoveryResponseProcessor({
