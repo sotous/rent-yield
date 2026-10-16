@@ -23,12 +23,20 @@ discovery_profile_provenance: {
         extractor_id: "html-anchor-href-v1";
         extractor_artifact_sha256: string;
       };
+  detail_observation:
+    | { state: "unreviewed" }
+    | {
+        state: "reviewed";
+        extraction_contract_id: string;
+        extraction_contract_sha256: string;
+      };
 }
 ```
 
 `profile_sha256` is the SHA-256 of a canonical V2 representation of the complete
 validated profile: its version, operational state, scope, discovery-run bounds,
-every budget limit, media types, and candidate-URL extraction rule. It is
+every budget limit, media types, candidate-URL extraction rule, and detail
+observation rule. It is
 deterministic for the same profile and changes if any bounded fact changes. The
 provenance object is derived at read time; it is not a persisted fixture field.
 
@@ -65,6 +73,17 @@ artifact SHA-256, exact host/detail-path allowlists, and a nonempty rationale
 for zero candidates. The current Ciencuadras reviewed rule uses
 `www.ciencuadras.com` with detail paths under `/inmueble/`; its discovery start
 path `/arriendo/barranquilla` is not an extraction fallback.
+
+`detail_observation` is a separate strict union for a future single-candidate
+detail canary. It is currently `unreviewed`, so it cannot authorize a detail
+request. Its reviewed form requires explicit detail hosts and path prefixes,
+its own request/byte/time/redirect/concurrency bounds, permitted media types,
+and a source-configured extraction-contract ID and SHA-256. Detail hosts must
+be a subset of the profile's operational hosts; those limits are never inherited
+from discovery implicitly. The complete rule is included in `profile_sha256`,
+and the returned provenance repeats only the reviewed extraction-contract
+identity. This package holds no selector, source page, field mapping, or detail
+result.
 
 Storage persists this configuration only. Crawler owns generic in-memory HTML
 anchor extraction, canonicalization, filtering, deduplication, and response-byte

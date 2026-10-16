@@ -6,6 +6,7 @@ export {
   deriveDiscoveryProfileProvenance,
   type ActiveDiscoveryProfileV2,
   type CandidateUrlExtractionV2,
+  type DetailObservationV2,
   type DiscoveryProfileLookup,
   type DiscoveryProfileProvenance,
   type DiscoveryProfileRepository,

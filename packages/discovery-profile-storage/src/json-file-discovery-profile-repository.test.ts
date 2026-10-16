@@ -42,6 +42,7 @@ const activeProfile = {
     allow_no_candidates_rationale:
       "A valid discovery response may contain no qualifying anchors.",
   },
+  detail_observation: { state: "unreviewed" },
 } satisfies DiscoveryProfileV2;
 
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
@@ -104,6 +105,71 @@ describe("JsonFileDiscoveryProfileRepository", () => {
     ).toBe(false);
   });
 
+  it("fails closed until detail observation has an explicit reviewed rule", () => {
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        detail_observation: { state: "unreviewed" },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        detail_observation: {
+          state: "reviewed",
+          allowed_hosts: ["www.ciencuadras.com"],
+          allowed_path_prefixes: ["/inmueble/"],
+          budget: {
+            max_requests: 2,
+            max_bytes: 524288,
+            max_duration_ms: 10000,
+            max_redirects: 1,
+            max_concurrency: 1,
+            max_source_requests: 2,
+          },
+          permitted_media_types: ["text/html"],
+          extraction_contract_id: "ciencuadras-detail-v1",
+          extraction_contract_sha256:
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        detail_observation: {
+          state: "reviewed",
+          allowed_hosts: ["detail.ciencuadras.com"],
+          allowed_path_prefixes: ["/inmueble/"],
+          budget: {
+            max_requests: 2,
+            max_bytes: 524288,
+            max_duration_ms: 10000,
+            max_redirects: 1,
+            max_concurrency: 1,
+            max_source_requests: 2,
+          },
+          permitted_media_types: ["text/html"],
+          extraction_contract_id: "ciencuadras-detail-v1",
+          extraction_contract_sha256:
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      discoveryProfileV2Schema.safeParse({
+        ...activeProfile,
+        detail_observation: {
+          state: "unreviewed",
+          allowed_hosts: ["www.ciencuadras.com"],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
   it("binds complete reviewed-rule facts into deterministic profile provenance", () => {
     const provenance = deriveDiscoveryProfileProvenance(activeProfile);
     expect(provenance).toMatchObject({
@@ -115,6 +181,7 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         extractor_artifact_sha256:
           "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
       },
+      detail_observation: { state: "unreviewed" },
     });
     expect(
       deriveDiscoveryProfileProvenance({
@@ -122,6 +189,28 @@ describe("JsonFileDiscoveryProfileRepository", () => {
         candidate_url_extraction: {
           ...activeProfile.candidate_url_extraction,
           allowed_path_prefixes: ["/inmueble-alt/"],
+        },
+      }),
+    ).not.toEqual(provenance);
+    expect(
+      deriveDiscoveryProfileProvenance({
+        ...activeProfile,
+        detail_observation: {
+          state: "reviewed",
+          allowed_hosts: ["www.ciencuadras.com"],
+          allowed_path_prefixes: ["/inmueble/"],
+          budget: {
+            max_requests: 2,
+            max_bytes: 524288,
+            max_duration_ms: 10000,
+            max_redirects: 1,
+            max_concurrency: 1,
+            max_source_requests: 2,
+          },
+          permitted_media_types: ["text/html"],
+          extraction_contract_id: "ciencuadras-detail-v1",
+          extraction_contract_sha256:
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         },
       }),
     ).not.toEqual(provenance);

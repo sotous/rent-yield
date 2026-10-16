@@ -61,35 +61,77 @@ const candidateUrlExtractionSchema = z.discriminatedUnion("state", [
   }),
 ]);
 
-export const discoveryProfileV2Schema = z.strictObject({
-  source_key: sourceKeySchema,
-  profile_version: positiveSafeIntegerSchema,
-  state: z.enum(["active", "inactive"]),
-  scope: z.strictObject({
-    country_code: z.literal("CO"),
-    city_key: sourceKeySchema,
-    capability: z.literal("discovery"),
-    listing_roles: z
-      .array(z.enum(["for_rent", "for_sale"]))
+/**
+ * Storage records only the bounded facts that permit a future detail canary.
+ * An unreviewed contract is deliberately incapable of authorizing a request.
+ */
+const detailObservationSchema = z.discriminatedUnion("state", [
+  z.strictObject({ state: z.literal("unreviewed") }),
+  z.strictObject({
+    state: z.literal("reviewed"),
+    allowed_hosts: uniqueHostsSchema,
+    allowed_path_prefixes: uniquePathPrefixesSchema,
+    budget: budgetSchema,
+    permitted_media_types: z
+      .array(z.enum(["application/json", "text/html", "text/plain"]))
       .min(1)
-      .max(2)
       .refine(
-        (roles) => new Set(roles).size === roles.length,
-        "Listing roles must be unique",
+        (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
+        "Media types must be unique",
       ),
+    extraction_contract_id: sourceKeySchema,
+    extraction_contract_sha256: profileSha256Schema,
   }),
-  allowed_hosts: uniqueHostsSchema,
-  allowed_path_prefixes: uniquePathPrefixesSchema,
-  budget: budgetSchema,
-  permitted_media_types: z
-    .array(z.enum(["application/json", "text/html", "text/plain"]))
-    .min(1)
-    .refine(
-      (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
-      "Media types must be unique",
-    ),
-  candidate_url_extraction: candidateUrlExtractionSchema,
-});
+]);
+
+export const discoveryProfileV2Schema = z
+  .strictObject({
+    source_key: sourceKeySchema,
+    profile_version: positiveSafeIntegerSchema,
+    state: z.enum(["active", "inactive"]),
+    scope: z.strictObject({
+      country_code: z.literal("CO"),
+      city_key: sourceKeySchema,
+      capability: z.literal("discovery"),
+      listing_roles: z
+        .array(z.enum(["for_rent", "for_sale"]))
+        .min(1)
+        .max(2)
+        .refine(
+          (roles) => new Set(roles).size === roles.length,
+          "Listing roles must be unique",
+        ),
+    }),
+    allowed_hosts: uniqueHostsSchema,
+    allowed_path_prefixes: uniquePathPrefixesSchema,
+    budget: budgetSchema,
+    permitted_media_types: z
+      .array(z.enum(["application/json", "text/html", "text/plain"]))
+      .min(1)
+      .refine(
+        (mediaTypes) => new Set(mediaTypes).size === mediaTypes.length,
+        "Media types must be unique",
+      ),
+    candidate_url_extraction: candidateUrlExtractionSchema,
+    detail_observation: detailObservationSchema,
+  })
+  .superRefine((profile, context) => {
+    if (profile.detail_observation.state !== "reviewed") return;
+
+    for (const [
+      index,
+      host,
+    ] of profile.detail_observation.allowed_hosts.entries()) {
+      if (!profile.allowed_hosts.includes(host)) {
+        context.addIssue({
+          code: "custom",
+          message:
+            "Detail observation hosts must be within operational allowed hosts",
+          path: ["detail_observation", "allowed_hosts", index],
+        });
+      }
+    }
+  });
 
 export const discoveryProfileRegistryV2Schema = z
   .strictObject({
@@ -141,11 +183,20 @@ export const discoveryProfileProvenanceSchema = z.strictObject({
       extractor_artifact_sha256: profileSha256Schema,
     }),
   ]),
+  detail_observation: z.discriminatedUnion("state", [
+    z.strictObject({ state: z.literal("unreviewed") }),
+    z.strictObject({
+      state: z.literal("reviewed"),
+      extraction_contract_id: sourceKeySchema,
+      extraction_contract_sha256: profileSha256Schema,
+    }),
+  ]),
 });
 
 export type CandidateUrlExtractionV2 = z.infer<
   typeof candidateUrlExtractionSchema
 >;
+export type DetailObservationV2 = z.infer<typeof detailObservationSchema>;
 export type DiscoveryProfileV2 = z.infer<typeof discoveryProfileV2Schema>;
 export type DiscoveryProfileRegistryV2 = z.infer<
   typeof discoveryProfileRegistryV2Schema
@@ -188,6 +239,7 @@ function canonicalDiscoveryProfileV2(profile: DiscoveryProfileV2): string {
     },
     permitted_media_types: profile.permitted_media_types,
     candidate_url_extraction: profile.candidate_url_extraction,
+    detail_observation: profile.detail_observation,
   });
 }
 
@@ -205,6 +257,16 @@ export function deriveDiscoveryProfileProvenance(
             profile.candidate_url_extraction.extractor_artifact_sha256,
         }
       : { state: "unreviewed" as const };
+  const detailObservationProvenance =
+    profile.detail_observation.state === "reviewed"
+      ? {
+          state: "reviewed" as const,
+          extraction_contract_id:
+            profile.detail_observation.extraction_contract_id,
+          extraction_contract_sha256:
+            profile.detail_observation.extraction_contract_sha256,
+        }
+      : { state: "unreviewed" as const };
   return {
     source_key: profile.source_key,
     profile_version: profile.profile_version,
@@ -212,6 +274,7 @@ export function deriveDiscoveryProfileProvenance(
       .update(canonicalDiscoveryProfileV2(profile), "utf8")
       .digest("hex"),
     candidate_url_extraction: extractionProvenance,
+    detail_observation: detailObservationProvenance,
   };
 }
 

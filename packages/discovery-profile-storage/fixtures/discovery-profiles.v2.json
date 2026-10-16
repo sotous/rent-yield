@@ -30,6 +30,9 @@
         "allowed_hosts": ["www.ciencuadras.com"],
         "allowed_path_prefixes": ["/inmueble/"],
         "allow_no_candidates_rationale": "A valid discovery response may contain no qualifying anchors."
+      },
+      "detail_observation": {
+        "state": "unreviewed"
       }
     }
   ]
