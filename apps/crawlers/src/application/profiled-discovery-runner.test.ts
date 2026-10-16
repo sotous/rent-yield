@@ -12,7 +12,7 @@ const clock: ProbeClock = {
 const profiles = () =>
   new JsonFileDiscoveryProfileRepository({
     path: new URL(
-      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
       import.meta.url,
     ).pathname,
   });
@@ -101,9 +101,9 @@ describe("profiled bounded discovery runner", () => {
       expect.objectContaining({
         discovery_profile_provenance: {
           source_key: "ciencuadras",
-          profile_version: 2,
+          profile_version: 3,
           profile_sha256:
-            "c5d63a80998f99e5f0659664982e66801f21bffe17dc2a7bcc7dbb091fc7bd9a",
+            "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
         },
       }),
     );

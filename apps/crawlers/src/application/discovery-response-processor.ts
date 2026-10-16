@@ -1,7 +1,5 @@
-import type {
-  DiscoveryExtractionRuleV1,
-  DiscoveryProfileProvenance,
-} from "@rent-yield/discovery-profile-storage";
+import type { DiscoveryProfileProvenance } from "@rent-yield/discovery-profile-storage";
+import type { DiscoveryExtractionRuleV1 } from "./discovery-response-extractor.js";
 import {
   discoveryObservationV1Schema,
   type DiscoveryObservationRepository,
@@ -12,14 +10,19 @@ import {
   type DiscoveryExtractionResult,
 } from "./discovery-response-extractor.js";
 
-type ExtractionRejection = Extract<DiscoveryExtractionResult, { ok: false }>[
-  "error"]["code"];
+type ExtractionRejection = Extract<
+  DiscoveryExtractionResult,
+  { ok: false }
+>["error"]["code"];
 
 export type DiscoveryResponseProcessorResult =
   | { ok: true; observation: DiscoveryObservationV1 }
   | {
       ok: false;
-      error: { code: ExtractionRejection | "no_candidates" | "observation_write_failed" };
+      error: {
+        code:
+          ExtractionRejection | "no_candidates" | "observation_write_failed";
+      };
     };
 
 export type DiscoveryResponseProcessor = {
@@ -56,10 +59,7 @@ export function createDiscoveryResponseProcessor(input: {
         rule: response.extraction,
       });
       if (!extracted.ok) return extracted;
-      if (
-        response.extraction.state !== "reviewed" ||
-        !response.extractor
-      ) {
+      if (response.extraction.state !== "reviewed" || !response.extractor) {
         return { ok: false, error: { code: "extraction_rule_unreviewed" } };
       }
       if (
@@ -76,11 +76,18 @@ export function createDiscoveryResponseProcessor(input: {
         source_key: response.source_key,
         collected_at: input.collected_at,
         scope: response.scope,
-        discovery_profile_provenance: response.discovery_profile_provenance,
+        discovery_profile_provenance: {
+          source_key: response.discovery_profile_provenance.source_key,
+          profile_version:
+            response.discovery_profile_provenance.profile_version,
+          profile_sha256: response.discovery_profile_provenance.profile_sha256,
+        },
         extractor: response.extractor,
         response: { ...response.response, media_type: "text/html" },
         outcome:
-          extracted.candidates.length === 0 ? "no_candidates" : "candidates_found",
+          extracted.candidates.length === 0
+            ? "no_candidates"
+            : "candidates_found",
         candidate_count: extracted.candidates.length,
         candidate_urls: extracted.candidates,
       });

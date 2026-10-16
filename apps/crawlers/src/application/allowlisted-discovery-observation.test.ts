@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ActiveDiscoveryProfileV1 } from "@rent-yield/discovery-profile-storage";
+import type { ActiveDiscoveryProfileV2 } from "@rent-yield/discovery-profile-storage";
 import { JsonFileDiscoveryProfileRepository } from "@rent-yield/discovery-profile-storage";
 import { runAllowlistedDiscoveryObservation } from "./allowlisted-discovery-observation.js";
 import { MemorySourceBudget } from "./bounded-probe.js";
@@ -12,7 +12,7 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))),
 );
 
-const profile: ActiveDiscoveryProfileV1 = {
+const profile: ActiveDiscoveryProfileV2 = {
   source_key: "source-a",
   profile_version: 1,
   state: "active",
@@ -33,22 +33,27 @@ const profile: ActiveDiscoveryProfileV1 = {
     max_source_requests: 2,
   },
   permitted_media_types: ["text/html"],
-  extraction: {
+  candidate_url_extraction: {
     state: "reviewed",
     kind: "html_anchor_href",
-    extractor_version: "html-anchor-href-v1",
+    extractor_id: "html-anchor-href-v1",
     extractor_artifact_sha256:
       "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
     allow_no_candidates_rationale:
       "A valid discovery response can contain no matching anchors.",
-    candidate_hosts: ["listings.example.com"],
-    candidate_path_prefixes: ["/rentals"],
-    allow_no_candidates: true,
+    allowed_hosts: ["listings.example.com"],
+    allowed_path_prefixes: ["/rentals"],
   },
   discovery_profile_provenance: {
     source_key: "source-a",
     profile_version: 1,
     profile_sha256: "a".repeat(64),
+    candidate_url_extraction: {
+      state: "reviewed",
+      extractor_id: "html-anchor-href-v1",
+      extractor_artifact_sha256:
+        "bbb60b1d01acc0dc381fbfa832e72ac6bbcc739bd0fdd39fad33b5248ae0f3cb",
+    },
   },
 };
 const clock = { nowMs: () => 0, nowInstant: () => "2026-10-13T00:00:00.000Z" };
@@ -94,7 +99,7 @@ describe("allowlisted discovery observation", () => {
       {
         profiles: new JsonFileDiscoveryProfileRepository({
           path: new URL(
-            "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+            "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
             import.meta.url,
           ).pathname,
         }),
@@ -169,7 +174,7 @@ describe("allowlisted discovery observation", () => {
         profiles: {
           findActiveBySourceKey: async () => ({
             ...profile,
-            extraction: { state: "unreviewed" },
+            candidate_url_extraction: { state: "unreviewed" },
           }),
         },
         clock,

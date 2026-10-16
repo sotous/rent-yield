@@ -22,7 +22,7 @@ const clock: ProbeClock = {
 const profiles = () =>
   new JsonFileDiscoveryProfileRepository({
     path: new URL(
-      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v1.json",
+      "../../../../packages/discovery-profile-storage/fixtures/discovery-profiles.v2.json",
       import.meta.url,
     ).pathname,
   });
@@ -63,7 +63,7 @@ function materializeFixture() {
       collected_at: "2026-10-09T00:00:00.000Z",
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 2,
+        profile_version: 3,
         profile_sha256: "a".repeat(64),
       },
     },
@@ -122,18 +122,18 @@ describe("manual bounded discovery", () => {
         quarantine: { reason: "parser_not_selected" },
         discovery_profile_provenance: {
           source_key: "ciencuadras",
-          profile_version: 2,
+          profile_version: 3,
           profile_sha256:
-            "c5d63a80998f99e5f0659664982e66801f21bffe17dc2a7bcc7dbb091fc7bd9a",
+            "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
         },
       },
     });
     expect(materializedInputs[0]).toMatchObject({
       discovery_profile_provenance: {
         source_key: "ciencuadras",
-        profile_version: 2,
+        profile_version: 3,
         profile_sha256:
-          "c5d63a80998f99e5f0659664982e66801f21bffe17dc2a7bcc7dbb091fc7bd9a",
+          "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
       },
     });
     expect(JSON.stringify(materialize.mock.calls)).not.toContain(

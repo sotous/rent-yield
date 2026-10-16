@@ -6,6 +6,7 @@ const provenance = {
   source_key: "source-a",
   profile_version: 1,
   profile_sha256: "a".repeat(64),
+  candidate_url_extraction: { state: "unreviewed" as const },
 };
 const extraction = {
   state: "reviewed" as const,
@@ -77,7 +78,11 @@ describe("discovery response processor", () => {
           "https://listings.example.com/rentals/one",
           "https://listings.example.com/rentals/two",
         ],
-        discovery_profile_provenance: provenance,
+        discovery_profile_provenance: {
+          source_key: provenance.source_key,
+          profile_version: provenance.profile_version,
+          profile_sha256: provenance.profile_sha256,
+        },
         extractor,
       }),
     });

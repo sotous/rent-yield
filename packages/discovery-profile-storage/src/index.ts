@@ -13,3 +13,4 @@ export {
   type DiscoveryProfileV2,
 } from "./discovery-profile.js";
 export { JsonFileDiscoveryProfileRepository } from "./json-file-discovery-profile-repository.js";
+export { JsonFileDiscoveryObservationRepository } from "./json-file-discovery-observation-repository.js";

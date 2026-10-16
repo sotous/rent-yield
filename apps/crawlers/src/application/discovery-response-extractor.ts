@@ -1,6 +1,15 @@
 import { createHash } from "node:crypto";
 import { parseFragment } from "parse5";
-import type { DiscoveryExtractionRuleV1 } from "@rent-yield/discovery-profile-storage";
+export type DiscoveryExtractionRuleV1 =
+  | { state: "unreviewed" }
+  | {
+      state: "reviewed";
+      kind: "html_anchor_href";
+      extractor_version: string;
+      candidate_hosts: string[];
+      candidate_path_prefixes: string[];
+      allow_no_candidates: boolean;
+    };
 
 export type HtmlAnchorHrefExtractionRule = Extract<
   DiscoveryExtractionRuleV1,

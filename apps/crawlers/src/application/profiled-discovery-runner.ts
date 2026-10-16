@@ -1,14 +1,14 @@
 import { z } from "zod";
 import type {
-  ActiveDiscoveryProfileV1,
+  ActiveDiscoveryProfileV2,
   DiscoveryProfileRepository,
 } from "@rent-yield/discovery-profile-storage";
-import { deriveDiscoveryExtractionProvenance } from "@rent-yield/discovery-profile-storage";
 import {
   MemorySourceBudget,
   probeListingDiscovery,
   type ProbeDependencies,
 } from "./bounded-probe.js";
+import type { DiscoveryExtractionRuleV1 } from "./discovery-response-extractor.js";
 
 const commandSchema = z.strictObject({
   contract_version: z.literal("v1"),
@@ -27,18 +27,17 @@ type ProfiledDiscoveryDependencies = Omit<
   profiles: DiscoveryProfileRepository;
 };
 
-function configuredUrlsFor(
-  profile: ActiveDiscoveryProfileV1,
-): { ok: true; robots_url: string; discovery_url: string } | { ok: false } {
+function startUrlFor(
+  profile: ActiveDiscoveryProfileV2,
+): { ok: true; value: string } | { ok: false } {
   if (
     profile.allowed_hosts.length !== 1 ||
-    !profile.allowed_path_prefixes.includes(profile.robots_path)
+    profile.allowed_path_prefixes.length !== 1
   )
     return { ok: false };
   return {
     ok: true,
-    robots_url: `https://${profile.allowed_hosts[0]!}${profile.robots_path}`,
-    discovery_url: `https://${profile.allowed_hosts[0]!}${profile.discovery_path}`,
+    value: `https://${profile.allowed_hosts[0]!}${profile.allowed_path_prefixes[0]!}`,
   };
 }
 
@@ -74,24 +73,44 @@ export async function runProfiledListingDiscovery(
       ok: false as const,
       error: { code: "profile_unavailable" as const },
     };
-  const urls = configuredUrlsFor(profile);
-  if (!urls.ok || profile.discovery_path === profile.robots_path)
+  const startUrl = startUrlFor(profile);
+  if (!startUrl.ok)
     return {
       ok: false as const,
       error: { code: "profile_unavailable" as const },
     };
+
+  const extraction = profile.candidate_url_extraction;
+  const discoveryExtraction: DiscoveryExtractionRuleV1 =
+    extraction.state === "reviewed"
+      ? {
+          state: "reviewed",
+          kind: extraction.kind,
+          extractor_version: extraction.extractor_id,
+          candidate_hosts: extraction.allowed_hosts,
+          candidate_path_prefixes: extraction.allowed_path_prefixes,
+          allow_no_candidates: true,
+        }
+      : { state: "unreviewed" };
+  const extractionProvenance =
+    extraction.state === "reviewed"
+      ? {
+          kind: extraction.kind,
+          version: extraction.extractor_id,
+          config_sha256: profile.discovery_profile_provenance.profile_sha256,
+          artifact_sha256: extraction.extractor_artifact_sha256,
+        }
+      : null;
 
   return probeListingDiscovery(
     {
       contract_version: command.contract_version,
       probe_id: command.probe_id,
       scope: { ...profile.scope, source_key: profile.source_key },
-      start_url: urls.discovery_url,
-      robots_url: urls.robots_url,
+      start_url: startUrl.value,
       allowed_hosts: profile.allowed_hosts,
       allowed_path_prefixes: profile.allowed_path_prefixes,
       budget: profile.budget,
-      permitted_media_types: profile.permitted_media_types,
       as_of: command.as_of,
     },
     {
@@ -99,18 +118,8 @@ export async function runProfiledListingDiscovery(
       clock: dependencies.clock,
       sourceBudget: dependencies.sourceBudget,
       discoveryProfileProvenance: profile.discovery_profile_provenance,
-      discoveryExtraction: profile.extraction,
-      discoveryExtractionProvenance: (() => {
-        const provenance = deriveDiscoveryExtractionProvenance(profile);
-        return provenance
-          ? {
-              kind: provenance.kind,
-              version: provenance.version,
-              config_sha256: provenance.config_sha256,
-              artifact_sha256: provenance.extractor_artifact_sha256,
-            }
-          : null;
-      })(),
+      discoveryExtraction,
+      discoveryExtractionProvenance: extractionProvenance,
       ...(dependencies.discoveryResponseProcessor
         ? {
             discoveryResponseProcessor: dependencies.discoveryResponseProcessor,

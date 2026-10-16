@@ -81,7 +81,7 @@ export async function runAllowlistedDiscoveryObservation(
     source_key: input.source_key,
   });
   if (!profile) return { ok: false, error: { code: "profile_unavailable" } };
-  if (profile.extraction.state !== "reviewed")
+  if (profile.candidate_url_extraction.state !== "reviewed")
     return { ok: false, error: { code: "extraction_rule_unreviewed" } };
   if (input.dry_run)
     return {

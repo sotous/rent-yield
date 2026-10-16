@@ -51,8 +51,15 @@ widen the rule.
 
 ## Canary result
 
-On 2026-10-16, the reviewed profile passed network-free preflight. The single
-authorized robots-first live invocation then stopped with the typed result
-`budget_exhausted`. It wrote no observation file and retained no response
-body. This result does not authorize a retry or a broader budget; a subsequent
-attempt requires a separately reviewed operational change.
+On 2026-10-16, the reviewed profile passed network-free preflight. The first
+authorized robots-first live invocation stopped with `budget_exhausted`; its
+sanitized receipt showed that the 65,536-byte cap was below the discovery
+response size. Storage then reviewed and versioned a narrowly increased
+524,288-byte cap, with all request, route, and extraction limits unchanged.
+
+The separately authorized v3 robots-first invocation succeeded. It wrote one
+schema-valid observation with a response digest and byte length, profile and
+extractor provenance, and 20 sorted canonical `/inmueble/` candidate URLs. The
+observation contains no response body, HTML, DOM, rejected URL, header, cookie,
+token, contact detail, or exact address. No additional source request follows
+from this result.
