@@ -10,7 +10,7 @@ type CliDependencies = {
 };
 
 const usage =
-  "Usage: pnpm --filter @rent-yield/crawlers detail-canary -- (--dry-run | --live) --source-key <key> --candidate-url <canonical-https-url> --observation <absolute-path> --profile <absolute-path>";
+  "Usage: pnpm --filter @rent-yield/crawlers detail-canary -- (--dry-run | --live) --observation-id <id> --candidate-url <canonical-https-url> --observation <absolute-path> --profile <absolute-path>";
 
 export function parseManualBoundedDetailObservationArguments(
   arguments_: readonly string[],
@@ -31,7 +31,7 @@ export function parseManualBoundedDetailObservationArguments(
     }
     const key = (
       {
-        "--source-key": "source_key",
+        "--observation-id": "discovery_observation_id",
         "--candidate-url": "candidate_url",
         "--observation": "discovery_observation_path",
         "--profile": "profile_path",
@@ -49,14 +49,14 @@ export function parseManualBoundedDetailObservationArguments(
   if (dryRun === live)
     throw new Error(`${usage}\nChoose exactly one of --dry-run or --live.`);
   if (
-    !values.source_key ||
+    !values.discovery_observation_id ||
     !values.candidate_url ||
     !values.discovery_observation_path ||
     !values.profile_path
   )
     throw new Error(`${usage}\nAll named inputs are required.`);
   return {
-    source_key: values.source_key,
+    discovery_observation_id: values.discovery_observation_id,
     candidate_url: values.candidate_url,
     discovery_observation_path: values.discovery_observation_path,
     profile_path: values.profile_path,

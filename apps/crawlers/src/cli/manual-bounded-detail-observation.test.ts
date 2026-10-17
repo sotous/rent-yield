@@ -6,8 +6,8 @@ import {
 
 const arguments_ = [
   "--dry-run",
-  "--source-key",
-  "ciencuadras",
+  "--observation-id",
+  "discovery-1",
   "--candidate-url",
   "https://www.ciencuadras.com/inmueble/one",
   "--observation",
@@ -30,7 +30,7 @@ describe("manual bounded detail observation CLI", () => {
     ).toThrow("exactly one");
   });
 
-  it("runs dry preflight through the same selected input without a live flag", async () => {
+  it("runs dry preflight through the persisted selection input without a live flag", async () => {
     const runLocal = vi.fn().mockResolvedValue({
       ok: true,
       report: {

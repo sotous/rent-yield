@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
+import type { ResolvedDetailCandidateSelectionV1 } from "@rent-yield/listing-storage-contracts";
 import type { ProbeClock, ProbeTransport } from "../ports/probe-transport.js";
 import { MemorySourceBudget } from "./bounded-probe.js";
 
@@ -23,11 +24,8 @@ export type DetailObservationProfile = {
 };
 
 export type DetailCandidateSelection = {
-  source_key: string;
-  discovery_observation_id: string;
-  candidate_url: string;
-  /** Read from the persisted discovery observation by the future adapter. */
-  candidate_urls: readonly string[];
+  /** Derived by Storage from an exact persisted discovery observation. */
+  resolved: ResolvedDetailCandidateSelectionV1;
   dry_run: boolean;
 };
 
@@ -191,13 +189,13 @@ export async function runBoundedDetailObservation(
   input: DetailCandidateSelection,
   dependencies: Dependencies,
 ): Promise<BoundedDetailObservationResult> {
-  const candidate = canonicalHttpsUrl(input.candidate_url);
-  const selected = input.candidate_urls.includes(input.candidate_url);
-  if (!candidate || !selected)
+  const candidate = canonicalHttpsUrl(input.resolved.selection.candidate_url);
+  if (!candidate)
     return { ok: false, error: { code: "candidate_not_selected" } };
+  const sourceKey = input.resolved.source_key;
   const profile = dependencies.profile;
   if (
-    profile.source_key !== input.source_key ||
+    profile.source_key !== sourceKey ||
     !profile.allowed_hosts.includes(candidate.hostname) ||
     !pathAllowed(candidate.pathname, profile.allowed_path_prefixes) ||
     profile.budget.max_requests < 2 ||
@@ -209,8 +207,9 @@ export async function runBoundedDetailObservation(
       ok: true,
       report: {
         kind: "dry_run",
-        source_key: input.source_key,
-        discovery_observation_id: input.discovery_observation_id,
+        source_key: sourceKey,
+        discovery_observation_id:
+          input.resolved.selection.discovery_observation_id,
       },
     };
 
@@ -219,7 +218,7 @@ export async function runBoundedDetailObservation(
   const robots = await requestBounded(
     {
       url: robotsUrl,
-      source_key: input.source_key,
+      source_key: sourceKey,
       remaining_bytes: profile.budget.max_bytes,
       started_at: startedAt,
     },
@@ -257,7 +256,7 @@ export async function runBoundedDetailObservation(
   const detail = await requestBounded(
     {
       url: candidate,
-      source_key: input.source_key,
+      source_key: sourceKey,
       remaining_bytes: profile.budget.max_bytes - robotsLength,
       started_at: startedAt,
     },

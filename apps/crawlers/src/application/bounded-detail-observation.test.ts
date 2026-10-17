@@ -20,10 +20,25 @@ const profile: DetailObservationProfile = {
 };
 
 const selection = {
-  source_key: "source-a",
-  discovery_observation_id: "discovery-1",
-  candidate_url: "https://listings.example.com/rentals/one",
-  candidate_urls: ["https://listings.example.com/rentals/one"],
+  resolved: {
+    selection: {
+      contract_version: "v1" as const,
+      discovery_observation_id: "discovery-1",
+      candidate_url: "https://listings.example.com/rentals/one",
+    },
+    source_key: "source-a",
+    scope: {
+      country_code: "CO" as const,
+      city_key: "barranquilla",
+      capability: "discovery" as const,
+      listing_roles: ["for_rent" as const],
+    },
+    discovery_profile_provenance: {
+      source_key: "source-a",
+      profile_version: 1,
+      profile_sha256: "a".repeat(64),
+    },
+  },
 };
 
 const clock = {
@@ -56,26 +71,6 @@ describe("bounded detail observation", () => {
     });
     expect(resolve).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
-  });
-
-  it("rejects a candidate missing from its persisted discovery observation before DNS", async () => {
-    const resolve = vi.fn();
-
-    await expect(
-      runBoundedDetailObservation(
-        { ...selection, candidate_urls: [], dry_run: false },
-        {
-          profile,
-          clock,
-          sourceBudget: new MemorySourceBudget(),
-          transport: { resolve, request: vi.fn() },
-        },
-      ),
-    ).resolves.toEqual({
-      ok: false,
-      error: { code: "candidate_not_selected" },
-    });
-    expect(resolve).not.toHaveBeenCalled();
   });
 
   it("uses only robots then the selected detail URL and disposes both bodies", async () => {
@@ -123,6 +118,7 @@ describe("bounded detail observation", () => {
         response: {
           canonical_url: "https://listings.example.com/rentals/one",
           media_type: "text/html",
+          body_sha256: expect.any(String),
           body_byte_length: detail.byteLength,
         },
       },

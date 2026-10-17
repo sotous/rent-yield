@@ -1,9 +1,13 @@
 import {
   JsonFileDiscoveryProfileRepository,
+  JsonFileDiscoveryObservationRepository,
   type DiscoveryProfileRepository,
 } from "@rent-yield/discovery-profile-storage";
-import { discoveryObservationV1Schema } from "@rent-yield/listing-storage-contracts";
-import { readFile } from "node:fs/promises";
+import {
+  detailCandidateSelectionV1Schema,
+  resolveDetailCandidateSelection,
+  type DiscoveryObservationRepository,
+} from "@rent-yield/listing-storage-contracts";
 import { BoundedHttpsProbeTransport } from "../adapters/transport/bounded-https-probe-transport.js";
 import type { ProbeClock, ProbeTransport } from "../ports/probe-transport.js";
 import { MemorySourceBudget } from "./bounded-probe.js";
@@ -19,7 +23,7 @@ const defaultClock: ProbeClock = {
 };
 
 export type LocalBoundedDetailObservationCommand = {
-  source_key: string;
+  discovery_observation_id: string;
   candidate_url: string;
   discovery_observation_path: string;
   profile_path: string;
@@ -28,24 +32,29 @@ export type LocalBoundedDetailObservationCommand = {
 
 type Dependencies = {
   profiles?: DiscoveryProfileRepository;
+  observations?: DiscoveryObservationRepository;
   transport?: ProbeTransport;
   clock?: ProbeClock;
   sourceBudget?: MemorySourceBudget;
 };
 
 /** Reads only the already-sanitized discovery observation, never a source body. */
-async function readSelection(input: LocalBoundedDetailObservationCommand) {
+async function readSelection(
+  input: LocalBoundedDetailObservationCommand,
+  observations: DiscoveryObservationRepository,
+) {
   try {
-    const serialized = await readFile(input.discovery_observation_path, "utf8");
-    const observation = discoveryObservationV1Schema.parse(
-      JSON.parse(serialized),
-    );
-    if (observation.source_key !== input.source_key) return null;
-    return {
-      source_key: observation.source_key,
-      discovery_observation_id: observation.observation_id,
+    const selection = detailCandidateSelectionV1Schema.parse({
+      contract_version: "v1",
+      discovery_observation_id: input.discovery_observation_id,
       candidate_url: input.candidate_url,
-      candidate_urls: observation.candidate_urls,
+    });
+    const observation = await observations.findById({
+      observation_id: selection.discovery_observation_id,
+    });
+    if (!observation) return null;
+    return {
+      resolved: resolveDetailCandidateSelection(observation, selection),
       dry_run: input.dry_run,
     };
   } catch {
@@ -79,14 +88,21 @@ export async function runLocalBoundedDetailObservation(
   | BoundedDetailObservationResult
   | { ok: false; error: { code: "selection_unavailable" } }
 > {
-  const selection = await readSelection(input);
+  const observations =
+    dependencies.observations ??
+    new JsonFileDiscoveryObservationRepository({
+      path: input.discovery_observation_path,
+    });
+  const selection = await readSelection(input, observations);
   if (!selection)
     return { ok: false, error: { code: "selection_unavailable" } };
   const profiles =
     dependencies.profiles ??
     new JsonFileDiscoveryProfileRepository({ path: input.profile_path });
   const profile = detailProfileFor(
-    await profiles.findActiveBySourceKey({ source_key: input.source_key }),
+    await profiles.findActiveBySourceKey({
+      source_key: selection.resolved.source_key,
+    }),
   );
   if (!profile)
     return { ok: false, error: { code: "detail_scope_unavailable" } };
