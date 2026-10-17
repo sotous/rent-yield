@@ -5,6 +5,7 @@ type HtmlNode = {
   nodeName?: string;
   tagName?: string;
   value?: string;
+  attrs?: Array<{ name: string; value: string }>;
   childNodes?: HtmlNode[];
 };
 
@@ -102,6 +103,27 @@ function rawText(node: HtmlNode): string {
   return (node.childNodes ?? []).map(rawText).join(" ");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function typedAs(value: Record<string, unknown>, type: string): boolean {
+  return asArray(value["@type"]).some(
+    (candidate) => typeof candidate === "string" && candidate === type,
+  );
+}
+
+function scriptType(node: HtmlNode): string | null {
+  const type = node.attrs?.find(
+    (attribute) => attribute.name.toLowerCase() === "type",
+  )?.value;
+  return type?.split(";", 1)[0]?.trim().toLowerCase() ?? null;
+}
+
 function normalizePositiveDecimal(value: string): string | null {
   const compact = value.replace(/[.\s]/g, "");
   if (!/^\d+$/.test(compact) || /^0+$/.test(compact)) return null;
@@ -123,6 +145,22 @@ function normalizeArea(value: string): string | null {
 function normalizePlace(value: string): string | null {
   const normalized = normalizedText(value);
   return /^[\p{L}][\p{L} .'-]{0,127}$/u.test(normalized) ? normalized : null;
+}
+
+function normalizeStructuredDecimal(value: unknown): string | null {
+  const normalized =
+    typeof value === "number"
+      ? Number.isFinite(value)
+        ? String(value)
+        : null
+      : typeof value === "string"
+        ? value.trim()
+        : null;
+  if (!normalized || !/^\d+(?:\.\d+)?$/.test(normalized)) return null;
+  const decimal = normalized.includes(".")
+    ? normalized.replace(/0+$/, "").replace(/\.$/, "")
+    : normalized;
+  return decimal && decimal !== "0" ? decimal : null;
 }
 
 function priceClaims(value: string): Array<[ClaimKey, ClaimValue]> {
@@ -259,6 +297,114 @@ function collectScriptFields(node: HtmlNode, fields: Set<ClaimKey>): void {
   for (const child of node.childNodes ?? []) collectScriptFields(child, fields);
 }
 
+function addCandidate(
+  candidates: Map<ClaimKey, ClaimValue[]>,
+  field: ClaimKey,
+  value: ClaimValue | null,
+): void {
+  if (!value) return;
+  const values = candidates.get(field) ?? [];
+  values.push(value);
+  candidates.set(field, values);
+}
+
+function structuredPropertyClaims(
+  value: Record<string, unknown>,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+): void {
+  const propertyType: SafeDetailClaims["property_type"] = typedAs(
+    value,
+    "Apartment",
+  )
+    ? "apartment"
+    : typedAs(value, "House")
+      ? "house"
+      : null;
+  if (!propertyType) return;
+  addCandidate(candidates, "property_type", propertyType);
+  const identifier = value.identifier;
+  if (
+    typeof identifier === "string" &&
+    /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(identifier)
+  )
+    addCandidate(candidates, "source_listing_id", identifier);
+  const address = value.address;
+  if (isRecord(address) && typedAs(address, "PostalAddress")) {
+    const city = address.addressLocality;
+    if (typeof city === "string")
+      addCandidate(candidates, "city", normalizePlace(city));
+  }
+  const floorSize = value.floorSize;
+  if (isRecord(floorSize) && typedAs(floorSize, "QuantitativeValue")) {
+    const unit = floorSize.unitCode;
+    if (unit === "MTK")
+      addCandidate(
+        candidates,
+        "built_area_sqm",
+        normalizeStructuredDecimal(floorSize.value),
+      );
+  }
+}
+
+function structuredOfferClaims(
+  value: Record<string, unknown>,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+): void {
+  if (!typedAs(value, "Offer")) return;
+  const businessFunction = value.businessFunction;
+  if (
+    typeof businessFunction !== "string" ||
+    !businessFunction.endsWith("#LeaseOut")
+  )
+    return;
+  addCandidate(candidates, "listing_role", "for_rent");
+  const priceSpecification = value.priceSpecification;
+  const monthly =
+    isRecord(priceSpecification) &&
+    priceSpecification.billingDuration === "P1M";
+  const price = normalizeStructuredDecimal(value.price);
+  const currency = value.priceCurrency === "COP" ? "COP" : null;
+  if (monthly && price && currency) {
+    addCandidate(candidates, "asking_amount", price);
+    addCandidate(candidates, "currency", currency);
+    addCandidate(candidates, "frequency", "monthly");
+  }
+  if (value.availability === "https://schema.org/InStock")
+    addCandidate(candidates, "listing_status", "active");
+}
+
+function collectStructuredClaims(
+  value: unknown,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+): void {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStructuredClaims(item, candidates));
+    return;
+  }
+  if (!isRecord(value)) return;
+  structuredPropertyClaims(value, candidates);
+  structuredOfferClaims(value, candidates);
+  Object.values(value).forEach((item) =>
+    collectStructuredClaims(item, candidates),
+  );
+}
+
+function collectJsonLdClaims(
+  node: HtmlNode,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+): void {
+  if (node.tagName === "script" && scriptType(node) === "application/ld+json") {
+    try {
+      collectStructuredClaims(JSON.parse(rawText(node)) as unknown, candidates);
+    } catch {
+      // Malformed or unsupported structured data contributes no claims.
+    }
+    return;
+  }
+  for (const child of node.childNodes ?? [])
+    collectJsonLdClaims(child, candidates);
+}
+
 function emptyDiagnostics(): Map<ClaimKey, Omit<FieldDiagnostic, "outcome">> {
   return new Map(
     (Object.keys(emptyClaims()) as ClaimKey[]).map((field) => [
@@ -324,6 +470,7 @@ export function redactOfflineDetailCapture(input: {
     const diagnostics = emptyDiagnostics();
     const fragment = parseFragment(html) as HtmlNode;
     collectPairs(fragment, candidates, diagnostics);
+    collectJsonLdClaims(fragment, candidates);
     const scriptFields = new Set<ClaimKey>();
     collectScriptFields(fragment, scriptFields);
     const resolved = Object.keys(emptyClaims()).map((key) => {

@@ -178,4 +178,64 @@ describe("offline detail capture redaction", () => {
     expect(JSON.stringify(result)).not.toContain(secret);
     expect([...original].every((byte) => byte === 0)).toBe(true);
   });
+
+  it("extracts only unambiguous standards-based JSON-LD claims", () => {
+    const secret = "Carrera 53 # 80-67, Ana Perez, 3001234567";
+    const original = bytes(`
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Apartment",
+          "identifier": "listing-123",
+          "address": {"@type":"PostalAddress", "streetAddress": "${secret}", "addressLocality": "Barranquilla"},
+          "floorSize": {"@type":"QuantitativeValue", "value": 72, "unitCode": "MTK"},
+          "offers": {
+            "@type": "Offer",
+            "businessFunction": "http://purl.org/goodrelations/v1#LeaseOut",
+            "price": "1800000",
+            "priceCurrency": "COP",
+            "priceSpecification": {"billingDuration": "P1M"},
+            "availability": "https://schema.org/InStock"
+          }
+        }
+      </script>
+    `);
+
+    const result = redactOfflineDetailCapture({ original_bytes: original });
+
+    expect(result).toMatchObject({
+      ok: true,
+      claims: {
+        source_listing_id: "listing-123",
+        listing_role: "for_rent",
+        asking_amount: "1800000",
+        currency: "COP",
+        frequency: "monthly",
+        built_area_sqm: "72",
+        property_type: "apartment",
+        listing_status: "active",
+        city: "Barranquilla",
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain("schema.org");
+    expect([...original].every((byte) => byte === 0)).toBe(true);
+  });
+
+  it("fails closed when JSON-LD produces conflicting values", () => {
+    const original = bytes(`
+      <script type="application/ld+json">
+        [{"@type":"Apartment","offers":{"@type":"Offer","businessFunction":"https://purl.org/goodrelations/v1#LeaseOut","price":"1800000","priceCurrency":"COP","priceSpecification":{"billingDuration":"P1M"}}},
+         {"@type":"Apartment","offers":{"@type":"Offer","businessFunction":"https://purl.org/goodrelations/v1#LeaseOut","price":"1900000","priceCurrency":"COP","priceSpecification":{"billingDuration":"P1M"}}}]
+      </script>
+    `);
+
+    const result = redactOfflineDetailCapture({ original_bytes: original });
+
+    expect(result).toMatchObject({
+      ok: true,
+      claims: { asking_amount: null, currency: null, frequency: null },
+    });
+    expect([...original].every((byte) => byte === 0)).toBe(true);
+  });
 });
