@@ -16,6 +16,7 @@ import {
 } from "./methodology.js";
 
 import { extractionOutcomeSchema, rentalEvidenceSchema } from "./extraction.js";
+import { safeDetailExtractionContractSchema } from "./detail-extraction.js";
 import {
   ingestionReceiptSchema,
   ingestionSubmissionSchema,
@@ -30,6 +31,7 @@ export const contractSchemas = {
   extraction_contract: extractionContractSchema,
   extraction_outcome: extractionOutcomeSchema,
   rental_evidence: rentalEvidenceSchema,
+  safe_detail_extraction_contract: safeDetailExtractionContractSchema,
   methodology_manifest: methodologyManifestSchema,
   validation_report: methodologyValidationReportSchema,
   review_decision: methodologyReviewDecisionSchema,
