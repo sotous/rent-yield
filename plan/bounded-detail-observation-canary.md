@@ -2,9 +2,10 @@
 
 ## Status
 
-Draft — created 2026-10-16. This is the follow-up to the merged first
-discovery canary. It needs approval and a Notion task breakdown before code or
-another live request.
+In progress — approved and broken into seven Notion tasks on 2026-10-16. This
+is the follow-up to the merged first discovery canary. Selection, profile, and
+the bounded runtime shell are implemented; the reviewed extraction mapping,
+normalization handoff, and live verification remain.
 
 ## Why
 
