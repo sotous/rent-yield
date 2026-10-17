@@ -3,9 +3,11 @@
 ## Status
 
 In progress — approved and broken into seven Notion tasks on 2026-10-16. This
-is the follow-up to the merged first discovery canary. Selection, profile, and
-the bounded runtime shell are implemented; the reviewed extraction mapping,
-normalization handoff, and live verification remain.
+is the follow-up to the merged first discovery canary. Selection, the
+fail-closed detail profile, bounded runtime shell, and generic safe extraction
+contract are implemented. A reviewed, redacted source fixture and its exact
+mapping are still required before normalization, Storage handoff, or live
+verification can proceed.
 
 ## Why
 
