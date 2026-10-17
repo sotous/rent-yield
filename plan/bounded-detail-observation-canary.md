@@ -5,9 +5,9 @@
 In progress — approved and broken into seven Notion tasks on 2026-10-16. This
 is the follow-up to the merged first discovery canary. Selection, the
 fail-closed detail profile, bounded runtime shell, and generic safe extraction
-contract are implemented. A reviewed, redacted source fixture and its exact
-mapping are still required before normalization, Storage handoff, or live
-verification can proceed.
+contract are implemented. On 2026-10-17, the user authorized one additional
+capture-and-redact step to produce the review input. A reviewed mapping remains
+required before normalization, Storage handoff, or the detail-observation run.
 
 ## Why
 
@@ -33,16 +33,17 @@ yield.
 
 ## Product decisions
 
-| Decision                 | Choice                                                                                                                                                                                                                                             |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Input                    | A persisted discovery observation plus one candidate URL chosen from its canonical candidate set. A caller cannot invent or widen the URL.                                                                                                         |
-| Request sequence         | One robots-policy request, then at most one HTTPS detail request. No discovery request, redirect beyond the profile limit, retry, browser automation, login, cookie, or custom header.                                                             |
-| Detail scope             | Storage owns the declarative candidate host/path rule. The crawler verifies the selected URL against it before DNS or HTTP.                                                                                                                        |
-| Extraction boundary      | The crawler extracts an allowlisted set of listing fields in memory and discards source bytes/DOM immediately. It never writes HTML, JSON-LD, scripts, contact data, exact address, tokens, cookies, headers, rejected links, or raw body content. |
-| Source-specific behavior | Ciencuadras field mapping is a reviewed, hashed extraction contract/configuration. Generic crawler code must not contain Ciencuadras selectors or route logic.                                                                                     |
-| Normalization            | Reuse the shared normalized-observation and listing-quality contracts. Never infer missing currency, rent frequency, residential status, availability, or built area. Ambiguity is a typed non-normalized result.                                  |
-| Persistence              | Store a safe detail observation/receipt and normalized outcome only. Storage accepts a durable submission only for a complete, quality-passing normalized result; all other outcomes are transient.                                                |
-| Live authority           | The user has standing authorization for bounded live commands needed by this approved plan. Each command is still robots-first and limited to the one configured detail request; no automatic repeat follows a stop.                               |
+| Decision                 | Choice                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Input                    | A persisted discovery observation plus one candidate URL chosen from its canonical candidate set. A caller cannot invent or widen the URL.                                                                                                                                                                                                                                      |
+| Request sequence         | One robots-policy request, then at most one HTTPS detail request. No discovery request, redirect beyond the profile limit, retry, browser automation, login, cookie, or custom header.                                                                                                                                                                                          |
+| Detail scope             | Storage owns the declarative candidate host/path rule. The crawler verifies the selected URL against it before DNS or HTTP.                                                                                                                                                                                                                                                     |
+| Extraction boundary      | The crawler extracts an allowlisted set of listing fields in memory and discards source bytes/DOM immediately. It never writes HTML, JSON-LD, scripts, contact data, exact address, tokens, cookies, headers, rejected links, or raw body content.                                                                                                                              |
+| Source-specific behavior | Ciencuadras field mapping is a reviewed, hashed extraction contract/configuration. Generic crawler code must not contain Ciencuadras selectors or route logic.                                                                                                                                                                                                                  |
+| Normalization            | Reuse the shared normalized-observation and listing-quality contracts. Never infer missing currency, rent frequency, residential status, availability, or built area. Ambiguity is a typed non-normalized result.                                                                                                                                                               |
+| Persistence              | Store a safe detail observation/receipt and normalized outcome only. Storage accepts a durable submission only for a complete, quality-passing normalized result; all other outcomes are transient.                                                                                                                                                                             |
+| Live authority           | The user has standing authorization for bounded live commands needed by this approved plan. Each command is still robots-first and limited to the one configured detail request; no automatic repeat follows a stop.                                                                                                                                                            |
+| Fixture bootstrap        | One separately named capture-and-redact command may fetch robots and the already-selected candidate while the detail profile is unreviewed. It writes only a body-free receipt and a predeclared allowlist of direct, unambiguous scalar claims; it never writes a page, DOM, selector, raw label/value pair, or extraction mapping. Missing or ambiguous claims remain absent. |
 
 ## Proposed delivery slices
 
@@ -62,6 +63,12 @@ yield.
    hash-pinned extraction adapter that emits only permitted fields and their
    field provenance. Add scanner/disposal tests demonstrating that source
    content cannot cross the output boundary.
+   Before source mapping exists, run exactly one user-authorized
+   capture-and-redact command to create the immutable review fixture. It uses
+   the persisted candidate selection, robots, one detail request, and a
+   bounded generic direct-label redactor. It can only retain allowlisted
+   normalized scalar claims and their controlled field names; it cannot infer,
+   persist raw text, or publish a reviewed mapping.
 5. **Normalize and hand off** — Map the extracted result through existing
    listing-quality and rental-evidence rules. Submit only complete eligible
    normalized outcomes through the existing Storage port; return body-free
@@ -95,7 +102,8 @@ yield.
   not guess.
 - The existing Ciencuadras route rule identifies listing candidates, not a
   reusable field schema. An extraction contract and redacted fixture require a
-  separate offline review.
+  separate offline review. The one-time capture-and-redact command supplies
+  the fixture but does not substitute for that review.
 - A single detail response demonstrates only one shape; it does not authorize
   bulk collection, source activation, or a production schedule.
 
