@@ -1,4 +1,4 @@
-import { link, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, link, mkdir, rm, writeFile } from "node:fs/promises";
 import { isIP } from "node:net";
 import { dirname, isAbsolute } from "node:path";
 import {
@@ -11,8 +11,10 @@ import { BoundedHttpsProbeTransport } from "../adapters/transport/bounded-https-
 import type { ProbeTransport } from "../ports/probe-transport.js";
 import { redactOfflineDetailCapture } from "./offline-detail-capture-redaction.js";
 
-const maxResponseBytes = 1_000_000;
-const timeoutMs = 30_000;
+// The user explicitly removed first-canary page-size limits for this MVP.
+// These transport-required sentinels avoid a product-level truncation policy.
+const maxResponseBytes = Number.MAX_SAFE_INTEGER;
+const timeoutMs = 2_147_483_647;
 
 export type ReviewDetailCaptureCommand = {
   discovery_observation_id: string;
@@ -164,6 +166,15 @@ async function reserveSafeArtifact(
   }
 }
 
+async function captureTargetExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== "ENOENT";
+  }
+}
+
 async function resolveSelection(
   input: ReviewDetailCaptureCommand,
   observations: DiscoveryObservationRepository,
@@ -196,6 +207,8 @@ export async function runReviewDetailCapture(
 ): Promise<ReviewDetailCaptureResult> {
   if (!isAbsolute(input.output_path))
     return { ok: false, error: { code: "invalid_output_path" } };
+  if (await captureTargetExists(input.output_path))
+    return { ok: false, error: { code: "capture_exists" } };
   const observations =
     dependencies.observations ??
     new JsonFileDiscoveryObservationRepository({

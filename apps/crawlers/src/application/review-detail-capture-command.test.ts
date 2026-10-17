@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -149,5 +149,27 @@ describe("review detail capture command", () => {
     });
     expect(probe.resolve).not.toHaveBeenCalled();
     expect(probe.request).not.toHaveBeenCalled();
+  });
+
+  it("refuses an already-reserved capture target before networking", async () => {
+    const root = await mkdtemp(join(tmpdir(), "review-detail-capture-"));
+    const outputPath = join(root, "capture.json");
+    const probe = transport([]);
+    try {
+      await writeFile(outputPath, "{}\n", "utf8");
+      await expect(
+        runReviewDetailCapture(command(outputPath), {
+          observations: repository(observation),
+          transport: probe,
+        }),
+      ).resolves.toEqual({
+        ok: false,
+        error: { code: "capture_exists" },
+      });
+      expect(probe.resolve).not.toHaveBeenCalled();
+      expect(probe.request).not.toHaveBeenCalled();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
