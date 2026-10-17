@@ -17,6 +17,7 @@ describe("shared v1 schema catalog", () => {
       "receipt_progress",
       "rental_evidence",
       "review_decision",
+      "safe_detail_extraction_contract",
       "source_candidate",
       "source_health",
       "validation_report",
