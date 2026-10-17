@@ -2,6 +2,7 @@ import { link, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute } from "node:path";
 import {
   discoveryObservationV1Schema,
+  discoveryObservationLookupSchema,
   type DiscoveryObservationAppendResult,
   type DiscoveryObservationRepository,
   type DiscoveryObservationV1,
@@ -50,21 +51,42 @@ export class JsonFileDiscoveryObservationRepository implements DiscoveryObservat
     }
   }
 
+  async findById(input: {
+    observation_id: string;
+  }): Promise<DiscoveryObservationV1 | null> {
+    const lookup = discoveryObservationLookupSchema.parse(input);
+    let serialized: string;
+    try {
+      serialized = await readFile(this.#path, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+    const observation = this.#parse(serialized);
+    return observation.observation_id === lookup.observation_id
+      ? observation
+      : null;
+  }
+
   #existing(
     serialized: string,
     observation: DiscoveryObservationV1,
   ): DiscoveryObservationAppendResult {
+    const existing = this.#parse(serialized);
+    if (JSON.stringify(existing) !== JSON.stringify(observation))
+      throw new Error(
+        "Discovery observation target already contains a different observation",
+      );
+    return { appended: false, observation: existing };
+  }
+
+  #parse(serialized: string): DiscoveryObservationV1 {
     let parsed: unknown;
     try {
       parsed = JSON.parse(serialized);
     } catch {
       throw new Error("Discovery observation target contains invalid JSON");
     }
-    const existing = discoveryObservationV1Schema.parse(parsed);
-    if (JSON.stringify(existing) !== JSON.stringify(observation))
-      throw new Error(
-        "Discovery observation target already contains a different observation",
-      );
-    return { appended: false, observation: existing };
+    return discoveryObservationV1Schema.parse(parsed);
   }
 }

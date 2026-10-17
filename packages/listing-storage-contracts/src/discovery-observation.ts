@@ -21,6 +21,20 @@ const canonicalHttpsUrlSchema = z
     );
   }, "Candidate URL must be credential-free HTTPS without query or fragment");
 
+/**
+ * Caller-controlled input for the single detail canary. Scope and provenance
+ * are intentionally absent: they are derived from the persisted observation.
+ */
+export const detailCandidateSelectionV1Schema = z.strictObject({
+  contract_version: z.literal("v1"),
+  discovery_observation_id: identifierSchema,
+  candidate_url: canonicalHttpsUrlSchema,
+});
+
+export const discoveryObservationLookupSchema = z.strictObject({
+  observation_id: identifierSchema,
+});
+
 export const discoveryProfileProvenanceV1Schema = z.strictObject({
   source_key: identifierSchema,
   profile_version: z.number().int().positive().safe(),
@@ -114,9 +128,58 @@ export type DiscoveryObservationAppendResult = {
   observation: DiscoveryObservationV1;
 };
 
+export type DetailCandidateSelectionV1 = z.infer<
+  typeof detailCandidateSelectionV1Schema
+>;
+export type DiscoveryObservationLookup = z.infer<
+  typeof discoveryObservationLookupSchema
+>;
+
+/** Safe, derived detail-canary input; it contains no caller-supplied scope. */
+export type ResolvedDetailCandidateSelectionV1 = {
+  selection: DetailCandidateSelectionV1;
+  source_key: DiscoveryObservationV1["source_key"];
+  scope: DiscoveryObservationV1["scope"];
+  discovery_profile_provenance: DiscoveryObservationV1["discovery_profile_provenance"];
+};
+
+/**
+ * Binds a detail request to an exact retained discovery candidate. The canary
+ * is Colombia/Barranquilla/for-rent only; later orchestration applies profile
+ * and transport rules after this local boundary succeeds.
+ */
+export function resolveDetailCandidateSelection(
+  observationInput: DiscoveryObservationV1,
+  selectionInput: DetailCandidateSelectionV1,
+): ResolvedDetailCandidateSelectionV1 {
+  const observation = discoveryObservationV1Schema.parse(observationInput);
+  const selection = detailCandidateSelectionV1Schema.parse(selectionInput);
+
+  if (selection.discovery_observation_id !== observation.observation_id)
+    throw new Error("Detail selection observation identity does not match");
+  if (
+    observation.scope.country_code !== "CO" ||
+    observation.scope.city_key !== "barranquilla" ||
+    !observation.scope.listing_roles.includes("for_rent")
+  )
+    throw new Error("Discovery observation is outside the detail canary scope");
+  if (!observation.candidate_urls.includes(selection.candidate_url))
+    throw new Error("Detail selection candidate URL was not retained");
+
+  return {
+    selection,
+    source_key: observation.source_key,
+    scope: observation.scope,
+    discovery_profile_provenance: observation.discovery_profile_provenance,
+  };
+}
+
 /** Append-only boundary for sanitized discovery observations. */
 export interface DiscoveryObservationRepository {
   append(
     input: DiscoveryObservationV1,
   ): Promise<DiscoveryObservationAppendResult>;
+  findById(
+    input: DiscoveryObservationLookup,
+  ): Promise<DiscoveryObservationV1 | null>;
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  resolveDetailCandidateSelection,
+  detailCandidateSelectionV1Schema,
   discoveryObservationV1Schema,
   type DiscoveryObservationV1,
 } from "./discovery-observation.js";
@@ -108,6 +110,67 @@ describe("DiscoveryObservationV1", () => {
         outcome: "candidates_found",
         candidate_count: 0,
         candidate_urls: [],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("DetailCandidateSelectionV1", () => {
+  const selection = {
+    contract_version: "v1",
+    discovery_observation_id: observation.observation_id,
+    candidate_url: observation.candidate_urls[0]!,
+  } as const;
+
+  it("resolves only a candidate explicitly retained by the referenced observation", () => {
+    expect(resolveDetailCandidateSelection(observation, selection)).toEqual({
+      selection,
+      source_key: observation.source_key,
+      scope: observation.scope,
+      discovery_profile_provenance: observation.discovery_profile_provenance,
+    });
+  });
+
+  it("rejects arbitrary candidate URLs and mismatched observation identity", () => {
+    expect(() =>
+      resolveDetailCandidateSelection(observation, {
+        ...selection,
+        candidate_url: "https://www.ciencuadras.com/inmueble/not-retained",
+      }),
+    ).toThrow("not retained");
+    expect(() =>
+      resolveDetailCandidateSelection(observation, {
+        ...selection,
+        discovery_observation_id: "other-observation",
+      }),
+    ).toThrow("does not match");
+  });
+
+  it("rejects observations outside the fixed Colombia, Barranquilla, for-rent canary scope", () => {
+    for (const observationOverride of [
+      { scope: { ...observation.scope, country_code: "US" } },
+      { scope: { ...observation.scope, city_key: "bogota" } },
+      { scope: { ...observation.scope, listing_roles: ["for_sale"] } },
+    ])
+      expect(() =>
+        resolveDetailCandidateSelection(
+          { ...observation, ...observationOverride } as DiscoveryObservationV1,
+          selection,
+        ),
+      ).toThrow();
+  });
+
+  it("makes selection identity deterministic and rejects unsafe shape", () => {
+    expect(detailCandidateSelectionV1Schema.parse(selection)).toEqual(
+      selection,
+    );
+    expect(resolveDetailCandidateSelection(observation, selection)).toEqual(
+      resolveDetailCandidateSelection(observation, { ...selection }),
+    );
+    expect(
+      detailCandidateSelectionV1Schema.safeParse({
+        ...selection,
+        candidate_url: `${selection.candidate_url}?invented=1`,
       }).success,
     ).toBe(false);
   });

@@ -98,4 +98,41 @@ describe("JsonFileDiscoveryObservationRepository", () => {
       code: "ENOENT",
     });
   });
+
+  it("reads the stored observation only when its identity matches", async () => {
+    const path = await destination();
+    const repository = new JsonFileDiscoveryObservationRepository({ path });
+    await repository.append(observation);
+
+    await expect(
+      repository.findById({ observation_id: observation.observation_id }),
+    ).resolves.toEqual(observation);
+    await expect(
+      repository.findById({ observation_id: "unknown-observation" }),
+    ).resolves.toBeNull();
+    await expect(
+      repository.findById({
+        observation_id: observation.observation_id,
+        extra: true,
+      } as never),
+    ).rejects.toThrow();
+  });
+
+  it("does not treat malformed or mismatched persisted content as a selection source", async () => {
+    const path = await destination();
+    await writeFile(
+      path,
+      `${JSON.stringify({ ...observation, observation_id: "other-observation" })}\n`,
+      "utf8",
+    );
+    const repository = new JsonFileDiscoveryObservationRepository({ path });
+
+    await expect(
+      repository.findById({ observation_id: observation.observation_id }),
+    ).resolves.toBeNull();
+    await writeFile(path, "{ not-json", "utf8");
+    await expect(
+      repository.findById({ observation_id: observation.observation_id }),
+    ).rejects.toThrow("invalid JSON");
+  });
 });
