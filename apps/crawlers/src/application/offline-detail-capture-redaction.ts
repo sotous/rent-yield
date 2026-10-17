@@ -1,0 +1,237 @@
+import { createHash } from "node:crypto";
+import { parseFragment } from "parse5";
+
+type HtmlNode = {
+  nodeName?: string;
+  tagName?: string;
+  value?: string;
+  childNodes?: HtmlNode[];
+};
+
+type SafeDetailClaims = {
+  source_listing_id: string | null;
+  listing_url: string | null;
+  listing_role: "for_rent" | null;
+  asking_amount: string | null;
+  currency: "COP" | null;
+  frequency: "monthly" | null;
+  fee_scope: "base" | null;
+  built_area_sqm: string | null;
+  property_type: "apartment" | "house" | "studio" | "other_residential" | null;
+  rental_basis: "long_term" | null;
+  listing_status: "active" | null;
+  city: string | null;
+  area: string | null;
+};
+
+type ClaimKey = keyof SafeDetailClaims;
+type ClaimValue = Exclude<SafeDetailClaims[ClaimKey], null>;
+
+export type OfflineDetailCaptureRedactionResult =
+  | {
+      ok: true;
+      receipt: { original_bytes_sha256: string; byte_length: number };
+      claims: SafeDetailClaims;
+    }
+  | { ok: false; error: { code: "invalid_utf8" } };
+
+const emptyClaims = (): SafeDetailClaims => ({
+  source_listing_id: null,
+  listing_url: null,
+  listing_role: null,
+  asking_amount: null,
+  currency: null,
+  frequency: null,
+  fee_scope: null,
+  built_area_sqm: null,
+  property_type: null,
+  rental_basis: null,
+  listing_status: null,
+  city: null,
+  area: null,
+});
+
+const ignoredTags = new Set(["script", "style", "noscript", "template"]);
+
+const normalizedText = (value: string): string =>
+  value.normalize("NFD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim();
+
+const canonicalLabel = (value: string): string =>
+  normalizedText(value).toLowerCase();
+
+function visibleText(node: HtmlNode): string {
+  if (node.tagName && ignoredTags.has(node.tagName)) return "";
+  if (node.nodeName === "#text") return node.value ?? "";
+  return (node.childNodes ?? []).map(visibleText).join(" ");
+}
+
+function normalizePositiveDecimal(value: string): string | null {
+  const compact = value.replace(/[.\s]/g, "");
+  if (!/^\d+$/.test(compact) || /^0+$/.test(compact)) return null;
+  return compact;
+}
+
+function normalizeArea(value: string): string | null {
+  const match = /^\s*(\d+(?:[.,]\d+)?)\s*(?:m2|m²)\s*$/iu.exec(value);
+  if (!match?.[1]) return null;
+  const decimal = match[1]
+    .replace(",", ".")
+    .replace(/0+$/, "")
+    .replace(/\.$/, "");
+  return /^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(decimal) && decimal !== "0"
+    ? decimal
+    : null;
+}
+
+function normalizePlace(value: string): string | null {
+  const normalized = normalizedText(value);
+  return /^[\p{L}][\p{L} .'-]{0,127}$/u.test(normalized) ? normalized : null;
+}
+
+function priceClaims(value: string): Array<[ClaimKey, ClaimValue]> {
+  const normalized = normalizedText(value);
+  const currency = /(?:^|\s)COP(?:\s|$)/.test(normalized) ? "COP" : null;
+  const amount = normalizePositiveDecimal(
+    normalized.replace(/(?:^|\s)COP(?:\s|$)/g, " ").replace(/mensual/giu, " "),
+  );
+  const frequency = /(?:^|\s)mensual(?:\s|$)/iu.test(normalized)
+    ? "monthly"
+    : null;
+  const claims: Array<[ClaimKey, ClaimValue]> = [];
+  if (amount) claims.push(["asking_amount", amount]);
+  if (currency) claims.push(["currency", currency]);
+  if (frequency) claims.push(["frequency", frequency]);
+  return claims;
+}
+
+function claimsForPair(
+  label: string,
+  value: string,
+): Array<[ClaimKey, ClaimValue]> {
+  switch (label) {
+    case "canon de arrendamiento":
+    case "valor de arrendamiento":
+    case "precio de arriendo":
+    case "precio de arrendamiento":
+      return priceClaims(value);
+    case "area construida": {
+      const area = normalizeArea(value);
+      return area ? [["built_area_sqm", area]] : [];
+    }
+    case "tipo de inmueble": {
+      const propertyTypes: Record<string, SafeDetailClaims["property_type"]> = {
+        apartamento: "apartment",
+        casa: "house",
+        apartaestudio: "studio",
+        otro: "other_residential",
+      };
+      const propertyType = propertyTypes[canonicalLabel(value)];
+      return propertyType ? [["property_type", propertyType]] : [];
+    }
+    case "operacion":
+    case "tipo de operacion":
+      return ["arriendo", "for_rent"].includes(canonicalLabel(value))
+        ? [["listing_role", "for_rent"]]
+        : [];
+    case "ciudad": {
+      const city = normalizePlace(value);
+      return city ? [["city", city]] : [];
+    }
+    case "barrio":
+    case "zona": {
+      const area = normalizePlace(value);
+      return area ? [["area", area]] : [];
+    }
+    case "codigo del inmueble":
+    case "codigo inmueble": {
+      const id = normalizedText(value);
+      return /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id)
+        ? [["source_listing_id", id]]
+        : [];
+    }
+    case "tipo de arriendo":
+      return ["larga estancia", "long term"].includes(canonicalLabel(value))
+        ? [["rental_basis", "long_term"]]
+        : [];
+    case "estado de publicacion":
+      return ["activo", "disponible", "active"].includes(canonicalLabel(value))
+        ? [["listing_status", "active"]]
+        : [];
+    default:
+      return [];
+  }
+}
+
+function immediatelyPairedElement(
+  children: HtmlNode[],
+  start: number,
+): HtmlNode | null {
+  for (let index = start + 1; index < children.length; index += 1) {
+    const child = children[index];
+    if (!child) continue;
+    if (child.nodeName === "#text") {
+      if ((child.value ?? "").trim() === "") continue;
+      return null;
+    }
+    return child;
+  }
+  return null;
+}
+
+function collectPairs(
+  node: HtmlNode,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+): void {
+  const children = node.childNodes ?? [];
+  for (let index = 0; index < children.length; index += 1) {
+    const labelNode = children[index];
+    if (!labelNode || labelNode.nodeName === "#text") continue;
+    const label = canonicalLabel(visibleText(labelNode));
+    const next = immediatelyPairedElement(children, index);
+    if (!next || !label) continue;
+    for (const [field, value] of claimsForPair(label, visibleText(next))) {
+      const values = candidates.get(field) ?? [];
+      values.push(value);
+      candidates.set(field, values);
+    }
+  }
+  for (const child of children) collectPairs(child, candidates);
+}
+
+/**
+ * Converts transient detail HTML into a fixed safe claim bag. It recognizes
+ * only a small, source-agnostic Spanish real-estate vocabulary when an exact
+ * visible label has one immediately paired value. Raw HTML, labels, DOM paths,
+ * scripts, JSON-LD, and unrecognized text never cross this boundary.
+ */
+export function redactOfflineDetailCapture(input: {
+  original_bytes: Uint8Array;
+}): OfflineDetailCaptureRedactionResult {
+  const receipt = {
+    original_bytes_sha256: createHash("sha256")
+      .update(input.original_bytes)
+      .digest("hex"),
+    byte_length: input.original_bytes.byteLength,
+  };
+  try {
+    let html: string;
+    try {
+      html = new TextDecoder("utf-8", { fatal: true }).decode(
+        input.original_bytes,
+      );
+    } catch {
+      return { ok: false, error: { code: "invalid_utf8" } };
+    }
+    const candidates = new Map<ClaimKey, ClaimValue[]>();
+    collectPairs(parseFragment(html) as HtmlNode, candidates);
+    const resolved = Object.keys(emptyClaims()).map((key) => {
+      const typedKey = key as ClaimKey;
+      const values = candidates.get(typedKey);
+      return [typedKey, values?.length === 1 ? (values[0] ?? null) : null];
+    });
+    const claims = Object.fromEntries(resolved) as SafeDetailClaims;
+    return { ok: true, receipt, claims };
+  } finally {
+    input.original_bytes.fill(0);
+  }
+}
