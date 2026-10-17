@@ -108,6 +108,7 @@ describe("review detail capture command", () => {
       expect([...detail].every((byte) => byte === 0)).toBe(true);
       const artifact = await readFile(outputPath, "utf8");
       expect(artifact).toContain('"asking_amount": "1800000"');
+      expect(artifact).toContain('"outcome": "unique"');
       expect(artifact).not.toContain(secret);
       expect(artifact).not.toContain("application/ld+json");
       expect(artifact).not.toContain("Canon de arrendamiento");

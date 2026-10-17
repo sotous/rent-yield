@@ -43,6 +43,10 @@ type SafeCaptureArtifact = {
     ReturnType<typeof redactOfflineDetailCapture>,
     { ok: false }
   >["claims"];
+  diagnostic: Exclude<
+    ReturnType<typeof redactOfflineDetailCapture>,
+    { ok: false }
+  >["diagnostic"];
 };
 
 export type ReviewDetailCaptureResult =
@@ -284,6 +288,7 @@ export async function runReviewDetailCapture(
       discovery_profile_provenance: resolved.discovery_profile_provenance,
       receipt: redacted.receipt,
       claims: redacted.claims,
+      diagnostic: redacted.diagnostic,
     };
     const written = await reserveSafeArtifact(input.output_path, artifact);
     if (written === "exists")

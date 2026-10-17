@@ -26,12 +26,26 @@ type SafeDetailClaims = {
 
 type ClaimKey = keyof SafeDetailClaims;
 type ClaimValue = Exclude<SafeDetailClaims[ClaimKey], null>;
+type DiagnosticOutcome =
+  | "unique"
+  | "ambiguous_or_invalid"
+  | "no_adjacent_value"
+  | "script_only"
+  | "no_matching_label";
+
+type FieldDiagnostic = {
+  recognized_label_count: number;
+  adjacent_element_count: number;
+  parseable_value_count: number;
+  outcome: DiagnosticOutcome;
+};
 
 export type OfflineDetailCaptureRedactionResult =
   | {
       ok: true;
       receipt: { original_bytes_sha256: string; byte_length: number };
       claims: SafeDetailClaims;
+      diagnostic: { fields: Record<ClaimKey, FieldDiagnostic> };
     }
   | { ok: false; error: { code: "invalid_utf8" } };
 
@@ -53,6 +67,24 @@ const emptyClaims = (): SafeDetailClaims => ({
 
 const ignoredTags = new Set(["script", "style", "noscript", "template"]);
 
+const fieldsForLabel: Record<string, ClaimKey[]> = {
+  "canon de arrendamiento": ["asking_amount", "currency", "frequency"],
+  "valor de arrendamiento": ["asking_amount", "currency", "frequency"],
+  "precio de arriendo": ["asking_amount", "currency", "frequency"],
+  "precio de arrendamiento": ["asking_amount", "currency", "frequency"],
+  "area construida": ["built_area_sqm"],
+  "tipo de inmueble": ["property_type"],
+  operacion: ["listing_role"],
+  "tipo de operacion": ["listing_role"],
+  ciudad: ["city"],
+  barrio: ["area"],
+  zona: ["area"],
+  "codigo del inmueble": ["source_listing_id"],
+  "codigo inmueble": ["source_listing_id"],
+  "tipo de arriendo": ["rental_basis"],
+  "estado de publicacion": ["listing_status"],
+};
+
 const normalizedText = (value: string): string =>
   value.normalize("NFD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim();
 
@@ -63,6 +95,11 @@ function visibleText(node: HtmlNode): string {
   if (node.tagName && ignoredTags.has(node.tagName)) return "";
   if (node.nodeName === "#text") return node.value ?? "";
   return (node.childNodes ?? []).map(visibleText).join(" ");
+}
+
+function rawText(node: HtmlNode): string {
+  if (node.nodeName === "#text") return node.value ?? "";
+  return (node.childNodes ?? []).map(rawText).join(" ");
 }
 
 function normalizePositiveDecimal(value: string): string | null {
@@ -181,21 +218,82 @@ function immediatelyPairedElement(
 function collectPairs(
   node: HtmlNode,
   candidates: Map<ClaimKey, ClaimValue[]>,
+  diagnostics: Map<ClaimKey, Omit<FieldDiagnostic, "outcome">>,
 ): void {
   const children = node.childNodes ?? [];
   for (let index = 0; index < children.length; index += 1) {
     const labelNode = children[index];
     if (!labelNode || labelNode.nodeName === "#text") continue;
     const label = canonicalLabel(visibleText(labelNode));
+    const fields = fieldsForLabel[label] ?? [];
+    for (const field of fields) {
+      const diagnostic = diagnostics.get(field);
+      if (diagnostic) diagnostic.recognized_label_count += 1;
+    }
     const next = immediatelyPairedElement(children, index);
     if (!next || !label) continue;
+    for (const field of fields) {
+      const diagnostic = diagnostics.get(field);
+      if (diagnostic) diagnostic.adjacent_element_count += 1;
+    }
     for (const [field, value] of claimsForPair(label, visibleText(next))) {
       const values = candidates.get(field) ?? [];
       values.push(value);
       candidates.set(field, values);
+      const diagnostic = diagnostics.get(field);
+      if (diagnostic) diagnostic.parseable_value_count += 1;
     }
   }
-  for (const child of children) collectPairs(child, candidates);
+  for (const child of children) collectPairs(child, candidates, diagnostics);
+}
+
+function collectScriptFields(node: HtmlNode, fields: Set<ClaimKey>): void {
+  if (node.tagName === "script") {
+    const script = canonicalLabel(rawText(node));
+    for (const [label, labelFields] of Object.entries(fieldsForLabel)) {
+      if (script.includes(label))
+        labelFields.forEach((field) => fields.add(field));
+    }
+    return;
+  }
+  for (const child of node.childNodes ?? []) collectScriptFields(child, fields);
+}
+
+function emptyDiagnostics(): Map<ClaimKey, Omit<FieldDiagnostic, "outcome">> {
+  return new Map(
+    (Object.keys(emptyClaims()) as ClaimKey[]).map((field) => [
+      field,
+      {
+        recognized_label_count: 0,
+        adjacent_element_count: 0,
+        parseable_value_count: 0,
+      },
+    ]),
+  );
+}
+
+function finalizeDiagnostics(
+  diagnostics: Map<ClaimKey, Omit<FieldDiagnostic, "outcome">>,
+  candidates: Map<ClaimKey, ClaimValue[]>,
+  scriptFields: Set<ClaimKey>,
+): Record<ClaimKey, FieldDiagnostic> {
+  return Object.fromEntries(
+    (Object.keys(emptyClaims()) as ClaimKey[]).map((field) => {
+      const counts = diagnostics.get(field)!;
+      const values = candidates.get(field) ?? [];
+      const outcome: DiagnosticOutcome =
+        values.length === 1
+          ? "unique"
+          : counts.recognized_label_count === 0 && scriptFields.has(field)
+            ? "script_only"
+            : counts.recognized_label_count === 0
+              ? "no_matching_label"
+              : counts.adjacent_element_count === 0
+                ? "no_adjacent_value"
+                : "ambiguous_or_invalid";
+      return [field, { ...counts, outcome }];
+    }),
+  ) as Record<ClaimKey, FieldDiagnostic>;
 }
 
 /**
@@ -223,14 +321,25 @@ export function redactOfflineDetailCapture(input: {
       return { ok: false, error: { code: "invalid_utf8" } };
     }
     const candidates = new Map<ClaimKey, ClaimValue[]>();
-    collectPairs(parseFragment(html) as HtmlNode, candidates);
+    const diagnostics = emptyDiagnostics();
+    const fragment = parseFragment(html) as HtmlNode;
+    collectPairs(fragment, candidates, diagnostics);
+    const scriptFields = new Set<ClaimKey>();
+    collectScriptFields(fragment, scriptFields);
     const resolved = Object.keys(emptyClaims()).map((key) => {
       const typedKey = key as ClaimKey;
       const values = candidates.get(typedKey);
       return [typedKey, values?.length === 1 ? (values[0] ?? null) : null];
     });
     const claims = Object.fromEntries(resolved) as SafeDetailClaims;
-    return { ok: true, receipt, claims };
+    return {
+      ok: true,
+      receipt,
+      claims,
+      diagnostic: {
+        fields: finalizeDiagnostics(diagnostics, candidates, scriptFields),
+      },
+    };
   } finally {
     input.original_bytes.fill(0);
   }

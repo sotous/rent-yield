@@ -39,6 +39,16 @@ describe("offline detail capture redaction", () => {
         city: "Barranquilla",
         area: "El Prado",
       },
+      diagnostic: {
+        fields: expect.objectContaining({
+          built_area_sqm: {
+            recognized_label_count: 1,
+            adjacent_element_count: 1,
+            parseable_value_count: 1,
+            outcome: "unique",
+          },
+        }),
+      },
     });
     expect([...original].every((byte) => byte === 0)).toBe(true);
   });
@@ -56,6 +66,16 @@ describe("offline detail capture redaction", () => {
     expect(result).toMatchObject({
       ok: true,
       claims: { built_area_sqm: null },
+      diagnostic: {
+        fields: {
+          built_area_sqm: {
+            recognized_label_count: 2,
+            adjacent_element_count: 2,
+            parseable_value_count: 2,
+            outcome: "ambiguous_or_invalid",
+          },
+        },
+      },
     });
     expect([...original].every((byte) => byte === 0)).toBe(true);
   });
@@ -92,6 +112,70 @@ describe("offline detail capture redaction", () => {
       ok: false,
       error: { code: "invalid_utf8" },
     });
+    expect([...original].every((byte) => byte === 0)).toBe(true);
+  });
+
+  it("reports only controlled parse-drift counts and buckets", () => {
+    const secret = "Carrera 53 # 80-67, Ana Perez, 3001234567";
+    const original = bytes(`
+      <script>const label = "Área construida"; const secret = "${secret}";</script>
+      <dl><dt>Área construida</dt><dd>invalid</dd></dl>
+      <dl><dt>Ciudad</dt>not-an-element</dl>
+    `);
+
+    const result = redactOfflineDetailCapture({ original_bytes: original });
+
+    expect(result).toMatchObject({
+      ok: true,
+      claims: { built_area_sqm: null, city: null },
+      diagnostic: {
+        fields: {
+          built_area_sqm: {
+            recognized_label_count: 1,
+            adjacent_element_count: 1,
+            parseable_value_count: 0,
+            outcome: "ambiguous_or_invalid",
+          },
+          city: {
+            recognized_label_count: 1,
+            adjacent_element_count: 0,
+            parseable_value_count: 0,
+            outcome: "no_adjacent_value",
+          },
+        },
+      },
+    });
+    if (!result.ok) throw new Error("expected redaction to succeed");
+    expect(result.diagnostic.fields.asking_amount.outcome).toBe(
+      "no_matching_label",
+    );
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect([...original].every((byte) => byte === 0)).toBe(true);
+  });
+
+  it("reports a fixed script-only bucket without retaining script text", () => {
+    const secret = "eyJ0b2tlbiI6InNlY3JldCJ9";
+    const original = bytes(
+      `<script>const field = "Área construida"; const token = "${secret}";</script>`,
+    );
+
+    const result = redactOfflineDetailCapture({ original_bytes: original });
+
+    expect(result).toMatchObject({
+      ok: true,
+      claims: { built_area_sqm: null },
+      diagnostic: {
+        fields: {
+          built_area_sqm: {
+            recognized_label_count: 0,
+            adjacent_element_count: 0,
+            parseable_value_count: 0,
+            outcome: "script_only",
+          },
+        },
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain(secret);
     expect([...original].every((byte) => byte === 0)).toBe(true);
   });
 });

@@ -16,6 +16,13 @@ the detail receipt recorded 282,104 bytes and SHA-256
 strict generic redactor retained no claims. That is a valid body-free
 parse-drift outcome, not evidence for a mapping or a reason to retry.
 
+The safe review artifact now includes a fixed, body-free parse-drift
+diagnostic for every allowlisted claim: controlled counts for recognized
+labels, adjacent elements, and parseable values, plus one controlled outcome
+bucket. It distinguishes absent vocabulary, absent adjacency, ambiguity or an
+invalid value, and script-only vocabulary without retaining labels, values,
+DOM topology, scripts, or arbitrary source text.
+
 ## Why
 
 The successful Ciencuadras discovery canary persisted 20 safe candidate URLs.
@@ -99,6 +106,9 @@ yield.
   Storage admission is ineligible.
 - No persisted or logged value contains raw response bytes, HTML, DOM, script,
   contact detail, exact address, cookie, header, token, or rejected URL.
+- A parse-drift artifact may contain only fixed field keys, bounded counts, and
+  controlled diagnostic buckets; it cannot contain a source label, value,
+  tag, class, id, selector, DOM path, URL, script, or arbitrary source text.
 - Unit/integration tests exercise all new boundary rules before any live run;
   package typecheck, lint, format, and relevant test suites pass.
 
