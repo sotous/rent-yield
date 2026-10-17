@@ -9,6 +9,13 @@ contract are implemented. On 2026-10-17, the user authorized one additional
 capture-and-redact step to produce the review input. A reviewed mapping remains
 required before normalization, Storage handoff, or the detail-observation run.
 
+The authorized capture completed for discovery observation
+`ciencuadras-barranquilla-live-002` and candidate `...-2767037`: robots passed,
+the detail receipt recorded 282,104 bytes and SHA-256
+`d2cbe9a24670114f152df1649e435f321590f34124c2cd17de8c06a4b13d7306`, and the
+strict generic redactor retained no claims. That is a valid body-free
+parse-drift outcome, not evidence for a mapping or a reason to retry.
+
 ## Why
 
 The successful Ciencuadras discovery canary persisted 20 safe candidate URLs.
