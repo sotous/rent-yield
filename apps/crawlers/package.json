@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:fixtures": "vitest run src/application/fixture-directory.test.ts",
-    "canary": "tsx src/cli/manual-bounded-discovery.ts"
+    "canary": "tsx src/cli/manual-bounded-discovery.ts",
+    "detail-canary": "tsx src/cli/manual-bounded-detail-observation.ts"
   },
   "dependencies": {
     "@rent-yield/discovery-profile-storage": "workspace:*",
