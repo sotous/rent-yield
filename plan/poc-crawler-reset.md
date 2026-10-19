@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved for cleanup on 2026-10-19. At the user's direction, this plan is
+completed — 2026-10-19. At the user's direction, this plan was
 intentionally not broken down into Notion tasks. It is executed as small,
 owned repository changes with one final integration and verification pass.
 
@@ -141,3 +141,25 @@ it. Rent and sale rows remain distinct inputs.
 Use TDD for each import and product behavior. Verify the complete local user
 flow from sample input to explorer ranking. At completion, document whether
 the ranking changed a user decision and whether any automation is justified.
+
+## Cleanup retrospective
+
+The cleanup removed 160 tracked governance-platform files: the generic crawler
+application, three crawler/storage packages, their tests and fixtures, the
+related architecture and retrospective material, superseded plans, obsolete
+specifications, and source-governance skills. Root documentation, workspace
+metadata, and agent instructions now describe the direct listing-input path
+instead.
+
+The removal achieved its intended ergonomic result: the runnable repository
+now contains only the frontend, backend, and Rent Model applications; there is
+no generic crawler lifecycle competing with the product path. The new listing
+import vertical slice has intentionally not been implemented yet, so it can be
+designed from the actual explorer and comparable-rent requirements rather than
+inherited abstractions.
+
+Validation passed for the retained applications: typecheck, lint, build, and
+all tests passed (backend 23, frontend 35, Rent Model 3). Targeted formatting
+also passed. The repository-wide formatting command still reports a
+pre-existing formatting issue in `specs/rent-model-spec.md`, which this
+cleanup did not modify.

@@ -12,8 +12,7 @@ The initial inventory below was collected on codex/rent-model-deterministic-spec
 
 ## Observations
 
-- apps/ already separates the frontend, backend, crawlers, and rent-model workbench.
-- packages/ holds the shared listing-storage contracts.
+- apps/ separates the frontend, backend, and rent-model workbench.
 - specs/ is small enough to remain flat.
 - plan/ mixes implementation plans, a technology decision, and retrospectives.
 - docs/reviews/ contains other implementation assessments, splitting related material across locations.
@@ -30,10 +29,8 @@ rent-yield/
 ├── apps/                     # Existing runnable applications/workbenches
 │   ├── frontend/
 │   ├── backend/
-│   ├── crawlers/
 │   └── rent-model/
-├── packages/                 # Existing shared libraries/contracts
-│   └── listing-storage-contracts/
+├── packages/                 # Shared libraries when product needs require them
 ├── specs/                    # Current authoritative behavior and scope
 ├── plan/                     # Plans, with status metadata and an index
 │   ├── README.md
