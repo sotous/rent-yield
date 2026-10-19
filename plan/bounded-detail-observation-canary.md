@@ -33,6 +33,18 @@ standards-based JSON-LD vocabulary in addition to direct visible pairs: typed
 GoodRelations `LeaseOut`. It discards every other JSON key/value and fails
 closed per field when values conflict.
 
+The remaining authorized capture pairs completed on 2026-10-19. Two ordinary
+apartment candidates (`...-3112979` and `...-3901336`) independently yielded
+only `property_type: apartment` and a positive `built_area_sqm` (87 and 64,
+respectively) from the allowlisted structured vocabulary. They yielded no
+rent, currency, frequency, or rental-status claim. A house (`...-3901329`)
+and a mixed rent-or-sale apartment (`...-3873796`) yielded no claims. The
+mixed page therefore did not get misrepresented as a rental listing. Every
+capture recorded only a receipt digest/byte count, claims, and fixed
+diagnostics; no response body was retained. This exhausts the five
+robots-first capture pairs (ten additional HTTP requests) authorized for this
+iteration.
+
 ## Why
 
 The successful Ciencuadras discovery canary persisted 20 safe candidate URLs.
@@ -99,9 +111,10 @@ yield.
    normalized outcomes through the existing Storage port; return body-free
    quarantine/parse-drift outcomes otherwise.
 6. **Offline review and live verification** — Review the exact Ciencuadras
-   extraction contract against a redacted fixture; run dry preflight, then one
-   bounded live command. Record only the safe observation/receipt and update
-   runbook and retrospective.
+   extraction contract against a redacted fixture; run dry preflight, then
+   bounded live commands within the separately authorized capture budget.
+   Record only safe observation/receipt evidence and update runbook and
+   retrospective.
 
 ## Acceptance criteria
 
