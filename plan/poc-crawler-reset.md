@@ -36,13 +36,13 @@ kept next to the PoC implementation. A smaller codebase is part of the PoC:
 it makes the real product needs visible instead of hiding them behind generic
 abstractions.
 
-## PoC acquisition contract
+## Listing import contract
 
 Define one intentionally small listing shape, independent from the existing
 generic storage contracts:
 
 ```ts
-type PocListing = {
+type ListingInput = {
   operation: "rent" | "sale";
   priceCop: number;
   builtAreaSqm?: number;
@@ -70,7 +70,7 @@ it. Rent and sale rows remain distinct inputs.
    for one Barranquilla area (target: 30–100 rentals and 30–100 sales).
 3. **Build a narrow import path**
    Implement a developer-invoked CSV/JSON importer or one source-specific
-   parser under an explicit `poc` module. It must not depend on the current
+   parser in a plainly named import module. It must not depend on the current
    generic runtime, methodology lookup, ingestion delivery, or bounded probe.
 4. **Connect the vertical product slice**
    Feed imported rentals into deterministic comparable median rent/m² and
@@ -112,8 +112,8 @@ it. Rent and sale rows remain distinct inputs.
 
 ## Likely areas to change
 
-- `apps/crawlers/src/poc/` or a small import CLI
-- a checked-in PoC data fixture/dataset
+- a small import module or import CLI
+- a checked-in sample data fixture/dataset
 - the Rent Model input adapter
 - explorer/API data wiring
 - crawler and product documentation
