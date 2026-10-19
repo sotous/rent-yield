@@ -160,6 +160,6 @@ inherited abstractions.
 
 Validation passed for the retained applications: typecheck, lint, build, and
 all tests passed (backend 23, frontend 35, Rent Model 3). Targeted formatting
-also passed. The repository-wide formatting command still reports a
-pre-existing formatting issue in `specs/rent-model-spec.md`, which this
-cleanup did not modify.
+also passed. A follow-up review removed the orphaned source-candidate skill
+descriptor and aligned the Rent Model documentation with normalized local
+listing imports rather than the deleted crawler/data-lake path.
