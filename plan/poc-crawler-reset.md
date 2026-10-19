@@ -31,6 +31,11 @@ This is not a policy-review or source-governance workflow. We will not bypass
 authentication, access challenges, or other technical access controls; beyond
 that, the PoC does not model an approval lifecycle.
 
+The existing governance platform is removed from the repository, rather than
+kept next to the PoC implementation. A smaller codebase is part of the PoC:
+it makes the real product needs visible instead of hiding them behind generic
+abstractions.
+
 ## PoC acquisition contract
 
 Define one intentionally small listing shape, independent from the existing
@@ -53,11 +58,13 @@ it. Rent and sale rows remain distinct inputs.
 
 ## Delivery slices
 
-1. **Freeze the general crawler path**
-   Do not add to methodology approval, source health, receipts, durable
-   ingestion, generic transport, profile repositories, or canary runtime.
-   Mark the relevant plans and docs as deferred reference material; preserve
-   the code unchanged.
+1. **Remove the general crawler/governance path**
+   Inventory and delete the methodology approval, source candidate/access
+   lifecycle, source health, collection receipts, durable ingestion,
+   generic transport, profile repositories, canary runtime, and their
+   isolated tests/docs. Update package dependencies and imports so no
+   reachable PoC code refers to them. Preserve only narrow extraction or
+   normalization logic that the new PoC importer demonstrably reuses.
 2. **Define the PoC dataset boundary**
    Add the small canonical contract plus a checked-in, manually curated sample
    for one Barranquilla area (target: 30–100 rentals and 30–100 sales).
@@ -83,13 +90,25 @@ it. Rent and sale rows remain distinct inputs.
 - The new PoC path has no dependency on generic crawler governance/runtime
   modules.
 
-## Explicitly deferred
+## Explicitly out of scope
 
 - Scheduling, crawling portfolios, and pagination systems.
 - Generic HTTP transport, retries, source profiles, source health, approval
   state, and durable collection receipts.
 - Multi-source abstraction and production storage admission.
-- Deleting existing crawler code before the PoC vertical slice is green.
+- Retaining the removed governance platform as in-repository reference
+  material. Git history is the recovery path if it is ever needed again.
+
+## Removal safety
+
+- Inventory exact files, packages, commands, tests, documents, and imports
+  before deleting them.
+- Delete only the general governance/runtime path, not the Rent Model,
+  explorer, shared essentials, or a narrow parser that the PoC adopts.
+- Remove stale documentation and package scripts in the same change, so the
+  repository communicates one clear path.
+- Prove the replacement vertical slice with its focused tests before declaring
+  the cleanup complete.
 
 ## Likely areas to change
 
