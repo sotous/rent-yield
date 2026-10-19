@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — awaiting approval.
+Approved for cleanup on 2026-10-19. At the user's direction, this plan is
+intentionally not broken down into Notion tasks. It is executed as small,
+owned repository changes with one final integration and verification pass.
 
 ## Why
 
@@ -109,6 +111,22 @@ it. Rent and sale rows remain distinct inputs.
   repository communicates one clear path.
 - Prove the replacement vertical slice with its focused tests before declaring
   the cleanup complete.
+
+## Cleanup execution breakdown
+
+1. **Crawler application removal** — Remove the existing generic crawler app,
+   its CLI commands, transports, tests, fixtures, and app documentation.
+2. **Governance package removal** — Remove discovery-profile storage,
+   listing-storage contracts, and storage-conformance packages with their
+   isolated source and tests.
+3. **Governance documentation removal** — Remove superseded crawler/storage
+   governance plans, architecture documents, retrospectives, and specs.
+4. **Workspace integration** — Remove workspace/package references, prune the
+   lockfile through the package manager, update root documentation, and prove
+   no live import or script still points at deleted code.
+5. **Replacement boundary check** — Confirm the repository is ready for the
+   small listing-import vertical slice, without adding that new behavior as
+   part of this deletion-only cleanup.
 
 ## Likely areas to change
 
