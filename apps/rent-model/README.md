@@ -10,8 +10,8 @@ consumers exist.
 Given a frozen listing-shaped record, the workbench reports:
 
 - whether it can serve as a sale-subject input to the Rent Model;
-- database fields the data lake must retain;
-- fields each crawler must extract from sale and rental listings;
+- fields a normalized listing input must retain;
+- the required sale and rental fields for an import;
 - the transport-neutral request that a future server can pass to the model;
 - confirmation that sale price is excluded from the Rent Model request.
 
@@ -37,5 +37,5 @@ corepack pnpm --filter @rent-yield/rent-model typecheck
 ```
 
 The included fixture is synthetic but shaped like a Barranquilla sale listing.
-Replace it with a frozen, provenance-labeled source snapshot when crawler data
-is available.
+Replace it with a frozen, provenance-labeled source snapshot from a local
+listing import. Acquisition automation is a separate future decision.

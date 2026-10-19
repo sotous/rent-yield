@@ -38,46 +38,27 @@ Version one is intentionally narrow.
 
 ## How Data Reaches the Explorer
 
-The product turns approved property-source information into useful rent and
-yield estimates through a small pipeline:
+The first data path is intentionally direct:
 
 ```mermaid
 flowchart LR
-  A[1. Collection request] --> B[2. Crawler]
-  B --> C{3. Finding is valid?}
-  C -->|Yes: positive finding| D[Structured observation in Data Storage]
-  C -->|No: invalid finding| E[Discard safely]
-  D --> F[4. Rent Model]
-  F --> G[5. Backend]
-  G --> H[Explorer for the final consumer]
+  A[Rental and sale listing input] --> B[Normalized local dataset]
+  B --> C[Rent Model]
+  C --> D[Backend]
+  D --> E[Explorer]
 ```
 
-1. A **collection request** is the small set of information the crawler needs:
-   the approved source, the area and listing type to look for, and the rules
-   that limit the run.
-2. The **crawler** follows those approved rules to find and read a property
-   page. It redacts sensitive data, extracts the useful property information,
-   and checks its quality.
-3. A **positive finding** becomes a structured observation in Data Storage. An
-   invalid, incomplete, or unsafe finding is discarded safely and never reaches
-   the product.
-4. The **Rent Model** uses eligible rental observations to produce a concrete
-   market-rent estimate.
-5. The **backend** combines the Rent Model's estimate with the property and
-   yield information, then serves it to the Explorer used by the final
-   consumer.
-
-The proof of concept begins with redacted test fixtures and manual collection
-requests. A real collection run remains separately approved and tightly
-bounded.
+Listing input may begin as a small checked-in CSV or JSON dataset, or a
+developer-invoked import. Rental listings provide comparable rent; sale
+listings provide the properties to rank. The Rent Model estimates comparable
+rent per square metre, and the backend serves the resulting yield ranking to
+the Explorer.
 
 ## Repository Structure
 
 - `apps/frontend`: frontend application
 - `apps/backend`: backend application
 - `apps/rent-model`: standalone Rent Model input-contract workbench
-- `apps/crawlers`: fixture-only source research and bounded-probe workbench
-- `packages/listing-storage-contracts`: shared runtime contracts and examples
 - `docs`: architecture, API contracts, implementation reviews, and documentation navigation
 - `plan`: scoped delivery plans and planning navigation
 - `specs`: product and technical specifications
@@ -93,8 +74,6 @@ status.
 - [Shared Domain Spec](specs/domain-spec.md)
 - [Backend API Spec](specs/backend-api-spec.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
-- [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
-- [Data Storage System Specification](specs/data-storage-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
@@ -113,27 +92,6 @@ These specs are the current source of truth for product framing, domain language
 - [Rent Model Specification](specs/rent-model-spec.md)
 - [Rent Model Workbench Guide](apps/rent-model/README.md)
 - [Input Workbench Retrospective](docs/reviews/rent-model-input-workbench-retrospective.md)
-
-## Crawler Workbench
-
-Crawler development starts with synthetic and redacted fixtures. The current
-workbench can register source candidates, derive access assessments, and run a
-bounded discovery probe through an injected mock transport. It performs no live
-network access and includes no production HTTP adapter.
-
-Probe commands allow only an HTTPS start URL, exact hosts, path prefixes, and
-explicit budgets. The access gate supplies the assessment identity and caps the
-approved hosts, paths, and budgets. The mock transport must resolve within its
-deadline, connect through the DNS-validated public address set, and enforce the
-remaining response-byte and time limits. Probe receipts retain sanitized
-response metadata and complete or partial body digests, never response bodies.
-
-- [Crawler and ingestion plan](plan/colombian-listing-crawlers-and-ingestion.md)
-- [Crawler foundation contract](docs/architecture/crawler-foundation-contract-agreement.md)
-- [Bounded probe retrospective](docs/reviews/crawler-foundation-bounded-probe-retrospective.md)
-- [Fixture redaction retrospective](docs/reviews/crawler-fixture-redaction-retrospective.md)
-- [Crawler project status review](docs/reviews/crawler-project-status-review-2026-09-12.md)
-- [First real-world canary plan](plan/crawler-first-real-world-canary.md)
 
 ## Development Approach
 
@@ -177,19 +135,12 @@ What already exists:
 - backend prototype API contract
 - backend prototype API implementation
 - initial Rent Model input-contract workbench
-- crawler research/runtime contract schemas
-- fixture-only source candidate and access workflow
-- bounded mocked discovery probe with sanitized receipts
-- deterministic redacted fixture capture, integrity checks, and fixture scanner
-- offline fixture extraction with field provenance, quality scoring, and typed
-  quarantine; restricted observed-rental evidence projection
 
 What comes next:
 
-- implement offline fixture extraction, provenance, and URL quality scoring
-- review backend API scenarios before frontend integration
-- integrate the frontend explorer with the backend prototype API
-- follow-up frontend ergonomics iteration after backend data needs are clearer
+- import a small set of Barranquilla rental and sale listings
+- connect the Rent Model estimate to the backend and explorer ranking
+- validate the ranking with users before adding collection automation
 
 ## Running The Frontend Prototype
 

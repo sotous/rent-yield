@@ -8,8 +8,7 @@ It defines the version-one deterministic model for Colombia, initially
 Barranquilla. It supersedes the Rent Model methodology portions of
 [`plan/rent-model-v1.md`](../plan/rent-model-v1.md) after implementation
 decisions are made. The plan remains the execution record. The shared domain
-spec owns common product metrics; the crawler research specification owns
-source-research and crawler authorization rules.
+spec owns common product metrics.
 
 ## Purpose
 
@@ -142,8 +141,8 @@ type RentalEvidenceSnapshot = {
 ```
 
 Snapshots are immutable. A model run uses an explicit snapshot, never a mutable
-“latest” query. Raw crawler captures belong in data storage and are referenced
-through provenance; they are not required in the model process.
+“latest” query. A local listing import may create the snapshot; acquisition
+automation is outside the model process and remains a future product decision.
 
 ## Rent Assessment Output
 
@@ -276,16 +275,16 @@ other_residential -> other_residential
 The model evaluates tiers in this order and selects the first with at least
 three unique eligible observations. Tiers are never pooled.
 
-| Tier | Geography | Stratum | Inclusive built-area window |
-| --- | --- | --- | --- |
-| `area_stratum_15` | same non-null `area_id` | both known and equal | ±15% |
-| `area_relaxed_15` | same non-null `area_id` | ignored | ±15% |
-| `city_stratum_15` | same city | both known and equal | ±15% |
-| `city_relaxed_15` | same city | ignored | ±15% |
-| `area_stratum_25` | same non-null `area_id` | both known and equal | ±25% |
-| `area_relaxed_25` | same non-null `area_id` | ignored | ±25% |
-| `city_stratum_25` | same city | both known and equal | ±25% |
-| `city_relaxed_25` | same city | ignored | ±25% |
+| Tier              | Geography               | Stratum              | Inclusive built-area window |
+| ----------------- | ----------------------- | -------------------- | --------------------------- |
+| `area_stratum_15` | same non-null `area_id` | both known and equal | ±15%                        |
+| `area_relaxed_15` | same non-null `area_id` | ignored              | ±15%                        |
+| `city_stratum_15` | same city               | both known and equal | ±15%                        |
+| `city_relaxed_15` | same city               | ignored              | ±15%                        |
+| `area_stratum_25` | same non-null `area_id` | both known and equal | ±25%                        |
+| `area_relaxed_25` | same non-null `area_id` | ignored              | ±25%                        |
+| `city_stratum_25` | same city               | both known and equal | ±25%                        |
+| `city_relaxed_25` | same city               | ignored              | ±25%                        |
 
 For a subject area `A_s` and comparable area `A_i`, a window `w` qualifies
 when:
@@ -321,10 +320,10 @@ documented eligibility and identity rules.
 The comparable range is calculated after all exclusions:
 
 | Comparable count | Lower bound | Upper bound |
-| ---: | --- | --- |
-| 3–4 | minimum | maximum |
-| 5–7 | P20 | P80 |
-| 8+ | P25 | P75 |
+| ---------------: | ----------- | ----------- |
+|              3–4 | minimum     | maximum     |
+|              5–7 | P20         | P80         |
+|               8+ | P25         | P75         |
 
 Percentiles use the nearest-rank rule. For percentile `p` and `n` sorted
 values, select one-based index `ceil(p * n)`.
@@ -420,8 +419,8 @@ The final implementation consists of separately testable modules:
 9. validation and regression harness.
 
 The current `apps/rent-model` workbench is the initial development surface for
-these modules. Crawlers and the data lake later satisfy its contracts; they do
-not run inside the Rent Model.
+these modules. A normalized local listing input satisfies its contracts today;
+any future acquisition or storage automation remains outside the Rent Model.
 
 ## Verification And Success Criteria
 
