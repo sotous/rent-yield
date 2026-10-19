@@ -1,0 +1,106 @@
+# PoC Crawler Reset
+
+## Status
+
+Proposed — awaiting approval.
+
+## Why
+
+The crawler foundation has grown into a generic collection, governance, and
+audit system before the product has demonstrated a useful user-facing result.
+The immediate product question is simpler: can a Barranquilla user inspect a
+small, transparent set of sale listings ranked by estimated gross rent yield,
+grounded in rental comparables?
+
+The existing discovery and canary work is valuable reference material, but it
+must not be the critical path for answering that question.
+
+## Product decision
+
+For the PoC, acquisition is deliberately small and developer-operated:
+
+```text
+curated CSV/JSON or one manual source import
+  -> small source-specific parser
+  -> normalized local dataset
+  -> comparable median rent per m²
+  -> explorer yield ranking
+```
+
+This is not a policy-review or source-governance workflow. We will not bypass
+authentication, access challenges, or other technical access controls; beyond
+that, the PoC does not model an approval lifecycle.
+
+## PoC acquisition contract
+
+Define one intentionally small listing shape, independent from the existing
+generic storage contracts:
+
+```ts
+type PocListing = {
+  operation: "rent" | "sale";
+  priceCop: number;
+  builtAreaSqm?: number;
+  bedrooms?: number;
+  neighborhood?: string;
+  url?: string;
+  observedAt: string;
+};
+```
+
+Only add a field when the comparable calculation or explorer actually needs
+it. Rent and sale rows remain distinct inputs.
+
+## Delivery slices
+
+1. **Freeze the general crawler path**
+   Do not add to methodology approval, source health, receipts, durable
+   ingestion, generic transport, profile repositories, or canary runtime.
+   Mark the relevant plans and docs as deferred reference material; preserve
+   the code unchanged.
+2. **Define the PoC dataset boundary**
+   Add the small canonical contract plus a checked-in, manually curated sample
+   for one Barranquilla area (target: 30–100 rentals and 30–100 sales).
+3. **Build a narrow import path**
+   Implement a developer-invoked CSV/JSON importer or one source-specific
+   parser under an explicit `poc` module. It must not depend on the current
+   generic runtime, methodology lookup, ingestion delivery, or bounded probe.
+4. **Connect the vertical product slice**
+   Feed imported rentals into deterministic comparable median rent/m² and
+   feed imported sale listings into the explorer’s yield ranking.
+5. **Validate the decision, then reassess**
+   Demonstrate the end-to-end ranking to users. Only after that result decide
+   whether refresh automation, more listings, or another source is valuable.
+
+## Test-first acceptance criteria
+
+- A valid rental and a valid sale row import into the PoC data shape.
+- A malformed row is reported without preventing valid rows from importing.
+- Rental rows cannot become sale candidates, and sale rows cannot become rent
+  comparables.
+- The comparable estimator uses only imported rentals and is deterministic.
+- The explorer displays a transparent yield ranking from the imported data.
+- The new PoC path has no dependency on generic crawler governance/runtime
+  modules.
+
+## Explicitly deferred
+
+- Scheduling, crawling portfolios, and pagination systems.
+- Generic HTTP transport, retries, source profiles, source health, approval
+  state, and durable collection receipts.
+- Multi-source abstraction and production storage admission.
+- Deleting existing crawler code before the PoC vertical slice is green.
+
+## Likely areas to change
+
+- `apps/crawlers/src/poc/` or a small import CLI
+- a checked-in PoC data fixture/dataset
+- the Rent Model input adapter
+- explorer/API data wiring
+- crawler and product documentation
+
+## Validation and retrospective
+
+Use TDD for each import and product behavior. Verify the complete local user
+flow from sample input to explorer ranking. At completion, document whether
+the ranking changed a user decision and whether any automation is justified.
