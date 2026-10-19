@@ -74,6 +74,7 @@ status.
 - [Shared Domain Spec](specs/domain-spec.md)
 - [Backend API Spec](specs/backend-api-spec.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
+- [Basic Crawler Specification](specs/basic-crawler-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 

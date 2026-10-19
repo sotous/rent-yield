@@ -2,7 +2,7 @@
 
 ## Status
 
-in-progress — authorized on 2026-10-19.
+completed — 2026-10-19.
 
 ## Goal
 
@@ -46,3 +46,12 @@ product loop, not a reusable crawling platform.
   usable dataset.
 - The specification makes the product data flow, ownership, and tests clear in
   one reading.
+
+## Retrospective
+
+The specification keeps the data boundary deliberately local: one source,
+one manually invoked collector, and one JSON snapshot with separate rental and
+sale rows. It identifies the only missing product bridge—the deterministic
+three-comparable median estimate—without restoring a crawler platform or
+requiring a frontend contract change. The next implementation plan can focus
+on that vertical slice and choose the first source and area.
