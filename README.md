@@ -93,7 +93,6 @@ status.
 - [Shared Domain Spec](specs/domain-spec.md)
 - [Backend API Spec](specs/backend-api-spec.md)
 - [Rent Model Specification](specs/rent-model-spec.md)
-- [Crawler Research and Fixture Workbench Spec](specs/crawler-research-spec.md)
 - [Source Adapter Specification](specs/source-adapter-spec.md)
 - [Data Storage System Specification](specs/data-storage-spec.md)
 

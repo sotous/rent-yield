@@ -1,11 +1,35 @@
 import { describe, expect, it } from "vitest";
 import { runBoundedDiscovery } from "./bounded-discovery-run.js";
-import { ciencuadrasDiscoveryProfile } from "../sources/ciencuadras/discovery-profile.js";
+import type { BoundedDiscoveryProfile } from "./bounded-discovery-profile.js";
 import type { ProbeClock, ProbeTransport } from "../ports/probe-transport.js";
 
 const clock: ProbeClock = {
   nowMs: () => 0,
   nowInstant: () => "2026-10-08T12:00:00.000Z",
+};
+
+const profile: BoundedDiscoveryProfile = {
+  source_key: "example-source",
+  country_code: "CO",
+  city_key: "barranquilla",
+  capability: "discovery",
+  listing_roles: ["for_rent"],
+  discovery_profile_provenance: {
+    source_key: "example-source",
+    profile_version: 1,
+    profile_sha256: "0".repeat(64),
+  },
+  allowed_hosts: ["example.com"],
+  allowed_path_prefixes: ["/rentals"],
+  permitted_media_types: ["text/html", "application/json"],
+  budget: {
+    max_requests: 1,
+    max_bytes: 1024,
+    max_duration_ms: 1000,
+    max_redirects: 0,
+    max_concurrency: 1,
+    max_source_requests: 1,
+  },
 };
 
 describe("runBoundedDiscovery", () => {
@@ -28,12 +52,10 @@ describe("runBoundedDiscovery", () => {
       },
     };
     await runBoundedDiscovery(
-      { probe_id: "probe-1", profile: ciencuadrasDiscoveryProfile },
+      { probe_id: "probe-1", profile },
       { transport, clock },
     );
-    expect(requests).toEqual([
-      "https://www.ciencuadras.com/arriendo/barranquilla",
-    ]);
+    expect(requests).toEqual(["https://example.com/rentals"]);
   });
 
   it.each([
@@ -61,7 +83,7 @@ describe("runBoundedDiscovery", () => {
       };
 
       const result = await runBoundedDiscovery(
-        { probe_id: "probe-fixture", profile: ciencuadrasDiscoveryProfile },
+        { probe_id: "probe-fixture", profile },
         {
           transport,
           clock,
@@ -72,14 +94,13 @@ describe("runBoundedDiscovery", () => {
       expect(result.ok).toBe(true);
       expect(handoffs).toEqual([
         {
-          source_key: "ciencuadras",
-          source_url: "https://www.ciencuadras.com/arriendo/barranquilla",
+          source_key: "example-source",
+          source_url: "https://example.com/rentals",
           collected_at: "2026-10-08T12:00:00.000Z",
           discovery_profile_provenance: {
-            source_key: "ciencuadras",
-            profile_version: 3,
-            profile_sha256:
-              "26d015fb30e03328f331f8a29ee6ea5422ff22b612e141085943034f1167cebd",
+            source_key: "example-source",
+            profile_version: 1,
+            profile_sha256: "0".repeat(64),
           },
           content_type: expectedContentType,
           payload: body,
@@ -106,7 +127,7 @@ describe("runBoundedDiscovery", () => {
     const result = await runBoundedDiscovery(
       {
         probe_id: "probe-unsupported-media",
-        profile: ciencuadrasDiscoveryProfile,
+        profile,
       },
       { transport, clock, captureFixture: (handoff) => handoffs.push(handoff) },
     );

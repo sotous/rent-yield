@@ -3,11 +3,10 @@
 ## Purpose
 
 This runbook describes readiness for the bounded-discovery MVP. It does not
-authorize or perform a live collection run. The completed offline path loads a
-Storage-owned active profile, applies bounded transport rules, redacts in
-memory, and writes only a validated sanitized fixture or typed result. The
-local manual command composition exists and has been validated offline; it has
-not been invoked against a live source.
+authorize a live collection run. The bounded runtime loads a Storage-owned
+active profile, applies bounded transport rules, and passes any safe response
+to a caller-provided fixture capture boundary. It never writes or prints the
+original response body.
 
 ## Preconditions
 
@@ -18,7 +17,6 @@ not been invoked against a live source.
 - Local kill switch is off; the redaction/scanner, fixture writer, and typed
   quarantine path are available.
 - Lint, typecheck, and offline transport/orchestration/fixture tests pass.
-- A dry run passes without DNS or HTTP.
 - Explicit user authorization is received for one external request. Neither an
   active profile nor a passing dry run supplies this authorization.
 
@@ -29,9 +27,7 @@ not been invoked against a live source.
    scope.
 2. Verify all fixed limits and permitted media types, confirm the kill switch is
    off, and render a sanitized plan. Do not perform DNS or HTTP.
-3. Exercise the same orchestration in dry-run mode. It must allocate no
-   capture, write no fixture, and make no external request.
-4. Stop here until the user explicitly authorizes one live request.
+3. Stop here until the user explicitly authorizes one live request.
 
 ## Bounded live flow after authorization
 

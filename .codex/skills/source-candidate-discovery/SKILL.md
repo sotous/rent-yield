@@ -29,10 +29,10 @@ access decision, methodology proposal, or canary.
 
 ## Workflow
 
-1. Read `specs/crawler-research-spec.md`. Obtain the supplied registry export
-   or live in-process `MemorySourceResearch.candidates()` enumeration, and
-   retain its read time and reference. Limit it to records relevant to `CO`,
-   `barranquilla`, and listing discovery.
+1. Obtain the supplied registry export or live in-process
+   `MemorySourceResearch.candidates()` enumeration, and retain its read time
+   and reference. Limit it to records relevant to `CO`, `barranquilla`, and
+   listing discovery.
 2. Search the public web for organizations that appear to publish Colombian
    residential rent or sale listings and show a credible Barranquilla presence.
    Prefer first-party organization, city/category, and public policy/about

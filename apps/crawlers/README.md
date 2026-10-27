@@ -52,9 +52,8 @@ make requests or calculate rent or yield. Source-local code and fixture metadata
 belong at `src/sources/<source-key>/`; shared contracts and helpers stay outside
 that directory.
 
-The first adapter is `src/sources/ciencuadras/`, limited to Barranquilla
-`for_rent` discovery fixtures. The canonical fields, mapping rules, and test
-expectations are in [the Source Adapter Specification](../../specs/source-adapter-spec.md).
+There is currently no registered source adapter. The canonical fields, mapping
+rules, and test expectations are in [the Source Adapter Specification](../../specs/source-adapter-spec.md).
 The delivery design is in [the Source Adapter Builder plan](../../plan/source-adapter-builder.md).
 
 ### Adding the next source adapter

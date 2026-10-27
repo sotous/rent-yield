@@ -16,8 +16,8 @@ A source adapter translates the response shape of one selected listing source
 into a source-neutral `ListingInput`. It lets new sources be added without
 teaching shared storage or the Rent Model each source's field names and nesting.
 
-The first adapter is `ciencuadras` rental discovery for Barranquilla, Colombia.
-It is intentionally the only supported source-adapter scope in version one.
+No source adapter is currently registered. A future source adapter must be
+selected and implemented through the fixture-first workflow in this document.
 
 ## Boundary
 
@@ -189,21 +189,11 @@ recognized empty discovery fixture returns `{ kind: "listed", listings: [] }`;
 a malformed, unsupported, mismatched, or invalid result returns `parse_failed`
 rather than partial guessed records.
 
-## Ciencuadras v1
+## Source selection prerequisite
 
-| Item            | Decision                                                 |
-| --------------- | -------------------------------------------------------- |
-| Source          | `ciencuadras`                                            |
-| City            | Barranquilla                                             |
-| Country         | Colombia (`CO`)                                          |
-| Listing role    | `for_rent` only                                          |
-| Supported input | one documented frozen discovery-fixture shape            |
-| Output          | ordered `ListingInput[]`                                 |
-| Deferred        | detail pages, sale listings, other cities, other sources |
-
-Implementation starts only after a representative sanitized fixture exists.
-The fixture is the evidence for the declared response shape; the adapter must
-not be built from assumptions about a source page.
+Implementation starts only after a selected source has a representative
+sanitized fixture. The fixture is the evidence for the declared response shape;
+an adapter must not be built from assumptions about a source page.
 
 When retaining a full source response is unnecessary or unsafe, a source-local
 **structural fixture** may instead preserve only confirmed element/script IDs,

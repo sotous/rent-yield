@@ -70,7 +70,6 @@ Agents should treat the following as current source-of-truth references:
 - [README.md](README.md)
 - [specs/frontend-spec.md](specs/frontend-spec.md)
 - [specs/domain-spec.md](specs/domain-spec.md)
-- [specs/crawler-research-spec.md](specs/crawler-research-spec.md)
 
 If implementation pressure reveals a missing product or domain decision, update the relevant spec before or alongside the code.
 
