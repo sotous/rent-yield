@@ -21,13 +21,28 @@ const supportedContentTypeSchema = z.enum([
 const uniqueStrings = (values: readonly string[]) =>
   new Set(values).size === values.length;
 
-const sourceOriginInputSchema = z.strictObject({
-  kind: z.literal("permitted_source"),
-  source_key: identifierSchema,
-  source_url: z.string().min(1),
-  collected_at: instantSchema,
-  assessment_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-});
+const sourceOriginInputSchema = z
+  .strictObject({
+    kind: z.literal("permitted_source"),
+    source_key: identifierSchema,
+    source_url: z.string().min(1),
+    collected_at: instantSchema,
+    discovery_profile_provenance: z.strictObject({
+      source_key: identifierSchema,
+      profile_version: z.number().int().positive(),
+      profile_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    }),
+  })
+  .superRefine((origin, context) => {
+    if (origin.source_key !== origin.discovery_profile_provenance.source_key) {
+      context.addIssue({
+        code: "custom",
+        path: ["discovery_profile_provenance", "source_key"],
+        message:
+          "Fixture origin source key must match discovery profile provenance",
+      });
+    }
+  });
 
 const syntheticOriginInputSchema = z.strictObject({
   kind: z.literal("synthetic"),

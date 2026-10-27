@@ -16,6 +16,7 @@ import {
 } from "./methodology.js";
 
 import { extractionOutcomeSchema, rentalEvidenceSchema } from "./extraction.js";
+import { listingInputSchema } from "./listing-input.js";
 import {
   ingestionReceiptSchema,
   ingestionSubmissionSchema,
@@ -30,6 +31,7 @@ export const contractSchemas = {
   extraction_contract: extractionContractSchema,
   extraction_outcome: extractionOutcomeSchema,
   rental_evidence: rentalEvidenceSchema,
+  listing_input: listingInputSchema,
   methodology_manifest: methodologyManifestSchema,
   validation_report: methodologyValidationReportSchema,
   review_decision: methodologyReviewDecisionSchema,

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "dependencies": {
+    "@rent-yield/listing-storage-contracts": "workspace:*"
+  },
   "scripts": {
     "dev": "tsx src/cli.ts --input fixtures/barranquilla-sale-listing.json",
     "build": "tsc -p tsconfig.json --noEmit",

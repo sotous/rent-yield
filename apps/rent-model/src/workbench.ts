@@ -152,6 +152,11 @@ function buildServerRequest(listing: ResidentialListing): RentModelRequest {
       "built_area_sqm must be available after readiness validation.",
     );
   }
+  if (listing.property_type === null) {
+    throw new Error(
+      "property_type must be available after readiness validation.",
+    );
+  }
 
   return {
     subject: {

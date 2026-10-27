@@ -66,19 +66,19 @@ apps/crawlers/
     domain/                    # contracts, invariants, identity rules
     application/               # research, discovery, fetch, parse, normalize
     ports/                     # methodology, ingestion sink, clock, mock transport
-    adapters/
-      sources/<source>/        # versioned offline fixture parser
+    sources/<source-key>/      # versioned source-specific fixture adapter
       memory/                  # test doubles for methodology and ingestion ports
     fixtures/                  # frozen, redacted source payloads
 ```
 
-`SourceAdapter` is the source-format boundary: this workbench replays discovery
-and detail responses from frozen fixtures through mocked transport. It never
-returns a Rent Model result. Normalization targets the jointly agreed storage
-contracts, preserving decimal strings, source claims, provenance, and temporal
-semantics. The current Rent Model `ResidentialListing` is a consumer projection,
-not a lossless ingestion contract. Live fetching and scheduling need a separate
-production implementation plan.
+`SourceAdapter` is the source-format boundary: a source-local parser turns a
+frozen fixture into shared `ListingInput` records. It never returns a Rent Model
+result. `ListingInput` preserves source claims, provenance, and temporal
+semantics; the current Rent Model `ResidentialListing` is a consumer projection,
+not the adapter contract. Live fetching and scheduling need a separate
+production implementation plan. See
+[`specs/source-adapter-spec.md`](../specs/source-adapter-spec.md) for the
+canonical adapter contract and location.
 
 The first live-source milestone is now defined separately in
 [`plan/crawler-first-real-world-canary.md`](crawler-first-real-world-canary.md).

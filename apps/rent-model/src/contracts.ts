@@ -12,7 +12,7 @@ export type ResidentialListing = {
   city_name: string;
   area_id: string | null;
   neighborhood_name: string | null;
-  property_type: PropertyType;
+  property_type: PropertyType | null;
   built_area_sqm: number | null;
   bedrooms: number | null;
   bathrooms: number | null;

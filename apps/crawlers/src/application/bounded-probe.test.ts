@@ -416,6 +416,20 @@ describe("bounded fixture probe", () => {
     },
   );
 
+  it("completes an unclassified successful response with media parameters without asserting listing shape", async () => {
+    const transport = new FakeTransport([
+      {
+        status_code: 200,
+        content_type: "text/html; charset=utf-8",
+        body: body("RAW_UNCLASSIFIED_BODY"),
+      },
+    ]);
+
+    await expect(run(transport)).resolves.toMatchObject({
+      value: { outcome: { kind: "completed", discovered_urls: [] } },
+    });
+  });
+
   it("enforces response-byte and elapsed-time budgets", async () => {
     const byteTransport = new FakeTransport([
       response({ body: body("12345678") }),

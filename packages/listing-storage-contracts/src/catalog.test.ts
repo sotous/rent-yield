@@ -10,6 +10,7 @@ describe("shared v1 schema catalog", () => {
       "fixture_envelope",
       "ingestion_receipt",
       "ingestion_submission",
+      "listing_input",
       "methodology_lookup",
       "methodology_manifest",
       "methodology_proposal",

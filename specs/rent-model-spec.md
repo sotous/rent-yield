@@ -45,6 +45,12 @@ For-sale and for-rent observations remain distinct. A sale listing can supply a
 subject property, but cannot become rental evidence. Rental observations and
 qualified benchmarks are the only evidence sources for a modeled estimate.
 
+Source adapters emit a broader shared `ListingInput` record before this
+boundary. `ListingInput` is not a Rent Model request: its sale and rent facts
+remain separate, and the model consumes only the validated projection described
+in this specification. See
+[`source-adapter-spec.md`](source-adapter-spec.md).
+
 ## Vocabulary
 
 - **Subject property**: the residential property being assessed.

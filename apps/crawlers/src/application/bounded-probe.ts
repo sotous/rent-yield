@@ -15,6 +15,7 @@ import type {
   ProbeTransport,
   ProbeTransportOutcome,
 } from "../ports/probe-transport.js";
+import { normalizeFixtureMediaType } from "./fixture-media-type.js";
 
 const hostnameSchema = z
   .string()
@@ -470,7 +471,12 @@ export async function probeListingDiscovery(
       continue;
     }
     if (response.status_code >= 300) return stop("transport_error");
-    if (response.classification !== "listing_discovery") {
+    const fixtureSafeMediaType =
+      normalizeFixtureMediaType(response.content_type) !== null;
+    if (
+      response.classification !== "listing_discovery" &&
+      (response.classification !== undefined || !fixtureSafeMediaType)
+    ) {
       return stop("transport_error");
     }
     const discovered: string[] = [];

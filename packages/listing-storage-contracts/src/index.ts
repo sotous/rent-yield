@@ -119,6 +119,7 @@ export * from "./catalog.js";
 export * from "./research.examples.js";
 export * from "./methodology.examples.js";
 export * from "./extraction.js";
+export * from "./listing-input.js";
 export * from "./ingestion.js";
 export * from "./conformance.js";
 export * from "./durable-submission-v2.js";
