@@ -1,0 +1,7 @@
+interface:
+  display_name: "Source Candidate Discovery"
+  short_description: "Find new Barranquilla listing sources"
+  default_prompt: "Use $source-candidate-discovery to research new Barranquilla listing-source candidates, excluding sources already in the registry."
+
+policy:
+  allow_implicit_invocation: true
