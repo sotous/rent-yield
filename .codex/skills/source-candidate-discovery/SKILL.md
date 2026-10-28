@@ -1,14 +1,14 @@
 ---
 name: source-candidate-discovery
-description: Research public-web evidence for new Colombian, Barranquilla listing-source candidates. Use before source assessment; never collect listings or invoke downstream consumers.
+description: Produce builder-ready Colombian, Barranquilla listing-source candidates. Use when a source adapter needs a complete candidate artifact; never generate or invoke the adapter.
 ---
 
 # Source Candidate Discovery
 
-Use this skill to produce a short, reviewable set of possible top-of-funnel
-listing sources for Colombia, initially Barranquilla. The result is discovery
-input only: it is not a candidate registration, access decision, adapter
-implementation, or crawler invocation.
+Use this skill to produce builder-ready listing-source candidate artifacts for
+Colombia, initially Barranquilla. Each artifact is the sole input to the
+source-adapter build step. It is not a candidate registration, access decision,
+adapter implementation, or crawler invocation.
 
 ## Required boundaries
 
@@ -16,9 +16,13 @@ implementation, or crawler invocation.
   If it is missing, unreadable, or ambiguous, stop and report
   `dedupe_unavailable`; do not return proposed candidates.
 - Research only public internet search/index evidence and public pages needed
-  to identify an organization and its apparent listing offering. Do not visit
-  listing-detail pages, enumerate search results, submit forms, log in, bypass
-  controls, call undocumented endpoints, or make any collection/probe request.
+  to identify an organization and its apparent listing offering. Do not submit
+  forms, log in, bypass controls, call undocumented endpoints, or make any
+  collection/probe request.
+- Require a supplied, representative `application/json` source response or
+  fixture for every emitted candidate. Use it only to verify the declared
+  collection and field paths; never invent those paths. If no suitable fixture
+  is supplied, record the source as incomplete and emit no candidate artifact.
 - Treat public visibility as discovery evidence only. Do not infer technical or
   contractual permission, robots status, reuse rights, completeness, or
   suitability for a crawler.
@@ -37,44 +41,53 @@ implementation, or crawler invocation.
    homepage URL. Compare it with registry source keys, normalized hostnames,
    and registrable domains. When a match is plausible but cannot be resolved,
    exclude it as `possible_duplicate` rather than proposing it.
-4. Return only candidates absent from the registry. Keep unknowns explicit,
-   including whether the public evidence supports long-term, residential,
-   rental, sale, or city-specific scope.
+4. For each source absent from the registry, inspect its supplied representative
+   JSON fixture and derive only verified dot paths. Keep unknowns explicit,
+   including whether the public evidence supports long-term, residential, or
+   city-specific scope.
+5. Emit an artifact only when it satisfies the complete contract below.
 
-## Source-adapter readiness requirements
+## AdapterCandidate contract
 
-For every proposed candidate, record the source facts that a later adapter
-workflow will require:
+Each emitted artifact must be one standalone JSON object. Do not wrap it in a
+discovery report, add report metadata, or combine multiple sources in one file.
 
-- a stable lowercase `sourceKey`;
-- display name and canonical HTTPS `sourceUrl`;
-- `countryCode: "CO"`, city scope, and supported `rent` and/or `sale`
-  operations; and
-- explicit unresolved evidence for the response content type, listing collection
-  path, and each field mapping. Record those requirements under the candidate's
-  `sourceKey`; do not combine requirements from multiple candidates.
+```json
+{
+  "sourceKey": "lowercase-source-key",
+  "sourceName": "Source display name",
+  "sourceUrl": "https://example.com/listings",
+  "countryCode": "CO",
+  "cityName": "Barranquilla",
+  "supportedOperations": ["rent"],
+  "extractionRecipe": {
+    "contentType": "application/json",
+    "listingCollectionPath": "results.items",
+    "fields": {
+      "id": "id",
+      "priceCop": "price"
+    }
+  }
+}
+```
 
-The discovery result must distinguish candidate readiness from adapter
-readiness. Public discovery evidence can establish the former; a representative
-source response or fixture is required for the latter. Do not infer extraction
-paths, generate adapter code, or invoke an adapter from public candidate
-metadata.
+The constraints are mandatory:
+
+- `sourceKey` matches `^[a-z][a-z0-9-]{1,62}$`.
+- `sourceUrl` is canonical HTTPS with no username or password.
+- `countryCode` is `CO`; `cityName` is `Barranquilla`.
+- `supportedOperations` has exactly one value: `rent` or `sale`.
+- `contentType` is `application/json`.
+- `listingCollectionPath`, `fields.id`, and `fields.priceCop` are nonempty dot
+  paths proven by the supplied fixture. Optional paths are `builtAreaSqm`,
+  `bedrooms`, `neighborhood`, and `listingUrl`.
 
 ## Output
 
-Return a concise `source_candidate_discovery_report` with:
+Return only the standalone `AdapterCandidate` JSON artifact(s) that satisfy the
+contract. For a source that cannot satisfy it, return no artifact and state the
+specific missing fixture evidence or duplicate basis separately.
 
-- `registry_check`: query time, read-only query reference, status, and recorded
-  identities considered;
-- `proposed_candidates`: one candidate per `sourceKey`, with organization/source
-  name, canonical homepage URL, declared country/city/operation scope, inferred
-  scope marked `unverified`, public evidence URLs with a brief factual
-  observation and access date, discovery rationale, and unknowns;
-- `source_adapter_requirements`: keyed by `sourceKey`, with the unresolved
-  response/fixture/mapping evidence required before adapter generation;
-- `discarded`: recorded or possible duplicates with matching basis; and
-- `next_step`: `candidate_review_required` for every proposal.
-
-Do not invent registry fields, claim that a source is allowed, or assign a
-candidate ID. A valid empty proposal list is successful when the registry
-already contains all plausible findings.
+Do not invent registry fields, field paths, or source-access permission. A
+valid empty result is successful when no source has both a unique registry
+identity and sufficient fixture evidence.
