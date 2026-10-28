@@ -7,8 +7,8 @@ description: Research public-web evidence for new Colombian, Barranquilla listin
 
 Use this skill to produce a short, reviewable set of possible top-of-funnel
 listing sources for Colombia, initially Barranquilla. The result is discovery
-input only: it is not a candidate registration, access decision, adapter input,
-or crawler invocation.
+input only: it is not a candidate registration, access decision, adapter
+implementation, or crawler invocation.
 
 ## Required boundaries
 
@@ -41,15 +41,37 @@ or crawler invocation.
    including whether the public evidence supports long-term, residential,
    rental, sale, or city-specific scope.
 
+## Source-adapter readiness requirements
+
+For every proposed candidate, record the source facts that a later adapter
+workflow will require:
+
+- a stable lowercase `sourceKey`;
+- display name and canonical HTTPS `sourceUrl`;
+- `countryCode: "CO"`, city scope, and supported `rent` and/or `sale`
+  operations; and
+- explicit unresolved evidence for the response content type, listing collection
+  path, and each field mapping. Record those requirements under the candidate's
+  `sourceKey`; do not combine requirements from multiple candidates.
+
+The discovery result must distinguish candidate readiness from adapter
+readiness. Public discovery evidence can establish the former; a representative
+source response or fixture is required for the latter. Do not infer extraction
+paths, generate adapter code, or invoke an adapter from public candidate
+metadata.
+
 ## Output
 
 Return a concise `source_candidate_discovery_report` with:
 
 - `registry_check`: query time, read-only query reference, status, and recorded
   identities considered;
-- `proposed_candidates`: organization/source name, canonical homepage URL,
-  inferred scope marked `unverified`, public evidence URLs with a brief factual
+- `proposed_candidates`: one candidate per `sourceKey`, with organization/source
+  name, canonical homepage URL, declared country/city/operation scope, inferred
+  scope marked `unverified`, public evidence URLs with a brief factual
   observation and access date, discovery rationale, and unknowns;
+- `source_adapter_requirements`: keyed by `sourceKey`, with the unresolved
+  response/fixture/mapping evidence required before adapter generation;
 - `discarded`: recorded or possible duplicates with matching basis; and
 - `next_step`: `candidate_review_required` for every proposal.
 
