@@ -30,6 +30,6 @@ does not fetch one.
 ## Follow-up
 
 Candidate storage, crawler orchestration, transport, live fixtures, and source
-access remain separate decisions. The `find-candidates` skill therefore uses a
-supplied read-only registry export for deduplication rather than inventing a
-candidate store.
+access remain separate decisions. The `find-candidates` skill deduplicates
+only discoveries made in its current run; it does not invent a candidate store
+or registry export.

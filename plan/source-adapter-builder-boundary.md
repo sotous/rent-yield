@@ -48,8 +48,8 @@ needs to preserve.
 2. Move the builder-only files and rename the workspace package.
 3. Remove `crawler-import.ts`, its tests, pipeline runner tests, and their
    documentation claims.
-4. Update the candidate skill to require a supplied read-only registry export
-   for deduplication until an actual candidate store is designed.
+4. Update the candidate skill to deduplicate only within its current discovery
+   run; persistent candidate storage remains a separate design decision.
 5. Update root/package documentation; run focused tests, typecheck, lint, and
    repository checks.
 6. Record the retrospective and documentation outcome.
@@ -59,7 +59,7 @@ needs to preserve.
 - `apps/crawlers/` is a namespace, not evidence that a crawler runtime exists.
   This package remains builder-only.
 - The current candidate artifact directory is prototype fixture material, not a
-  registry. Deduplication must not depend on it.
+  registry. The skill may only deduplicate sources it discovers in one run.
 - The workspace lockfile may require a targeted update when the workspace path
   changes; unrelated dirty lockfile edits must be preserved.
 
@@ -78,6 +78,6 @@ needs to preserve.
   `@rent-yield/source-adapter-builder`.
 - The crawler registry, runner, and their tests were removed. The package ends
   at `SourceAdapter.parse`.
-- `find-candidates` again requires a supplied, read-only registry export rather
-  than treating prototype fixture files as a candidate store.
+- `find-candidates` does not treat prototype fixture files or an invented
+  registry export as a candidate store; it deduplicates only within one run.
 - Focused test, typecheck, lint, and synthetic `adapter:build` checks passed.

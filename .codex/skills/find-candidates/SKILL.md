@@ -12,9 +12,6 @@ adapter implementation, or crawler invocation.
 
 ## Required boundaries
 
-- Before researching, require a supplied, current candidate-registry export.
-  If it is missing, unreadable, or ambiguous, stop and report
-  `dedupe_unavailable`; do not return candidates.
 - Research only public internet search/index evidence and public pages needed
   to identify an organization and its apparent listing offering. Do not visit
   listing-detail pages, enumerate search results, submit forms, log in, bypass
@@ -22,25 +19,24 @@ adapter implementation, or crawler invocation.
 - Treat public visibility as discovery evidence only. Do not infer technical or
   contractual permission, robots status, reuse rights, completeness, or
   suitability for a crawler.
-- Do not write to a registry, generate an adapter, invoke a builder or crawler,
-  or otherwise change external state.
+- Do not generate an adapter, invoke a builder or crawler, or otherwise change
+  external state.
 
 ## Workflow
 
-1. Obtain the supplied registry export and retain its read time and reference.
-   Limit it to records relevant to `CO`, `barranquilla`, and listing discovery.
-2. Search the public web for organizations that appear to publish Colombian
+1. Search the public web for organizations that appear to publish Colombian
    residential rent or sale listings and show a credible Barranquilla presence.
    Prefer first-party organization, city/category, and public policy/about
    pages. Capture only the minimal page facts needed for attribution.
-3. Normalize each discovery to its organization name and canonical HTTPS
-   homepage URL. Compare it with registry source keys, normalized hostnames,
-   and registrable domains. When a match is plausible but cannot be resolved,
-   exclude it as `possible_duplicate` rather than emitting it.
-4. Return only new candidates. Keep unknowns explicit, including whether the
+2. Normalize each discovery to its organization name and canonical HTTPS
+   homepage URL. Deduplicate discoveries from this run by normalized hostname
+   and registrable domain. When two discoveries plausibly identify one source,
+   emit at most one candidate and keep the ambiguity explicit.
+3. Return only distinct candidates from this run. Keep unknowns explicit,
+   including whether the
    public evidence supports long-term, residential, rental, sale, or
    city-specific scope.
-5. Emit an artifact only when it satisfies the complete contract below. Its
+4. Emit an artifact only when it satisfies the complete contract below. Its
    extraction paths must come from a representative JSON source fixture
    supplied with the task; do not retrieve a fixture as part of discovery or
    invent paths from the candidate identity or URL.
@@ -82,11 +78,12 @@ The constraints are mandatory:
 
 ## Output
 
-Return only standalone `AdapterCandidate` JSON artifacts for sources absent
-from the supplied registry export and satisfying the contract. For an
-incomplete or possible-duplicate source, return no artifact and state the
-specific missing fixture evidence or duplicate basis separately.
+Return only standalone `AdapterCandidate` JSON artifacts for distinct sources
+from the current run that satisfy the contract. For an incomplete or ambiguous
+source, return no artifact and state the specific missing fixture evidence or
+duplicate basis separately.
 
-Do not invent registry fields, field paths, or source-access permission. A
-valid empty result is successful when no source has both a unique registry
-identity and sufficient fixture evidence.
+Do not claim that a candidate is new relative to prior runs; no persistent
+candidate store exists. Do not invent field paths or source-access permission.
+A valid empty result is successful when no discovered source has sufficient
+fixture evidence.
