@@ -1,0 +1,7 @@
+interface:
+  display_name: "Find Candidates"
+  short_description: "Find new Barranquilla listing candidates"
+  default_prompt: "Use $find-candidates to produce a new Barranquilla source candidate that is absent from the candidate artifact store."
+
+policy:
+  allow_implicit_invocation: true
