@@ -25,7 +25,7 @@ retrospectives.
 
 ## Pending documentation
 
-- TODO: Document the crawler source pipeline: `candidate-finder` →
+- TODO: Document the crawler source pipeline: `find-candidates` →
   `source-adapter-builder` → crawler runtime. Cover each stage's inputs,
   outputs, fixture ownership, and approval boundaries.
 

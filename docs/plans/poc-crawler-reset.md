@@ -124,9 +124,9 @@ it. Rent and sale rows remain distinct inputs.
 4. **Workspace integration** — Remove workspace/package references, prune the
    lockfile through the package manager, update root documentation, and prove
    no live import or script still points at deleted code.
-5. **Replacement boundary check** — Confirm the repository is ready for the
-   small listing-import vertical slice, without adding that new behavior as
-   part of this deletion-only cleanup.
+5. **Replacement boundary check** — Confirm the repository is ready for a
+   small source-adapter-builder vertical slice, without adding that new
+   behavior as part of this deletion-only cleanup.
 
 ## Likely areas to change
 
