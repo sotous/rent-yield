@@ -54,6 +54,10 @@ listings provide the properties to rank. The Rent Model estimates comparable
 rent per square metre, and the backend serves the resulting yield ranking to
 the Explorer.
 
+The first developer-operated source-adapter boundary builds a local
+`AdapterCandidate` JSON fixture into an adapter. It intentionally makes no
+source request; see the [source-adapter builder guide](apps/crawlers/source-adapter-builder/README.md).
+
 ## Repository Structure
 
 - `apps/frontend`: frontend application
