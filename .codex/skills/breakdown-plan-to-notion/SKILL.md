@@ -1,6 +1,6 @@
 ---
 name: breakdown-plan-to-notion
-description: Convert a completed non-trivial feature plan in `plan/` into actionable Notion tasks for the `rent-yield` project. Use after a plan is decision-complete and approved, when the next step is to break it into implementable execution slices inside the `Prototype v1 Tasks` Notion database. Read the target plan file, draft the breakdown for review, derive a stable plan slug from its filename, create or update structured task pages without duplicating existing work, and always include explicit review and documentation tasks.
+description: Convert a completed non-trivial feature plan in `docs/plans/` into actionable Notion tasks for the `rent-yield` project. Use after a plan is decision-complete and approved, when the next step is to break it into implementable execution slices inside the `Prototype v1 Tasks` Notion database. Read the target plan file, draft the breakdown for review, derive a stable plan slug from its filename, create or update structured task pages without duplicating existing work, and always include explicit review and documentation tasks.
 ---
 
 # Breakdown Plan To Notion
@@ -9,7 +9,7 @@ description: Convert a completed non-trivial feature plan in `plan/` into action
 
 Use this skill to turn a finished `rent-yield` plan into tracked execution work in Notion.
 
-Treat the plan file in `plan/` as the source of truth. Treat the Notion task database as the execution tracker.
+Treat the plan file in `docs/plans/` as the source of truth. Treat the Notion task database as the execution tracker.
 
 Read [references/task-breakdown-rules.md](references/task-breakdown-rules.md) before writing or updating tasks.
 
@@ -21,7 +21,7 @@ Do not treat this as lightweight task logging. Each Notion task page should be u
 
 Only use this skill when all of the following are true:
 
-- the target file lives under `plan/`
+- the target file lives under `docs/plans/`
 - the plan is decision-complete
 - the work is non-trivial
 
@@ -174,7 +174,7 @@ After the breakdown is complete, report:
 ## Rent-Yield Rules
 
 - Assume the project is `rent-yield`
-- Assume plans live in `plan/`
+- Assume plans live in `docs/plans/`
 - Assume the destination is the existing `rent-yield` Notion project and `Prototype v1 Tasks` database
 - Assume review and documentation are mandatory tracked steps
 - Assume each task page should stand on its own as a mini-spec

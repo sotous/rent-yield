@@ -23,7 +23,7 @@ Upgrade the repo-local `breakdown-plan-to-notion` skill so each Notion task page
 
 ## Constraints
 
-- Preserve `plan/` as the source of truth
+- Preserve `docs/plans/` as the source of truth
 - Preserve Notion as the execution tracker
 - Keep `Review` and `Document` as mandatory explicit tasks
 - Preserve existing task `Status` values on re-runs

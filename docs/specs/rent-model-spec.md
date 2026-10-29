@@ -6,7 +6,7 @@ This is the canonical specification for the `rent-yield` Rent Model.
 
 It defines the version-one deterministic model for Colombia, initially
 Barranquilla. It supersedes the Rent Model methodology portions of
-[`plan/rent-model-v1.md`](../plan/rent-model-v1.md) after implementation
+[`docs/plans/rent-model-v1.md`](../plans/rent-model-v1.md) after implementation
 decisions are made. The plan remains the execution record. The shared domain
 spec owns common product metrics.
 

@@ -2,7 +2,7 @@
 
 ## Summary
 
-Create a repo-local skill that converts a completed plan in `plan/` into actionable Notion tasks inside the existing `rent-yield` Notion workspace.
+Create a repo-local skill that converts a completed plan in `docs/plans/` into actionable Notion tasks inside the existing `rent-yield` Notion workspace.
 
 ## Goal
 
@@ -19,7 +19,7 @@ Create a repo-local skill that converts a completed plan in `plan/` into actiona
 - Add a stable `Plan Slug` property to the Notion database to support upserts
 - Update repo instructions so approved plans are broken into Notion tasks
 - Validate the skill with the provided validator
-- Forward-test the skill against a real plan in `plan/`
+- Forward-test the skill against a real plan in `docs/plans/`
 
 ## Constraints
 

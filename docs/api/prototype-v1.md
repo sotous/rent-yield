@@ -9,7 +9,7 @@ current frontend fake data with backend-served areas, summaries, and ranked
 property records.
 
 For the formal contract, see
-[backend-api-spec.md](../../specs/backend-api-spec.md).
+[backend-api-spec.md](../specs/backend-api-spec.md).
 
 For the scoped frontend consumer boundary, see
 [prototype-v1-consumer-contract.md](prototype-v1-consumer-contract.md).

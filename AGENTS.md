@@ -23,7 +23,7 @@ The goal is not just to write code. The goal is to evolve the product intentiona
 
 For any non-trivial feature, agents must follow this order:
 
-1. Create or update a feature plan in `plan/`
+1. Create or update a feature plan in `docs/plans/`
 2. Break the approved plan into tracked execution tasks in Notion
 3. Define the behavior with tests before implementation
 4. Implement the feature through the TDD red-green-refactor loop
@@ -45,7 +45,7 @@ Tests should be written at the narrowest useful level first, then expanded with 
 
 ## Planning Expectations
 
-Before coding, agents should write a plan file in `plan/`.
+Before coding, agents should write a plan file in `docs/plans/`.
 
 The plan should usually capture:
 
@@ -68,8 +68,8 @@ Those tasks should be rich enough to stand on their own, with clear scope, accep
 Agents should treat the following as current source-of-truth references:
 
 - [README.md](README.md)
-- [specs/frontend-spec.md](specs/frontend-spec.md)
-- [specs/domain-spec.md](specs/domain-spec.md)
+- [docs/specs/frontend-spec.md](docs/specs/frontend-spec.md)
+- [docs/specs/domain-spec.md](docs/specs/domain-spec.md)
 
 If implementation pressure reveals a missing product or domain decision, update the relevant spec before or alongside the code.
 

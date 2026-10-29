@@ -372,7 +372,7 @@ the workbench's explicit input contract.
 
 ### rent-yield
 
-- `specs/domain-spec.md`
+- `docs/specs/domain-spec.md`
 - new `docs/architecture/rent-model-v1.md`
 - new `apps/rent-model/` workbench package, CLI, tests, and fixtures
 - explicit rent-model fixtures and benchmark fixtures

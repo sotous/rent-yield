@@ -13,10 +13,10 @@ block the next planning step.
 ## Reviewed Against
 
 - `README.md`
-- `specs/frontend-spec.md`
-- `specs/frontend-interaction-spec.md`
-- `specs/domain-spec.md`
-- `plan/prototype-v1-explorer-foundation.md`
+- `docs/specs/frontend-spec.md`
+- `docs/specs/frontend-interaction-spec.md`
+- `docs/specs/domain-spec.md`
+- `docs/plans/prototype-v1-explorer-foundation.md`
 - `docs/architecture/frontend-prototype-v1.md`
 
 ## What Works
