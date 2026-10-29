@@ -23,7 +23,12 @@ async function main(args: readonly string[]): Promise<void> {
   console.log(
     JSON.stringify(
       result.kind === "built"
-        ? { kind: "built", sourceKey: result.adapter.sourceKey }
+        ? {
+            kind: "built",
+            sourceKey: result.adapter.sourceKey,
+            supportedOperations: result.adapter.supportedOperations,
+            sourceUrls: result.adapter.sourceUrls,
+          }
         : result,
       null,
       2,

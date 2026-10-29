@@ -1,17 +1,21 @@
 {
   "sourceKey": "example-baq-rentals",
   "sourceName": "Example Barranquilla Rentals",
-  "sourceUrl": "https://example.test/barranquilla/rentals",
+  "sourceUrl": "https://example.test",
   "countryCode": "CO",
   "cityName": "Barranquilla",
-  "supportedOperations": ["rent"],
-  "extractionRecipe": {
-    "contentType": "application/json",
-    "listingCollectionPath": "results.items",
-    "fields": {
-      "id": "id",
-      "priceCop": "price.amount",
-      "listingUrl": "url"
+  "operations": {
+    "rent": {
+      "requestUrl": "https://example.test/barranquilla/rentals",
+      "extractionRecipe": {
+        "contentType": "application/json",
+        "listingCollectionPath": "results.items",
+        "fields": {
+          "id": "id",
+          "priceCop": "price.amount",
+          "listingUrl": "url"
+        }
+      }
     }
   }
 }
