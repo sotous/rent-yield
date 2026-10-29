@@ -11,7 +11,7 @@ From the repository root, run:
 
 ```sh
 pnpm --filter @rent-yield/source-adapter-builder run adapter:build \
-  --candidate candidates/example-baq-rentals.json
+  --candidate fixtures/candidates/example-baq-rentals.json
 ```
 
 The command reads exactly one local JSON file and prints a `built` summary for
@@ -43,10 +43,15 @@ The builder accepts one `AdapterCandidate` JSON artifact with these fields:
 }
 ```
 
-The checked-in `candidates/example-baq-rentals.json` is synthetic: its
+The checked-in `fixtures/candidates/example-baq-rentals.json` is synthetic: its
 `example.test` URL and recipe illustrate the contract only. It is not a real
 source candidate, a retained source response, or permission to access any
 third-party website.
+
+Candidates discovered for future builder use are stored separately under
+`candidates/<sourceKey>.json`. The `find-candidates` skill reads those files to
+avoid saving duplicate candidates and appends new artifacts without overwriting
+existing ones.
 
 ## Boundaries
 

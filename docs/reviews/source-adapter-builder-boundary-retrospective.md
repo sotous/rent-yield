@@ -16,8 +16,8 @@ transport, scheduling, persistence, or live source access.
 
 - Focused tests: 15 passed.
 - Typecheck and lint passed.
-- `adapter:build --candidate candidates/example-baq-rentals.json` returned a
-  `built` result using only the synthetic fixture.
+- `adapter:build --candidate fixtures/candidates/example-baq-rentals.json`
+  returned a `built` result using only the synthetic fixture.
 
 ## Divergence and ergonomics
 
@@ -30,6 +30,7 @@ does not fetch one.
 ## Follow-up
 
 Candidate storage, crawler orchestration, transport, live fixtures, and source
-access remain separate decisions. The `find-candidates` skill deduplicates
-only discoveries made in its current run; it does not invent a candidate store
-or registry export.
+access remain separate decisions. The builder package now keeps synthetic
+examples under `fixtures/candidates/`, separate from the append-only
+`candidates/` artifact store used by `find-candidates` to save complete new
+builder inputs.

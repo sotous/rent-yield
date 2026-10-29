@@ -7,7 +7,10 @@ import { validateAdapterCandidate } from "./adapter-candidate.js";
 describe("example adapter candidate artifact", () => {
   it("satisfies the builder candidate contract", async () => {
     const text = await readFile(
-      new URL("../candidates/example-baq-rentals.json", import.meta.url),
+      new URL(
+        "../fixtures/candidates/example-baq-rentals.json",
+        import.meta.url,
+      ),
       "utf8",
     );
 

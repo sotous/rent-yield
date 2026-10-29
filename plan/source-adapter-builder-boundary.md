@@ -29,10 +29,12 @@ needs to preserve.
   `adapter:build` command.
 - Remove the adapter registry, crawler/import runner, runner tests, and any
   documentation that calls this package a listing-import or crawler runtime.
-- Retain synthetic artifacts only as builder test fixtures. They are not a
-  canonical candidate store and do not authorize source access.
-- Update workspace documentation and the `find-candidates` skill so they no
-  longer treat the removed top-level package as a candidate store.
+- Retain synthetic artifacts only under `fixtures/candidates/` as builder test
+  fixtures. The sibling `candidates/` directory is the append-only store for
+  complete discovered `AdapterCandidate` JSON artifacts; it does not authorize
+  source access.
+- Update workspace documentation and the `find-candidates` skill to use that
+  store and prevent duplicate writes.
 
 ## Out of Scope
 
@@ -48,8 +50,8 @@ needs to preserve.
 2. Move the builder-only files and rename the workspace package.
 3. Remove `crawler-import.ts`, its tests, pipeline runner tests, and their
    documentation claims.
-4. Update the candidate skill to deduplicate only within its current discovery
-   run; persistent candidate storage remains a separate design decision.
+4. Update the candidate skill to read the candidate artifact store, deduplicate
+   against it, and save complete new candidate artifacts without overwriting.
 5. Update root/package documentation; run focused tests, typecheck, lint, and
    repository checks.
 6. Record the retrospective and documentation outcome.
@@ -58,8 +60,8 @@ needs to preserve.
 
 - `apps/crawlers/` is a namespace, not evidence that a crawler runtime exists.
   This package remains builder-only.
-- The current candidate artifact directory is prototype fixture material, not a
-  registry. The skill may only deduplicate sources it discovers in one run.
+- Synthetic fixture files must remain outside the candidate store so they
+  cannot suppress real source discoveries.
 - The workspace lockfile may require a targeted update when the workspace path
   changes; unrelated dirty lockfile edits must be preserved.
 
@@ -78,6 +80,6 @@ needs to preserve.
   `@rent-yield/source-adapter-builder`.
 - The crawler registry, runner, and their tests were removed. The package ends
   at `SourceAdapter.parse`.
-- `find-candidates` does not treat prototype fixture files or an invented
-  registry export as a candidate store; it deduplicates only within one run.
+- `find-candidates` reads and appends to `candidates/`; synthetic builder
+  examples live under `fixtures/candidates/`.
 - Focused test, typecheck, lint, and synthetic `adapter:build` checks passed.
