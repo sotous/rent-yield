@@ -1,17 +1,24 @@
 export type ListingOperation = "rent" | "sale";
 
+export type ExtractionRecipe = {
+  contentType: "text/html" | "application/json";
+  listingCollectionPath: string;
+  fields: Record<string, string>;
+};
+
+export type OperationRecipe = {
+  requestUrl: string;
+  extractionRecipe: ExtractionRecipe;
+};
+
 export type AdapterCandidate = {
   sourceKey: string;
   sourceName: string;
+  /** Canonical HTTPS homepage or API base URL used for source identity. */
   sourceUrl: string;
   countryCode: "CO";
   cityName: "Barranquilla";
-  supportedOperations: ListingOperation[];
-  extractionRecipe: {
-    contentType: "text/html" | "application/json";
-    listingCollectionPath: string;
-    fields: Record<string, string>;
-  };
+  operations: Partial<Record<ListingOperation, OperationRecipe>>;
 };
 
 export type AdapterCandidateValidation =
@@ -23,11 +30,16 @@ export type AdapterCandidateValidation =
         countryCode: "CO";
         cityName: "Barranquilla";
         supportedOperations: ListingOperation[];
-        extractionRecipe: {
-          contentType: "text/html" | "application/json";
-          listingCollectionPath: string;
-          fieldNames: string[];
-        };
+        operations: Partial<
+          Record<
+            ListingOperation,
+            {
+              contentType: ExtractionRecipe["contentType"];
+              listingCollectionPath: string;
+              fieldNames: string[];
+            }
+          >
+        >;
       };
     }
   | {
@@ -42,6 +54,13 @@ export type AdapterCandidateValidation =
     };
 
 const sourceKeyPattern = /^[a-z][a-z0-9-]{1,62}$/;
+const supportedOperations: ListingOperation[] = ["rent", "sale"];
+
+type OperationRecipeReceipt = {
+  contentType: ExtractionRecipe["contentType"];
+  listingCollectionPath: string;
+  fieldNames: string[];
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -63,24 +82,7 @@ function isSafeSourceUrl(value: unknown): value is string {
   }
 }
 
-function isOperation(value: unknown): value is ListingOperation {
-  return value === "rent" || value === "sale";
-}
-
-function parseOperations(value: unknown): ListingOperation[] | null {
-  if (
-    !Array.isArray(value) ||
-    value.length === 0 ||
-    !value.every(isOperation)
-  ) {
-    return null;
-  }
-  return new Set(value).size === value.length ? [...value] : null;
-}
-
-function parseRecipe(
-  value: unknown,
-): AdapterCandidate["extractionRecipe"] | null {
+function parseRecipe(value: unknown): ExtractionRecipe | null {
   if (!isRecord(value)) return null;
   const { contentType, listingCollectionPath, fields } = value;
   if (
@@ -91,13 +93,19 @@ function parseRecipe(
     return null;
   }
   const entries = Object.entries(fields);
-  if (entries.length === 0) return null;
+  if (
+    !entries.every(
+      ([fieldName, fieldPath]) =>
+        isNonEmptyString(fieldName) && isNonEmptyString(fieldPath),
+    ) ||
+    !isNonEmptyString(fields.id) ||
+    !isNonEmptyString(fields.priceCop)
+  ) {
+    return null;
+  }
   const parsedFields: Record<string, string> = {};
   for (const [fieldName, fieldPath] of entries) {
-    if (!isNonEmptyString(fieldName) || !isNonEmptyString(fieldPath)) {
-      return null;
-    }
-    parsedFields[fieldName] = fieldPath;
+    parsedFields[fieldName] = fieldPath as string;
   }
   return {
     contentType,
@@ -116,8 +124,7 @@ export function validateAdapterCandidate(
     sourceUrl,
     countryCode,
     cityName,
-    supportedOperations,
-    extractionRecipe,
+    operations,
   } = input;
   if (!isNonEmptyString(sourceKey) || !sourceKeyPattern.test(sourceKey)) {
     return { kind: "rejected", code: "invalid_source_key" };
@@ -131,13 +138,43 @@ export function validateAdapterCandidate(
   if (countryCode !== "CO" || cityName !== "Barranquilla") {
     return { kind: "rejected", code: "unsupported_geography" };
   }
-  const operations = parseOperations(supportedOperations);
-  if (operations === null)
+  if (!isRecord(operations)) {
     return { kind: "rejected", code: "invalid_operations" };
-  const recipe = parseRecipe(extractionRecipe);
-  if (recipe === null) {
-    return { kind: "rejected", code: "invalid_extraction_recipe" };
   }
+  const operationNames = Object.keys(operations);
+  if (
+    operationNames.length === 0 ||
+    operationNames.some(
+      (operation) =>
+        !supportedOperations.includes(operation as ListingOperation),
+    )
+  ) {
+    return { kind: "rejected", code: "invalid_operations" };
+  }
+
+  const operationReceipts: Partial<
+    Record<ListingOperation, OperationRecipeReceipt>
+  > = {};
+  for (const operation of supportedOperations) {
+    if (!(operation in operations)) continue;
+    const operationRecipe = operations[operation];
+    if (!isRecord(operationRecipe)) {
+      return { kind: "rejected", code: "invalid_operations" };
+    }
+    if (!isSafeSourceUrl(operationRecipe.requestUrl)) {
+      return { kind: "rejected", code: "invalid_source_url" };
+    }
+    const recipe = parseRecipe(operationRecipe.extractionRecipe);
+    if (recipe === null) {
+      return { kind: "rejected", code: "invalid_extraction_recipe" };
+    }
+    operationReceipts[operation] = {
+      contentType: recipe.contentType,
+      listingCollectionPath: recipe.listingCollectionPath,
+      fieldNames: Object.keys(recipe.fields).sort(),
+    };
+  }
+
   return {
     kind: "accepted",
     candidate: {
@@ -145,12 +182,10 @@ export function validateAdapterCandidate(
       sourceName,
       countryCode,
       cityName,
-      supportedOperations: operations,
-      extractionRecipe: {
-        contentType: recipe.contentType,
-        listingCollectionPath: recipe.listingCollectionPath,
-        fieldNames: Object.keys(recipe.fields).sort(),
-      },
+      supportedOperations: supportedOperations.filter((operation) =>
+        operationNames.includes(operation),
+      ),
+      operations: operationReceipts,
     },
   };
 }

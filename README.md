@@ -55,8 +55,10 @@ rent per square metre, and the backend serves the resulting yield ranking to
 the Explorer.
 
 The first developer-operated source-adapter boundary builds a local
-`AdapterCandidate` JSON fixture into an adapter. It intentionally makes no
-source request; see the [source-adapter builder guide](apps/crawlers/source-adapter-builder/README.md).
+`AdapterCandidate` JSON artifact into an adapter with operation-specific
+recipes for rent, sale, or both. The caller supplies each operation's response;
+the builder intentionally makes no source requests and does not run a crawler. See the
+[source-adapter builder guide](apps/crawlers/source-adapter-builder/README.md).
 
 ## Repository Structure
 

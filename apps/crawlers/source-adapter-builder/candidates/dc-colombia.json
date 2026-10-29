@@ -1,0 +1,37 @@
+{
+  "sourceKey": "dc-colombia",
+  "sourceName": "D.C Colombia S.A.S.",
+  "sourceUrl": "https://dccolombia.com.co",
+  "countryCode": "CO",
+  "cityName": "Barranquilla",
+  "operations": {
+    "rent": {
+      "requestUrl": "https://dccolombia.com.co/api/properties?operation=rent&city=Barranquilla",
+      "extractionRecipe": {
+        "contentType": "application/json",
+        "listingCollectionPath": "properties",
+        "fields": {
+          "id": "slug",
+          "priceCop": "price_rent",
+          "builtAreaSqm": "area",
+          "bedrooms": "bedrooms",
+          "neighborhood": "neighborhood"
+        }
+      }
+    },
+    "sale": {
+      "requestUrl": "https://dccolombia.com.co/api/properties?operation=sale&city=Barranquilla",
+      "extractionRecipe": {
+        "contentType": "application/json",
+        "listingCollectionPath": "properties",
+        "fields": {
+          "id": "slug",
+          "priceCop": "price_sale",
+          "builtAreaSqm": "area",
+          "bedrooms": "bedrooms",
+          "neighborhood": "neighborhood"
+        }
+      }
+    }
+  }
+}
