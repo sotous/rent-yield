@@ -13,8 +13,7 @@ The initial inventory below was collected on codex/rent-model-deterministic-spec
 ## Observations
 
 - apps/ separates the frontend, backend, and rent-model workbench.
-- specs/ is small enough to remain flat.
-- plan/ mixes implementation plans, a technology decision, and retrospectives.
+- Documentation specifications and plans now live alongside the rest of the documentation.
 - docs/reviews/ contains other implementation assessments, splitting related material across locations.
 - README.md and other documentation use absolute checkout paths, which do not travel with a worktree or repository clone.
 - Removed duplicate .agents/skills/ files after confirming they matched .codex/skills/ exactly. Maintain skills under .codex/skills/.
@@ -31,17 +30,15 @@ rent-yield/
 │   ├── backend/
 │   └── rent-model/
 ├── packages/                 # Shared libraries when product needs require them
-├── specs/                    # Current authoritative behavior and scope
-├── plan/                     # Plans, with status metadata and an index
-│   ├── README.md
-│   └── archive/              # Only plans verified as completed/superseded
 ├── docs/
 │   ├── README.md             # Documentation map
 │   ├── architecture/         # Current system design
 │   ├── api/                  # API reference and consumer contracts
 │   ├── decisions/            # Durable choices and their rationale
+│   ├── plans/                # Delivery plans, status metadata, and an index
 │   ├── research/             # Exploratory findings and market research
-│   └── reviews/              # Reviews and retrospectives
+│   ├── reviews/              # Reviews and retrospectives
+│   └── specs/                # Current authoritative behavior and scope
 ├── .codex/                   # Canonical maintained agent configuration
 │   ├── skills/               # Portable reusable workflows
 │   └── agents/               # Specialist roles and adapters
@@ -52,8 +49,8 @@ rent-yield/
 
 ## Placement rules
 
-- specs/ explains what the product must do.
-- plan/ explains how a scoped change will be delivered. Record draft, approved, in-progress, completed, or superseded status inside each plan; do not infer completion from age.
+- docs/specs/ explains what the product must do.
+- docs/plans/ explains how a scoped change will be delivered. Record draft, approved, in-progress, completed, or superseded status inside each plan; do not infer completion from age.
 - docs/architecture/ explains the current implementation.
 - docs/decisions/ records why a durable choice was made.
 - docs/research/ contains findings that may inform decisions but are not themselves specifications.
@@ -77,16 +74,16 @@ rent-yield/
 - `docs/decisions/prototype-v1-frontend-tech-stack-decision.md` contains the frontend technology decision.
 - `docs/research/business-model-market-validation.md` contains the market-validation memo.
 - `docs/reviews/` contains the completed crawler and rent-model retrospectives.
-- Completed plans remain in `plan/` unless their status is verified as completed or superseded before archival.
+- Completed plans remain in `docs/plans/` unless their status is verified as completed or superseded before archival.
 
 ## Main merge adaptation
 
 The merged crawler fixture-redaction work added a fixture-redaction
 retrospective, a crawler project status review, and a completed remediation
 plan. The retrospective and review were classified under `docs/reviews/`.
-The remediation plan was marked completed and moved to `plan/archive/` because
-the merged implementation and retrospective verify its delivery. The current
-canary plan remains in `plan/` because it describes future work.
+The remediation plan was marked completed and moved to `docs/plans/archive/`
+because the merged implementation and retrospective verify its delivery. The
+current canary plan remains in `docs/plans/` because it describes future work.
 
 ## Delivery approach
 
@@ -107,7 +104,7 @@ Search tracked files for references to every moved path, including skills and ag
 
 ## Retrospective
 
-The delivered structure matches the approved plan: `.codex/` is the maintained agent-configuration source, `.claude/agents` and `.claude/skills` remain relative directory symlinks, and the duplicate `.agents/` tree was removed. The decision, research memo, and four retrospectives now live in their document-type directories; `docs/README.md` and `plan/README.md` provide stable entry points.
+The delivered structure matches the approved plan: `.codex/` is the maintained agent-configuration source, `.claude/agents` and `.claude/skills` remain relative directory symlinks, and the duplicate `.agents/` tree was removed. The decision, research memo, and four retrospectives now live in their document-type directories; `docs/README.md` and `docs/plans/README.md` provide stable entry points.
 
 The implementation stayed within organizational scope. Markdown agent definitions use portable `name` and `description` frontmatter, while Codex-only TOML definitions remain alongside them. The worktree validated that both Claude symlinks resolve, all 47 tracked Markdown files have resolvable local link targets, no checkout-specific paths remain in tracked Markdown or TOML, and both staged and unstaged diffs pass `git diff --check`.
 

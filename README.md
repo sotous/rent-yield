@@ -63,21 +63,19 @@ source request; see the [source-adapter builder guide](apps/crawlers/source-adap
 - `apps/frontend`: frontend application
 - `apps/backend`: backend application
 - `apps/rent-model`: standalone Rent Model input-contract workbench
-- `docs`: architecture, API contracts, implementation reviews, and documentation navigation
-- `plan`: scoped delivery plans and planning navigation
-- `specs`: product and technical specifications
+- `docs`: specifications, plans, architecture, API contracts, reviews, and navigation
 
 Start with [documentation navigation](docs/README.md) for implementation
-references, or [plan navigation](plan/README.md) for delivery work and plan
+references, or [plan navigation](docs/plans/README.md) for delivery work and plan
 status.
 
 ## Specs
 
-- [Frontend Product Spec](specs/frontend-spec.md)
-- [Frontend Interaction Spec](specs/frontend-interaction-spec.md)
-- [Shared Domain Spec](specs/domain-spec.md)
-- [Backend API Spec](specs/backend-api-spec.md)
-- [Rent Model Specification](specs/rent-model-spec.md)
+- [Frontend Product Spec](docs/specs/frontend-spec.md)
+- [Frontend Interaction Spec](docs/specs/frontend-interaction-spec.md)
+- [Shared Domain Spec](docs/specs/domain-spec.md)
+- [Backend API Spec](docs/specs/backend-api-spec.md)
+- [Rent Model Specification](docs/specs/rent-model-spec.md)
 
 These specs are the current source of truth for product framing, domain language, and version-one scope.
 
@@ -87,13 +85,13 @@ These specs are the current source of truth for product framing, domain language
 
 ## Business Research
 
-- [Business Model and Market Validation Plan](plan/business-model-market-validation.md)
+- [Business Model and Market Validation Plan](docs/plans/business-model-market-validation.md)
 - [Business Model and Market Validation Memo](docs/research/business-model-market-validation.md)
 
 ## Rent Model
 
-- [Rent Model V1 Plan](plan/rent-model-v1.md)
-- [Rent Model Specification](specs/rent-model-spec.md)
+- [Rent Model V1 Plan](docs/plans/rent-model-v1.md)
+- [Rent Model Specification](docs/specs/rent-model-spec.md)
 - [Rent Model Workbench Guide](apps/rent-model/README.md)
 - [Input Workbench Retrospective](docs/reviews/rent-model-input-workbench-retrospective.md)
 
@@ -115,7 +113,7 @@ In that order whenever possible.
 
 Approved non-trivial plans are broken down into actionable Notion tasks after planning is complete.
 
-The repo plan files in `plan/` remain the source of truth for intent and decisions. Notion is used as the execution tracker for implementation slices, review, and documentation work.
+The repo plan files in `docs/plans/` remain the source of truth for intent and decisions. Notion is used as the execution tracker for implementation slices, review, and documentation work.
 
 Those Notion tasks should be written as small execution briefs, not placeholder tickets, so they can be understood from Notion alone during implementation.
 

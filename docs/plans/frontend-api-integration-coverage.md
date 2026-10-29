@@ -15,8 +15,8 @@ browser-to-backend path and the API response shape used by the explorer.
 
 ## Relevant References
 
-- `specs/frontend-spec.md`
-- `specs/backend-api-spec.md`
+- `docs/specs/frontend-spec.md`
+- `docs/specs/backend-api-spec.md`
 - `apps/frontend/src/features/explorer/explorerApi.ts`
 - `apps/frontend/playwright.config.ts`
 

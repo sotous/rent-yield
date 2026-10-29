@@ -15,11 +15,11 @@ Frontend integration has not started.
 ## Reviewed Against
 
 - `README.md`
-- `specs/domain-spec.md`
-- `specs/backend-api-spec.md`
+- `docs/specs/domain-spec.md`
+- `docs/specs/backend-api-spec.md`
 - `docs/api/prototype-v1.md`
 - `docs/api/prototype-v1-consumer-contract.md`
-- `plan/prototype-v1-backend-implementation-architecture.md`
+- `docs/plans/prototype-v1-backend-implementation-architecture.md`
 
 ## What Works
 

@@ -24,12 +24,12 @@ implement the two read-only explorer endpoints without expanding product scope.
 
 - `README.md`
 - `AGENTS.md`
-- `specs/domain-spec.md`
-- `specs/backend-api-spec.md`
+- `docs/specs/domain-spec.md`
+- `docs/specs/backend-api-spec.md`
 - `docs/api/prototype-v1.md`
 - `docs/api/prototype-v1-consumer-contract.md`
 - `docs/reviews/backend-prototype-contract-review.md`
-- `plan/prototype-v1-backend-contract-and-api-docs.md`
+- `docs/plans/prototype-v1-backend-contract-and-api-docs.md`
 
 ## Scope
 
@@ -83,7 +83,7 @@ Why:
   backend has enough complexity to justify it.
 
 Do not introduce OpenAPI generation in the first implementation. The handwritten
-contract in `specs/backend-api-spec.md` remains the source of truth until the
+contract in `docs/specs/backend-api-spec.md` remains the source of truth until the
 runtime API stabilizes.
 
 ## Architecture Direction
@@ -317,7 +317,7 @@ Use `fastify.inject()` to test:
 - malformed query parameters
 - missing area
 - valid empty area
-- response shape alignment with `specs/backend-api-spec.md`
+- response shape alignment with `docs/specs/backend-api-spec.md`
 - error envelope shape:
 
 ```ts

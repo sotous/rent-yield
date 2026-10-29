@@ -2,7 +2,7 @@
 
 **Research date:** 2026-08-05  
 **Scope:** Colombia, with Barranquilla as the initial market  
-**Plan:** `plan/business-model-market-validation.md`
+**Plan:** `docs/plans/business-model-market-validation.md`
 
 ## Executive conclusion
 

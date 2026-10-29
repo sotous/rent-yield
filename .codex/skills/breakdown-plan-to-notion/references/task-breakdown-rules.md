@@ -28,7 +28,7 @@ Only break down a plan when all of the following are true:
 
 - the plan is decision-complete
 - the plan describes non-trivial feature work
-- the plan is stored under `plan/`
+- the plan is stored under `docs/plans/`
 
 Do not create Notion tasks for:
 
@@ -106,7 +106,7 @@ The ticket should be understandable from Notion alone, even if the reader does n
 Use this structure for every task page:
 
 ```md
-Managed Source: plan/<plan-file>.md
+Managed Source: docs/plans/<plan-file>.md
 Managed Slug: <plan-slug>
 Managed Phase: <phase>
 
@@ -150,7 +150,7 @@ Managed Phase: <phase>
 
 ## Plan Reference
 
-- Plan: `plan/<plan-file>.md`
+- Plan: `docs/plans/<plan-file>.md`
 - Plan slug: `<plan-slug>`
 - Order: `<order>`
 ```

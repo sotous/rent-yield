@@ -6,7 +6,7 @@ The first backend prototype lives in `apps/backend`.
 
 It implements the read-only explorer API defined by:
 
-- `specs/backend-api-spec.md`
+- `docs/specs/backend-api-spec.md`
 - `docs/api/prototype-v1.md`
 - `docs/api/prototype-v1-consumer-contract.md`
 

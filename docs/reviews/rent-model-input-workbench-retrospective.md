@@ -3,7 +3,7 @@
 ## Scope reviewed
 
 This retrospective covers the first implementation slice of
-`plan/rent-model-v1.md`: the standalone package scaffold and the boundary that
+`docs/plans/rent-model-v1.md`: the standalone package scaffold and the boundary that
 turns a listing-shaped record into a sale-subject request for the future Rent
 Model.
 
@@ -53,6 +53,6 @@ comparables.
 
 ## Documentation updated
 
-- `plan/rent-model-v1.md` records the current partial implementation status.
+- `docs/plans/rent-model-v1.md` records the current partial implementation status.
 - `apps/rent-model/README.md` explains the workbench boundary and fixture.
 - The root `README.md` links the plan, workbench, and this retrospective.

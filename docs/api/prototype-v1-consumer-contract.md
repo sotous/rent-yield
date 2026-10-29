@@ -36,7 +36,7 @@ This API is not currently scoped for:
 
 The implementation contract is defined by:
 
-- `specs/backend-api-spec.md`
+- `docs/specs/backend-api-spec.md`
 - `docs/api/prototype-v1.md`
 
 The backend implementation should expose:

@@ -15,8 +15,8 @@ Plan the first executable work package for `rent-yield` prototype v1 so the repo
 
 ## Relevant Specs
 
-- `specs/frontend-spec.md`
-- `specs/domain-spec.md`
+- `docs/specs/frontend-spec.md`
+- `docs/specs/domain-spec.md`
 - `README.md`
 - `AGENTS.md`
 
@@ -68,7 +68,7 @@ This plan does not include:
 
 ## Progress Notes
 
-- 2026-06-23: Added `specs/frontend-interaction-spec.md` to define the
+- 2026-06-23: Added `docs/specs/frontend-interaction-spec.md` to define the
   explorer screen state, area selection behavior, map and chart linking,
   responsive rules, accessibility expectations, fake-data requirements, and
   success criteria for the first frontend prototype.
@@ -88,7 +88,7 @@ This plan does not include:
   `docs/reviews/prototype-v1-ergonomics-review.md` to close the first
   ergonomics review. The prototype is sound enough to proceed to the backend
   contract, with frontend polish deferred until real data needs are clearer.
-- 2026-07-29: Added `specs/backend-api-spec.md`,
+- 2026-07-29: Added `docs/specs/backend-api-spec.md`,
   `docs/api/prototype-v1.md`, and
   `docs/reviews/backend-prototype-contract-review.md` to define the first
   backend prototype contract and API documentation from the frontend's proven

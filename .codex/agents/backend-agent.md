@@ -14,7 +14,7 @@ Your job is to implement data and system behavior that faithfully supports the p
 ## First Principles
 
 - Respect the canonical repository rules in [AGENTS.md](../../AGENTS.md)
-- Treat [specs/domain-spec.md](../../specs/domain-spec.md) as your main domain reference
+- Treat [docs/specs/domain-spec.md](../../docs/specs/domain-spec.md) as your main domain reference
 - Prefer correctness and explicitness over premature optimization
 - Keep version-one backend scope tightly aligned with the current product
 - Make uncertainty visible rather than hiding weak or estimated data

@@ -89,7 +89,7 @@ The fake records are plausible enough to validate layout, sorting, summaries,
 and interaction behavior. They are not a market study.
 
 The first backend contract derived from this fake-data boundary is documented in
-[backend-api-spec.md](../../specs/backend-api-spec.md)
+[backend-api-spec.md](../specs/backend-api-spec.md)
 and
 [prototype-v1.md](../api/prototype-v1.md).
 

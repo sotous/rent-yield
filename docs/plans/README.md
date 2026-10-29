@@ -15,7 +15,7 @@ labels:
 - `completed`: delivery and validation are finished.
 - `superseded`: replaced by a named newer plan or decision.
 
-Do not infer a status from a plan's age. A plan enters `plan/archive/` only
+Do not infer a status from a plan's age. A plan enters `docs/plans/archive/` only
 after its `completed` or `superseded` status has been verified against the
 implementation and tracker.
 
@@ -23,7 +23,7 @@ Verified historical plans live in [archive/](archive/).
 
 ## Related documentation
 
-- [Documentation navigation](../docs/README.md)
+- [Documentation navigation](../README.md)
 - [Repository organization plan](repository-organization.md)
 
 Use repository-relative links in plans so they work across clones and
