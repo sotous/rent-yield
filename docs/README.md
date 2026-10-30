@@ -23,11 +23,10 @@ Use `specs/` for authoritative behavior, `plans/` for delivery intent,
 exploratory findings, and `reviews/` for completed assessments and
 retrospectives.
 
-## Pending documentation
+## Pipeline specifications
 
-- TODO: Document the crawler source pipeline: `find-candidates` →
-  `source-adapter-builder` → crawler runtime. Cover each stage's inputs,
-  outputs, fixture ownership, and approval boundaries.
+- [Proof-of-concept crawler](specs/crawler-poc-spec.md): candidate-to-adapter
+  fetching, parse invocation, run artifact, failures, and acceptance criteria.
 
 Use repository-relative links so this documentation works in any clone or
 worktree.
