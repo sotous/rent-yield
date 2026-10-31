@@ -1,0 +1,53 @@
+{
+  "sourceKey": "araujo-segovia",
+  "sourceName": "Araújo & Segovia",
+  "sourceUrl": "https://www.araujoysegovia.com",
+  "countryCode": "CO",
+  "cityName": "Barranquilla",
+  "operations": {
+    "rent": {
+      "requestUrl": "https://www.araujoysegovia.com/arriendos/barranquilla/apartamentos/",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": "article[data-property-card]",
+        "fields": {
+          "id": {
+            "selector": "a[href*=\"/inmuebles/\"]",
+            "attribute": "href"
+          },
+          "priceCop": {
+            "selector": "div.inset-x-0 span.text-white",
+            "numberFormat": "cop"
+          },
+          "listingUrl": {
+            "selector": "a[href*=\"/inmuebles/\"]",
+            "attribute": "href"
+          }
+        }
+      }
+    },
+    "sale": {
+      "requestUrl": "https://www.araujoysegovia.com/ventas/barranquilla/apartamentos/",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": "article[data-property-card]",
+        "fields": {
+          "id": {
+            "selector": "a[href*=\"/inmuebles/\"]",
+            "attribute": "href"
+          },
+          "priceCop": {
+            "selector": "div.inset-x-0 span.text-white",
+            "numberFormat": "cop"
+          },
+          "listingUrl": {
+            "selector": "a[href*=\"/inmuebles/\"]",
+            "attribute": "href"
+          }
+        }
+      }
+    }
+  }
+}

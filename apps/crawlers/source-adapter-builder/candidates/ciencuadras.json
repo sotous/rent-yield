@@ -1,0 +1,45 @@
+{
+  "sourceKey": "ciencuadras",
+  "sourceName": "Ciencuadras",
+  "sourceUrl": "https://www.ciencuadras.com",
+  "countryCode": "CO",
+  "cityName": "Barranquilla",
+  "operations": {
+    "rent": {
+      "requestUrl": "https://www.ciencuadras.com/arriendo/barranquilla/apartamento",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": "article.card.result",
+        "fields": {
+          "id": {
+            "selector": "[data-qa-id]",
+            "attribute": "data-qa-id"
+          },
+          "priceCop": {
+            "selector": ".card__price-big",
+            "numberFormat": "grouped-comma"
+          }
+        }
+      }
+    },
+    "sale": {
+      "requestUrl": "https://www.ciencuadras.com/venta/barranquilla/apartamento",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": "article.card.result",
+        "fields": {
+          "id": {
+            "selector": "[data-qa-id]",
+            "attribute": "data-qa-id"
+          },
+          "priceCop": {
+            "selector": ".card__price-big",
+            "numberFormat": "grouped-comma"
+          }
+        }
+      }
+    }
+  }
+}
