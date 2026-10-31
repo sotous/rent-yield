@@ -14,10 +14,11 @@ implementation, or crawler invocation.
 
 ## Required boundaries
 
-- Research only public internet search/index evidence and public pages needed
-  to identify an organization and its apparent listing offering. Do not visit
-  listing-detail pages, enumerate search results, submit forms, log in, bypass
-  controls, call undocumented endpoints, or make any collection/probe request.
+- Research public internet evidence and publicly accessible listing/search pages
+  needed to identify the source and verify a representative extraction recipe.
+  Do not submit forms, log in, bypass technical access controls, or call
+  undocumented endpoints. Inspect only the minimum page structure needed to
+  verify the recipe; do not exhaustively enumerate listings.
   Do not require the user to supply candidates, fixtures, or a registry export.
 - Use `apps/crawlers/source-adapter-builder/candidates/` as the persistent,
   append-only store for complete `AdapterCandidate` artifacts. Read its existing
@@ -40,13 +41,13 @@ implementation, or crawler invocation.
    write it. Deduplicate discoveries from this run by the same keys.
 3. Keep unknowns explicit, including whether public evidence supports
    long-term, residential, rental, sale, or city-specific scope.
-4. For each operation the source supports, find public evidence for its request
-   URL and representative JSON structure using permitted research, such as the
-   source's public API documentation, published schema, or publicly indexed
-   example response. Do not ask the user for a fixture, make a source request to
-   capture one, call undocumented endpoints, or guess paths. Verify that
-   operation's collection and required field paths independently. Include rent,
-   sale, or both only when each included recipe is supported by evidence.
+4. For each operation the source supports, verify its response format and a
+   representative listing structure from public documentation, a published
+   schema, or a publicly accessible source page. Do not invent request URLs,
+   paths, selectors, or field names. Verify each operation's listing collection
+   and required ID/price mappings independently. Include rent, sale, or both
+   only when each recipe is supported by evidence. The builder accepts JSON,
+   static HTML, CSV, and XML; it does not render JavaScript.
 5. Before saving, re-check the target filename and compare the source URL with
    stored artifacts. Never overwrite an existing file. If a key or source
    identity collision appears, skip the write and report the conflict.
@@ -60,7 +61,9 @@ implementation, or crawler invocation.
 Each emitted artifact is one standalone JSON object. `sourceUrl` identifies the
 source's canonical HTTPS homepage or API base. `operations` contains one entry
 for each evidenced operation and configures the URL and extraction recipe the
-future crawler must use for that operation.
+future crawler must use for that operation. JSON and XML recipes use dot paths;
+CSV recipes map fields to header names; static HTML recipes select listing cards
+and fields with CSS selectors. HTML fields may read text or an attribute.
 
 ```json
 {
@@ -73,6 +76,7 @@ future crawler must use for that operation.
     "rent": {
       "requestUrl": "https://example.com/api/listings?operation=rent",
       "extractionRecipe": {
+        "format": "json",
         "contentType": "application/json",
         "listingCollectionPath": "results.items",
         "fields": {
@@ -84,6 +88,7 @@ future crawler must use for that operation.
     "sale": {
       "requestUrl": "https://example.com/api/listings?operation=sale",
       "extractionRecipe": {
+        "format": "json",
         "contentType": "application/json",
         "listingCollectionPath": "results.items",
         "fields": {
@@ -96,6 +101,33 @@ future crawler must use for that operation.
 }
 ```
 
+Other supported recipe shapes:
+
+```json
+{
+  "format": "html",
+  "contentType": "text/html",
+  "listingSelector": "article.property-card",
+  "fields": {
+    "id": { "selector": "[data-property-id]", "attribute": "data-property-id" },
+    "priceCop": { "selector": ".price", "numberFormat": "cop" },
+    "listingUrl": { "selector": "a.details", "attribute": "href" }
+  }
+}
+```
+
+```json
+{
+  "format": "csv",
+  "contentType": "text/csv",
+  "delimiter": ";",
+  "fields": { "id": "codigo", "priceCop": "precio" }
+}
+```
+
+For XML, use `contentType: "application/xml"` or `"text/xml"`, a
+`listingCollectionPath`, and field dot paths as for JSON.
+
 The constraints are mandatory:
 
 - `sourceKey` matches `^[a-z][a-z0-9-]{1,62}$`.
@@ -103,11 +135,20 @@ The constraints are mandatory:
   username or password.
 - `countryCode` is `CO`; `cityName` is `Barranquilla`.
 - `operations` contains at least one of `rent` and `sale`, with no other keys.
-- Each operation has `contentType: "application/json"`, a nonempty
-  `listingCollectionPath`, and nonempty `fields.id` and `fields.priceCop` dot
-  paths proven by that operation's public JSON evidence.
-- Optional field paths are `builtAreaSqm`, `bedrooms`, `neighborhood`, and
-  `listingUrl`; include them only when verified.
+- Each recipe uses one supported format (`json`, `html`, `csv`, or `xml`) and
+  its matching content type. Include the `format` discriminator for HTML, CSV,
+  and XML recipes; existing JSON artifacts may omit it.
+- JSON/XML require a nonempty `listingCollectionPath` and nonempty dot paths for
+  `fields.id` and `fields.priceCop`.
+- CSV maps `fields.id` and `fields.priceCop` to nonempty header names. An
+  evidenced comma, semicolon, or tab delimiter may be declared.
+- HTML requires a nonempty `listingSelector` and selector objects for `id` and
+  `priceCop`. Optional fields may map `builtAreaSqm`, `bedrooms`,
+  `neighborhood`, and `listingUrl`.
+- For HTML numeric strings, declare the evidenced format when separators need
+  normalization: `cop` for periods as thousands and comma decimals,
+  `grouped-comma` for comma thousands, or `decimal-comma` for comma decimals.
+- Include optional fields only when their mappings are verified.
 
 ## Output
 
@@ -118,6 +159,7 @@ or ambiguous source, save no artifact and state the specific evidence gap or
 duplicate basis. A run with no complete candidates is valid; do not ask the user
 to provide missing evidence.
 
-Do not invent field paths or source-access permission. A valid empty result is
-successful when no discovered source is absent from the store with sufficient
-public recipe evidence for at least one operation.
+Do not invent field paths, selectors, or source-access permission. Public
+visibility does not establish suitability or permission. A valid empty result
+is successful when no discovered source is absent from the store with
+sufficient recipe evidence for at least one operation.

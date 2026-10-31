@@ -56,9 +56,15 @@ the Explorer.
 
 The first developer-operated source-adapter boundary builds a local
 `AdapterCandidate` JSON artifact into an adapter with operation-specific
-recipes for rent, sale, or both. The caller supplies each operation's response;
-the builder intentionally makes no source requests and does not run a crawler. See the
-[source-adapter builder guide](apps/crawlers/source-adapter-builder/README.md).
+recipes for rent, sale, or both. The builder parses supplied JSON, static HTML,
+CSV, or XML responses; it intentionally makes no source requests, does not
+render JavaScript, and does not run a crawler. See the [source-adapter builder
+guide](apps/crawlers/source-adapter-builder/README.md).
+The developer-operated crawler fetches each configured operation, passes the
+response through its built adapter, and saves normalized listings in a
+versioned local artifact. See the [crawler usage guide](apps/crawlers/crawler/README.md)
+and [crawler PoC spec](docs/specs/crawler-poc-spec.md). The output remains a
+local acquisition artifact; it is not yet wired directly into the Rent Model.
 
 ## Repository Structure
 
@@ -139,6 +145,7 @@ What already exists:
 - backend prototype API contract
 - backend prototype API implementation
 - initial Rent Model input-contract workbench
+- candidate-to-artifact crawler PoC for JSON and static HTML sources
 
 What comes next:
 

@@ -2,10 +2,9 @@
 
 ## Status
 
-Draft for approval. The behavior and boundaries in
-[the crawler PoC specification](../specs/crawler-poc-spec.md) are approved;
-implementation has not started. After this plan is approved and
-decision-complete, break it into tracked Notion tasks before coding.
+Completed. The behavior and boundaries in
+[the crawler PoC specification](../specs/crawler-poc-spec.md) are approved.
+The user explicitly waived Notion task creation for this implementation.
 
 ## What we are building
 
@@ -165,8 +164,8 @@ tests remain regression coverage; they do not replace crawler tests.
 - No pagination, scheduling, database, adapter registry, source governance, or
   direct Rent Model integration is introduced.
 
-## Approval and next step
+## Execution note
 
-This plan is ready for review. Once approved, decompose it into scoped Notion
-tasks with acceptance criteria, then implement in the test-first sequence
-above.
+The implementation was delivered against the approved specification in the
+test-first sequence above. The live smoke validation and retrospective are
+recorded in [the crawler PoC retrospective](../reviews/crawler-poc-retrospective.md).

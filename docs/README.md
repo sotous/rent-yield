@@ -28,5 +28,14 @@ retrospectives.
 - [Proof-of-concept crawler](specs/crawler-poc-spec.md): candidate-to-adapter
   fetching, parse invocation, run artifact, failures, and acceptance criteria.
 
+## Pipeline implementation
+
+- [Source-adapter builder](../apps/crawlers/source-adapter-builder/README.md)
+  builds adapters from saved candidates.
+- [Crawler usage](../apps/crawlers/crawler/README.md) runs configured
+  operations and saves normalized local run artifacts.
+- [Crawler PoC retrospective](reviews/crawler-poc-retrospective.md) records
+  implementation validation and remaining follow-up.
+
 Use repository-relative links so this documentation works in any clone or
 worktree.

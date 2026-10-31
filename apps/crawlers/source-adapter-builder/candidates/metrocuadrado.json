@@ -1,0 +1,53 @@
+{
+  "sourceKey": "metrocuadrado",
+  "sourceName": "Metrocuadrado",
+  "sourceUrl": "https://www.metrocuadrado.com",
+  "countryCode": "CO",
+  "cityName": "Barranquilla",
+  "operations": {
+    "rent": {
+      "requestUrl": "https://www.metrocuadrado.com/apartamentos/arriendo/barranquilla/barranquilla/",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": ".property-card__container",
+        "fields": {
+          "id": {
+            "selector": "a[href*=\"/inmueble/\"], a[href*=\"/proyecto/\"]",
+            "attribute": "href"
+          },
+          "priceCop": {
+            "selector": ".property-card__detail-price",
+            "numberFormat": "cop"
+          },
+          "listingUrl": {
+            "selector": "a[href*=\"/inmueble/\"], a[href*=\"/proyecto/\"]",
+            "attribute": "href"
+          }
+        }
+      }
+    },
+    "sale": {
+      "requestUrl": "https://www.metrocuadrado.com/apartamentos/venta/barranquilla/",
+      "extractionRecipe": {
+        "format": "html",
+        "contentType": "text/html",
+        "listingSelector": ".property-card__container",
+        "fields": {
+          "id": {
+            "selector": "a[href*=\"/inmueble/\"], a[href*=\"/proyecto/\"]",
+            "attribute": "href"
+          },
+          "priceCop": {
+            "selector": ".property-card__detail-price",
+            "numberFormat": "cop"
+          },
+          "listingUrl": {
+            "selector": "a[href*=\"/inmueble/\"], a[href*=\"/proyecto/\"]",
+            "attribute": "href"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,9 +1,25 @@
 export type ListingOperation = "rent" | "sale";
 
+export type HtmlFieldRecipe = {
+  selector: string;
+  attribute?: string;
+  numberFormat?: "plain" | "cop" | "decimal-comma" | "grouped-comma";
+};
+
+export type FieldRecipe = string | HtmlFieldRecipe;
+
 export type ExtractionRecipe = {
-  contentType: "text/html" | "application/json";
-  listingCollectionPath: string;
-  fields: Record<string, string>;
+  format?: "json" | "html" | "csv" | "xml";
+  contentType:
+    | "text/html"
+    | "application/json"
+    | "text/csv"
+    | "application/xml"
+    | "text/xml";
+  listingCollectionPath?: string;
+  listingSelector?: string;
+  delimiter?: "," | ";" | "\t";
+  fields: Record<string, FieldRecipe>;
 };
 
 export type OperationRecipe = {
@@ -35,7 +51,8 @@ export type AdapterCandidateValidation =
             ListingOperation,
             {
               contentType: ExtractionRecipe["contentType"];
-              listingCollectionPath: string;
+              listingCollectionPath?: string;
+              listingSelector?: string;
               fieldNames: string[];
             }
           >
@@ -58,7 +75,8 @@ const supportedOperations: ListingOperation[] = ["rent", "sale"];
 
 type OperationRecipeReceipt = {
   contentType: ExtractionRecipe["contentType"];
-  listingCollectionPath: string;
+  listingCollectionPath?: string;
+  listingSelector?: string;
   fieldNames: string[];
 };
 
@@ -84,23 +102,82 @@ function isSafeSourceUrl(value: unknown): value is string {
 
 function parseRecipe(value: unknown): ExtractionRecipe | null {
   if (!isRecord(value)) return null;
-  const { contentType, listingCollectionPath, fields } = value;
+  const {
+    contentType,
+    listingCollectionPath,
+    listingSelector,
+    delimiter,
+    fields,
+  } = value;
+  const supportedContentType =
+    contentType === "application/json" ||
+    contentType === "text/html" ||
+    contentType === "text/csv" ||
+    contentType === "application/xml" ||
+    contentType === "text/xml";
+  if (!supportedContentType || !isRecord(fields)) {
+    return null;
+  }
+  const expectedFormat =
+    contentType === "application/json"
+      ? "json"
+      : contentType === "text/html"
+        ? "html"
+        : contentType === "text/csv"
+          ? "csv"
+          : "xml";
   if (
-    (contentType !== "text/html" && contentType !== "application/json") ||
-    !isNonEmptyString(listingCollectionPath) ||
-    !isRecord(fields)
+    (value.format !== undefined && value.format !== expectedFormat) ||
+    (expectedFormat !== "json" && value.format !== expectedFormat)
+  ) {
+    return null;
+  }
+  if (
+    delimiter !== undefined &&
+    ![",", ";", "\t"].includes(String(delimiter))
   ) {
     return null;
   }
   const entries = Object.entries(fields);
+  if (!isNonEmptyString(fields.id) && contentType !== "text/html") {
+    return null;
+  }
+  if (contentType === "text/html") {
+    if (!isNonEmptyString(listingSelector)) return null;
+    if (
+      !entries.every(
+        ([fieldName, recipe]) =>
+          isNonEmptyString(fieldName) &&
+          isRecord(recipe) &&
+          isNonEmptyString(recipe.selector) &&
+          (recipe.attribute === undefined ||
+            isNonEmptyString(recipe.attribute)) &&
+          (recipe.numberFormat === undefined ||
+            ["plain", "cop", "decimal-comma", "grouped-comma"].includes(
+              String(recipe.numberFormat),
+            )),
+      ) ||
+      !isRecord(fields.id) ||
+      !isRecord(fields.priceCop)
+    ) {
+      return null;
+    }
+    const htmlFields: Record<string, HtmlFieldRecipe> = {};
+    for (const [fieldName, recipe] of entries) {
+      htmlFields[fieldName] = recipe as unknown as HtmlFieldRecipe;
+    }
+    return { contentType, listingSelector, fields: htmlFields };
+  }
   if (
     !entries.every(
       ([fieldName, fieldPath]) =>
         isNonEmptyString(fieldName) && isNonEmptyString(fieldPath),
     ) ||
-    !isNonEmptyString(fields.id) ||
     !isNonEmptyString(fields.priceCop)
   ) {
+    return null;
+  }
+  if (contentType !== "text/csv" && !isNonEmptyString(listingCollectionPath)) {
     return null;
   }
   const parsedFields: Record<string, string> = {};
@@ -109,7 +186,13 @@ function parseRecipe(value: unknown): ExtractionRecipe | null {
   }
   return {
     contentType,
-    listingCollectionPath,
+    ...(value.format === undefined ? {} : { format: expectedFormat }),
+    ...(typeof listingCollectionPath === "string"
+      ? { listingCollectionPath }
+      : {}),
+    ...(delimiter === undefined
+      ? {}
+      : { delimiter: delimiter as "," | ";" | "\t" }),
     fields: parsedFields,
   };
 }
@@ -170,7 +253,12 @@ export function validateAdapterCandidate(
     }
     operationReceipts[operation] = {
       contentType: recipe.contentType,
-      listingCollectionPath: recipe.listingCollectionPath,
+      ...(recipe.listingCollectionPath === undefined
+        ? {}
+        : { listingCollectionPath: recipe.listingCollectionPath }),
+      ...(recipe.listingSelector === undefined
+        ? {}
+        : { listingSelector: recipe.listingSelector }),
       fieldNames: Object.keys(recipe.fields).sort(),
     };
   }
