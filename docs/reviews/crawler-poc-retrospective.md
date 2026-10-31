@@ -73,11 +73,13 @@ not yet satisfy the Rent Model's input contract. The crawler PoC acceptance
 criteria are an integration check, not a data-quality or model-readiness check.
 
 The checked-in candidate recipes currently map `builtAreaSqm` only for D.C.
-Colombia. Ciencuadras and Araújo & Segovia map listing ID and COP price, but do
-not include built area in their normalized output. D.C. Colombia's successful
-rent run produced two rows, fewer than the Rent Model's minimum of three unique
-eligible observations for any comparable tier. Therefore, the current captured
-rows do not provide a qualifying comparable set.
+Colombia, and the source meaning of its `area` field still needs confirmation
+that it is specifically built area. Ciencuadras and Araújo & Segovia map listing
+ID and COP price, but do not include built area in their normalized output. D.C.
+Colombia's successful rent run produced two rows, fewer than the Rent Model's
+minimum of three unique eligible observations for any comparable tier.
+Therefore, the current captured rows do not provide a qualifying comparable
+set.
 
 The normalized crawler row also does not carry all of the model evidence
 fields. The Rent Model needs canonical country and city IDs, property type,
