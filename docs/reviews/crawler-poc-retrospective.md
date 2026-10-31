@@ -66,6 +66,42 @@ keeps raw source bodies out of files and console output. The implementation
 remains intentionally simple: operations run sequentially and the caller
 chooses when to run each source.
 
+## Rent Model data suitability
+
+The live runs demonstrated acquisition and parsing, but the collected rows do
+not yet satisfy the Rent Model's input contract. The crawler PoC acceptance
+criteria are an integration check, not a data-quality or model-readiness check.
+
+The checked-in candidate recipes currently map `builtAreaSqm` only for D.C.
+Colombia. Ciencuadras and Araújo & Segovia map listing ID and COP price, but do
+not include built area in their normalized output. D.C. Colombia's successful
+rent run produced two rows, fewer than the Rent Model's minimum of three unique
+eligible observations for any comparable tier. Therefore, the current captured
+rows do not provide a qualifying comparable set.
+
+The normalized crawler row also does not carry all of the model evidence
+fields. The Rent Model needs canonical country and city IDs, property type,
+built area, rent composition, and provenance including an extraction version.
+The crawler records source key, source listing ID, operation, COP price,
+observation time, and optional listing URL, area, bedrooms, and neighborhood.
+City and source name are present at run level and can be joined during
+normalization, but property type, social stratum, and whether rent includes
+variable fees are not captured consistently. The listing identifier and URL
+provide useful source-level identity, but they do not resolve cross-source
+duplicates by themselves.
+
+Sale rows are useful as potential subject-property records for downstream
+yield work, but sale price must remain outside the Rent Model calculation.
+Rental rows are the evidence used to estimate rent. A later yield calculation
+can combine the Rent Model assessment with sale price after the model returns.
+
+Before feeding these runs to the Rent Model, a normalization/enrichment step
+must map candidate scope to canonical geography and property type, add verified
+built area for the sources that currently omit it, qualify rent composition
+and provenance, and deduplicate observations. The captured test artifacts were
+removed after smoke validation, so they are not currently available for a
+row-by-row re-audit or model snapshot.
+
 ## Follow-up
 
 No further crawler iteration is needed for the PoC acceptance criteria. Before
