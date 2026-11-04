@@ -9,6 +9,8 @@ import type {
   HtmlFieldRecipe,
   ListingOperation,
   OperationRecipe,
+  PropertyType,
+  PropertyTypeRecipe,
 } from "./adapter-candidate.js";
 
 export type ListingInput = {
@@ -19,6 +21,8 @@ export type ListingInput = {
   builtAreaSqm?: number;
   bedrooms?: number;
   neighborhood?: string;
+  propertyType?: PropertyType;
+  socialStratum?: number;
   listingUrl?: string;
   observedAt: string;
 };
@@ -143,6 +147,44 @@ function validFieldRecipe(value: unknown, contentType: string): boolean {
   );
 }
 
+function isPropertyType(value: unknown): value is PropertyType {
+  return (
+    value === "apartment" ||
+    value === "house" ||
+    value === "studio" ||
+    value === "other_residential"
+  );
+}
+
+function validPropertyTypeRecipe(
+  value: unknown,
+  contentType: string,
+): value is PropertyTypeRecipe {
+  if (!isRecord(value)) return false;
+  if (value.mode === "constant") return isPropertyType(value.value);
+  if (
+    value.mode !== "field" ||
+    !validFieldRecipe(value.field, contentType) ||
+    !isRecord(value.values) ||
+    Object.keys(value.values).length === 0
+  ) {
+    return false;
+  }
+  const normalizedKeys = new Set<string>();
+  for (const [sourceValue, propertyType] of Object.entries(value.values)) {
+    const normalizedSourceValue = sourceValue.trim().toLocaleLowerCase("en");
+    if (
+      normalizedSourceValue === "" ||
+      normalizedKeys.has(normalizedSourceValue) ||
+      !isPropertyType(propertyType)
+    ) {
+      return false;
+    }
+    normalizedKeys.add(normalizedSourceValue);
+  }
+  return true;
+}
+
 function validateRecipe(value: unknown): BuilderRecipe | null {
   if (!isRecord(value) || !isRecord(value.fields)) return null;
   const { contentType, listingCollectionPath, listingSelector, fields } = value;
@@ -156,6 +198,8 @@ function validateRecipe(value: unknown): BuilderRecipe | null {
   if (
     typeof contentType !== "string" ||
     !supportedContentTypes.includes(contentType) ||
+    (value.propertyType !== undefined &&
+      !validPropertyTypeRecipe(value.propertyType, contentType)) ||
     !validFieldRecipe(fields.id, contentType) ||
     !validFieldRecipe(fields.priceCop, contentType) ||
     !Object.values(fields).every((field) =>
@@ -256,8 +300,7 @@ function validateBuilderCandidate(input: unknown): BuilderCandidate | null {
 }
 
 type ExtractedRow = {
-  item: unknown;
-  getField: (name: string) => unknown;
+  getValue: (field: FieldRecipe) => unknown;
 };
 
 type ExtractRowsResult =
@@ -278,8 +321,7 @@ function extractRows(body: string, recipe: BuilderRecipe): ExtractRowsResult {
     return {
       kind: "rows",
       rows: collection.map((item) => ({
-        item,
-        getField: (name) => pathValue(item, recipe.fields[name] as string),
+        getValue: (field) => pathValue(item, field as string),
       })),
     };
   }
@@ -312,8 +354,7 @@ function extractRows(body: string, recipe: BuilderRecipe): ExtractRowsResult {
     return {
       kind: "rows",
       rows: rows.map((item) => ({
-        item,
-        getField: (name) => pathValue(item, recipe.fields[name] as string),
+        getValue: (field) => pathValue(item, field as string),
       })),
     };
   }
@@ -330,8 +371,7 @@ function extractRows(body: string, recipe: BuilderRecipe): ExtractRowsResult {
       return {
         kind: "rows",
         rows: records.map((item) => ({
-          item,
-          getField: (name) => item[recipe.fields[name] as string],
+          getValue: (field) => item[field as string],
         })),
       };
     } catch {
@@ -351,9 +391,8 @@ function extractRows(body: string, recipe: BuilderRecipe): ExtractRowsResult {
     rows: nodes.map((node) => {
       const row = $(node);
       return {
-        item: node,
-        getField(name) {
-          const field = recipe.fields[name] as HtmlFieldRecipe;
+        getValue(fieldRecipe) {
+          const field = fieldRecipe as HtmlFieldRecipe;
           const ownMatch = row.filter(field.selector).first();
           const target =
             ownMatch.length > 0 ? ownMatch : row.find(field.selector).first();
@@ -372,13 +411,59 @@ function fieldNumber(
   fieldName: string,
 ) {
   const field = recipe.fields[fieldName];
+  if (field === undefined) return null;
   const numberFormat =
     typeof field === "string" ? "plain" : (field?.numberFormat ?? "plain");
-  return parsedNumber(row.getField(fieldName), numberFormat);
+  return parsedNumber(row.getValue(field), numberFormat);
 }
 
-function fieldString(row: ExtractedRow, fieldName: string) {
-  return nonEmptyString(row.getField(fieldName));
+function fieldString(
+  row: ExtractedRow,
+  recipe: BuilderRecipe,
+  fieldName: string,
+) {
+  const field = recipe.fields[fieldName];
+  return field === undefined ? null : nonEmptyString(row.getValue(field));
+}
+
+function fieldPropertyType(
+  row: ExtractedRow,
+  recipe: BuilderRecipe,
+): PropertyType | undefined | null {
+  const propertyType = recipe.propertyType;
+  if (propertyType === undefined) return undefined;
+  if (propertyType.mode === "constant") return propertyType.value;
+  const sourceValue = nonEmptyString(row.getValue(propertyType.field));
+  if (sourceValue === null) return null;
+  const normalizedSourceValue = sourceValue.trim().toLocaleLowerCase("en");
+  for (const [sourceLabel, canonicalValue] of Object.entries(
+    propertyType.values,
+  )) {
+    if (sourceLabel.trim().toLocaleLowerCase("en") === normalizedSourceValue) {
+      return canonicalValue;
+    }
+  }
+  return null;
+}
+
+function fieldSocialStratum(
+  row: ExtractedRow,
+  recipe: BuilderRecipe,
+): number | undefined | null {
+  const field = recipe.fields.socialStratum;
+  if (field === undefined) return undefined;
+  const rawValue = row.getValue(field);
+  if (
+    rawValue === undefined ||
+    rawValue === null ||
+    (typeof rawValue === "string" && rawValue.trim() === "")
+  ) {
+    return undefined;
+  }
+  const numberFormat =
+    typeof field === "string" ? "plain" : (field.numberFormat ?? "plain");
+  const value = parsedNumber(rawValue, numberFormat);
+  return value !== null && Number.isInteger(value) && value <= 6 ? value : null;
 }
 
 function createAdapter(candidate: BuilderCandidate): SourceAdapter {
@@ -429,7 +514,7 @@ function createAdapter(candidate: BuilderCandidate): SourceAdapter {
       const listings: ListingInput[] = [];
       for (const row of rows) {
         try {
-          const id = fieldString(row, "id");
+          const id = fieldString(row, recipe, "id");
           const priceCop = fieldNumber(row, recipe, "priceCop");
           const builtAreaSqm =
             recipe.fields.builtAreaSqm === undefined
@@ -442,17 +527,21 @@ function createAdapter(candidate: BuilderCandidate): SourceAdapter {
           const neighborhood =
             recipe.fields.neighborhood === undefined
               ? undefined
-              : fieldString(row, "neighborhood");
+              : fieldString(row, recipe, "neighborhood");
+          const propertyType = fieldPropertyType(row, recipe);
+          const socialStratum = fieldSocialStratum(row, recipe);
           const rawListingUrl =
             recipe.fields.listingUrl === undefined
               ? undefined
-              : fieldString(row, "listingUrl");
+              : fieldString(row, recipe, "listingUrl");
           if (
             id === null ||
             priceCop === null ||
             builtAreaSqm === null ||
             bedrooms === null ||
             neighborhood === null ||
+            propertyType === null ||
+            socialStratum === null ||
             rawListingUrl === null
           ) {
             return { kind: "parse_failed", code: "invalid_listing" };
@@ -473,6 +562,8 @@ function createAdapter(candidate: BuilderCandidate): SourceAdapter {
             ...(builtAreaSqm === undefined ? {} : { builtAreaSqm }),
             ...(bedrooms === undefined ? {} : { bedrooms }),
             ...(neighborhood === undefined ? {} : { neighborhood }),
+            ...(propertyType === undefined ? {} : { propertyType }),
+            ...(socialStratum === undefined ? {} : { socialStratum }),
             ...(listingUrl === undefined ? {} : { listingUrl }),
             observedAt: response.observedAt,
           });

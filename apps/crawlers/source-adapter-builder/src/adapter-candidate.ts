@@ -8,6 +8,17 @@ export type HtmlFieldRecipe = {
 
 export type FieldRecipe = string | HtmlFieldRecipe;
 
+export type PropertyType =
+  "apartment" | "house" | "studio" | "other_residential";
+
+export type PropertyTypeRecipe =
+  | { mode: "constant"; value: PropertyType }
+  | {
+      mode: "field";
+      field: FieldRecipe;
+      values: Record<string, PropertyType>;
+    };
+
 export type ExtractionRecipe = {
   format?: "json" | "html" | "csv" | "xml";
   contentType:
@@ -19,6 +30,7 @@ export type ExtractionRecipe = {
   listingCollectionPath?: string;
   listingSelector?: string;
   delimiter?: "," | ";" | "\t";
+  propertyType?: PropertyTypeRecipe;
   fields: Record<string, FieldRecipe>;
 };
 
@@ -100,6 +112,66 @@ function isSafeSourceUrl(value: unknown): value is string {
   }
 }
 
+function isPropertyType(value: unknown): value is PropertyType {
+  return (
+    value === "apartment" ||
+    value === "house" ||
+    value === "studio" ||
+    value === "other_residential"
+  );
+}
+
+function isFieldRecipe(
+  value: unknown,
+  contentType: string,
+): value is FieldRecipe {
+  if (contentType !== "text/html") {
+    return isNonEmptyString(value);
+  }
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value.selector) &&
+    (value.attribute === undefined || isNonEmptyString(value.attribute)) &&
+    (value.numberFormat === undefined ||
+      ["plain", "cop", "decimal-comma", "grouped-comma"].includes(
+        String(value.numberFormat),
+      ))
+  );
+}
+
+function parsePropertyTypeRecipe(
+  value: unknown,
+  contentType: ExtractionRecipe["contentType"],
+): PropertyTypeRecipe | null {
+  if (!isRecord(value)) return null;
+  if (value.mode === "constant" && isPropertyType(value.value)) {
+    return { mode: "constant", value: value.value };
+  }
+  if (
+    value.mode !== "field" ||
+    !isFieldRecipe(value.field, contentType) ||
+    !isRecord(value.values) ||
+    Object.keys(value.values).length === 0
+  ) {
+    return null;
+  }
+  const values: Record<string, PropertyType> = {};
+  const normalizedKeys = new Set<string>();
+  for (const [sourceValue, propertyType] of Object.entries(value.values)) {
+    const normalizedSourceValue = sourceValue.trim().toLocaleLowerCase("en");
+    if (
+      normalizedSourceValue === "" ||
+      normalizedKeys.has(normalizedSourceValue) ||
+      !isPropertyType(propertyType)
+    ) {
+      return null;
+    }
+    normalizedKeys.add(normalizedSourceValue);
+    values[sourceValue] = propertyType;
+  }
+  return { mode: "field", field: value.field, values };
+}
+
 function parseRecipe(value: unknown): ExtractionRecipe | null {
   if (!isRecord(value)) return null;
   const {
@@ -107,6 +179,7 @@ function parseRecipe(value: unknown): ExtractionRecipe | null {
     listingCollectionPath,
     listingSelector,
     delimiter,
+    propertyType,
     fields,
   } = value;
   const supportedContentType =
@@ -138,6 +211,13 @@ function parseRecipe(value: unknown): ExtractionRecipe | null {
   ) {
     return null;
   }
+  const parsedPropertyType =
+    propertyType === undefined
+      ? undefined
+      : parsePropertyTypeRecipe(propertyType, contentType);
+  if (propertyType !== undefined && parsedPropertyType === null) return null;
+  const acceptedPropertyType: PropertyTypeRecipe | undefined =
+    parsedPropertyType ?? undefined;
   const entries = Object.entries(fields);
   if (!isNonEmptyString(fields.id) && contentType !== "text/html") {
     return null;
@@ -166,7 +246,14 @@ function parseRecipe(value: unknown): ExtractionRecipe | null {
     for (const [fieldName, recipe] of entries) {
       htmlFields[fieldName] = recipe as unknown as HtmlFieldRecipe;
     }
-    return { contentType, listingSelector, fields: htmlFields };
+    return {
+      contentType,
+      listingSelector,
+      ...(acceptedPropertyType === undefined
+        ? {}
+        : { propertyType: acceptedPropertyType }),
+      fields: htmlFields,
+    };
   }
   if (
     !entries.every(
@@ -193,6 +280,9 @@ function parseRecipe(value: unknown): ExtractionRecipe | null {
     ...(delimiter === undefined
       ? {}
       : { delimiter: delimiter as "," | ";" | "\t" }),
+    ...(acceptedPropertyType === undefined
+      ? {}
+      : { propertyType: acceptedPropertyType }),
     fields: parsedFields,
   };
 }

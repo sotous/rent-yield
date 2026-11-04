@@ -104,6 +104,8 @@ type ListingInput = {
   builtAreaSqm?: number;
   bedrooms?: number;
   neighborhood?: string;
+  propertyType?: "apartment" | "house" | "studio" | "other_residential";
+  socialStratum?: number;
   listingUrl?: string;
   observedAt: string;
 };

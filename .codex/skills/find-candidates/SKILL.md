@@ -79,9 +79,19 @@ and fields with CSS selectors. HTML fields may read text or an attribute.
         "format": "json",
         "contentType": "application/json",
         "listingCollectionPath": "results.items",
+        "propertyType": {
+          "mode": "field",
+          "field": "property_type",
+          "values": {
+            "Apartamento": "apartment",
+            "Casa": "house",
+            "Apartaestudio": "studio"
+          }
+        },
         "fields": {
           "id": "id",
-          "priceCop": "rent.amount"
+          "priceCop": "rent.amount",
+          "socialStratum": "social_stratum"
         }
       }
     },
@@ -140,6 +150,10 @@ The constraints are mandatory:
   and XML recipes; existing JSON artifacts may omit it.
 - JSON/XML require a nonempty `listingCollectionPath` and nonempty dot paths for
   `fields.id` and `fields.priceCop`.
+- `propertyType` may declare a canonical constant when the operation is
+  explicitly category-scoped, or map an evidenced source field's exact values
+  to `apartment`, `house`, `studio`, or `other_residential`. Do not infer it
+  from a broad source's name, URL, or description.
 - CSV maps `fields.id` and `fields.priceCop` to nonempty header names. An
   evidenced comma, semicolon, or tab delimiter may be declared.
 - HTML requires a nonempty `listingSelector` and selector objects for `id` and
@@ -148,6 +162,8 @@ The constraints are mandatory:
 - For HTML numeric strings, declare the evidenced format when separators need
   normalization: `cop` for periods as thousands and comma decimals,
   `grouped-comma` for comma thousands, or `decimal-comma` for comma decimals.
+- `fields.socialStratum` is optional; map it only when the source provides an
+  evidenced integer classification from 1 through 6.
 - Include optional fields only when their mappings are verified.
 
 ## Output

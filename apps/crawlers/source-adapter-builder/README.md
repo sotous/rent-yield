@@ -38,13 +38,23 @@ cards and fields; a field can read text or an HTML attribute. For example:
   "format": "html",
   "contentType": "text/html",
   "listingSelector": "article.property-card",
+  "propertyType": { "mode": "constant", "value": "apartment" },
   "fields": {
     "id": { "selector": "[data-property-id]", "attribute": "data-property-id" },
     "priceCop": { "selector": ".price", "numberFormat": "cop" },
+    "socialStratum": { "selector": ".stratum" },
     "listingUrl": { "selector": "a.details", "attribute": "href" }
   }
 }
 ```
+
+`propertyType` is optional and may be declared as a canonical constant when
+the operation is explicitly category-scoped, or as a source field plus an
+explicit value map when individual listing types vary. Supported canonical
+values are `apartment`, `house`, `studio`, and `other_residential`; unknown
+source values fail parsing. `fields.socialStratum` is also optional and accepts
+only integer values from 1 through 6. A missing stratum value is omitted, while
+an invalid nonempty value fails the response.
 
 CSV recipes use `contentType: "text/csv"` and map fields to header names. XML
 recipes use `application/xml` or `text/xml`, a `listingCollectionPath`, and
@@ -89,9 +99,10 @@ the normalized media type. The JSON example below shows the candidate envelope:
 }
 ```
 
-Each operation needs its own verified `id` and `priceCop` paths. Optional paths
-include `builtAreaSqm`, `bedrooms`, `neighborhood`, and `listingUrl`. A candidate
-can define one operation when evidence for the other is incomplete. The built
+Each operation needs its own verified `id` and `priceCop` mappings. Optional
+field mappings include `builtAreaSqm`, `bedrooms`, `neighborhood`,
+`socialStratum`, and `listingUrl`. A candidate can define one operation when
+evidence for the other is incomplete. The built
 adapter exposes `supportedOperations` and a `sourceUrls` map for the crawler;
 each `SourceResponse` carries the operation label, and the parser checks that
 the label and URL match the candidate.

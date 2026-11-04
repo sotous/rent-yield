@@ -126,6 +126,244 @@ describe("buildSourceAdapter", () => {
     });
   });
 
+  it("normalizes an explicit property type mapping and social stratum", () => {
+    const enrichedCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          ...candidate.operations.rent,
+          extractionRecipe: {
+            ...candidate.operations.rent.extractionRecipe,
+            propertyType: {
+              mode: "field",
+              field: "property_type",
+              values: {
+                Apartamento: "apartment",
+                Casa: "house",
+              },
+            },
+            fields: {
+              ...candidate.operations.rent.extractionRecipe.fields,
+              socialStratum: "social_stratum",
+            },
+          },
+        },
+      },
+    };
+    const built = buildSourceAdapter(enrichedCandidate);
+    if (built.kind !== "built") throw new Error("expected a built adapter");
+
+    expect(
+      built.adapter.parse({
+        operation: "rent",
+        sourceUrl: candidate.operations.rent.requestUrl,
+        contentType: "application/json",
+        observedAt,
+        body: JSON.stringify({
+          results: {
+            items: [
+              {
+                id: "rental-1",
+                rent: { amount: 1800000 },
+                area: 80,
+                bedrooms: 2,
+                neighborhood: "Alto Prado",
+                url: "https://example.test/listings/rental-1",
+                property_type: "Apartamento",
+                social_stratum: 4,
+              },
+            ],
+          },
+        }),
+      }),
+    ).toMatchObject({
+      kind: "parsed",
+      listings: [
+        {
+          sourceListingId: "rental-1",
+          operation: "rent",
+          propertyType: "apartment",
+          socialStratum: 4,
+        },
+      ],
+    });
+  });
+
+  it("supports a verified constant property type for a category-scoped operation", () => {
+    const categoryCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          ...candidate.operations.rent,
+          extractionRecipe: {
+            ...candidate.operations.rent.extractionRecipe,
+            propertyType: { mode: "constant", value: "apartment" },
+          },
+        },
+      },
+    };
+    const built = buildSourceAdapter(categoryCandidate);
+    if (built.kind !== "built") throw new Error("expected a built adapter");
+
+    const result = built.adapter.parse({
+      operation: "rent",
+      sourceUrl: candidate.operations.rent.requestUrl,
+      contentType: "application/json",
+      observedAt,
+      body: JSON.stringify({
+        results: {
+          items: [
+            {
+              id: "rental-1",
+              rent: { amount: 1800000 },
+              area: 80,
+              bedrooms: 2,
+              neighborhood: "Alto Prado",
+              url: "https://example.test/listings/rental-1",
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).toMatchObject({
+      kind: "parsed",
+      listings: [{ propertyType: "apartment" }],
+    });
+  });
+
+  it("extracts type and stratum recipes from static HTML cards", () => {
+    const htmlCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          requestUrl: "https://example.test/apartments/rent",
+          extractionRecipe: {
+            format: "html",
+            contentType: "text/html",
+            listingSelector: "article.card",
+            propertyType: {
+              mode: "field",
+              field: { selector: ".property-type" },
+              values: { Apartamento: "apartment" },
+            },
+            fields: {
+              id: { selector: "[data-id]", attribute: "data-id" },
+              priceCop: { selector: ".price", numberFormat: "cop" },
+              socialStratum: { selector: ".stratum" },
+            },
+          },
+        },
+      },
+    };
+    const built = buildSourceAdapter(htmlCandidate);
+    if (built.kind !== "built") throw new Error("expected a built adapter");
+
+    expect(
+      built.adapter.parse({
+        operation: "rent",
+        sourceUrl: "https://example.test/apartments/rent",
+        contentType: "text/html; charset=utf-8",
+        observedAt,
+        body: `<article class="card"><span data-id="property-1"></span><span class="property-type">Apartamento</span><span class="price">$2.500.000</span><span class="stratum">Estrato 4</span></article>`,
+      }),
+    ).toMatchObject({
+      kind: "parsed",
+      listings: [
+        {
+          sourceListingId: "property-1",
+          priceCop: 2500000,
+          propertyType: "apartment",
+          socialStratum: 4,
+        },
+      ],
+    });
+  });
+
+  it.each([0, 7, 4.5, "unknown"])(
+    "rejects invalid mapped social stratum %s",
+    (socialStratum) => {
+      const enrichedCandidate = {
+        ...candidate,
+        operations: {
+          rent: {
+            ...candidate.operations.rent,
+            extractionRecipe: {
+              ...candidate.operations.rent.extractionRecipe,
+              fields: {
+                ...candidate.operations.rent.extractionRecipe.fields,
+                socialStratum: "social_stratum",
+              },
+            },
+          },
+        },
+      };
+      const built = buildSourceAdapter(enrichedCandidate);
+      if (built.kind !== "built") throw new Error("expected a built adapter");
+
+      expect(
+        built.adapter.parse({
+          operation: "rent",
+          sourceUrl: candidate.operations.rent.requestUrl,
+          contentType: "application/json",
+          observedAt,
+          body: JSON.stringify({
+            results: {
+              items: [
+                {
+                  id: "rental-1",
+                  rent: { amount: 1800000 },
+                  social_stratum: socialStratum,
+                },
+              ],
+            },
+          }),
+        }),
+      ).toEqual({ kind: "parse_failed", code: "invalid_listing" });
+    },
+  );
+
+  it("rejects a source property type that is not in the explicit mapping", () => {
+    const enrichedCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          ...candidate.operations.rent,
+          extractionRecipe: {
+            ...candidate.operations.rent.extractionRecipe,
+            propertyType: {
+              mode: "field",
+              field: "property_type",
+              values: { Apartamento: "apartment" },
+            },
+          },
+        },
+      },
+    };
+    const built = buildSourceAdapter(enrichedCandidate);
+    if (built.kind !== "built") throw new Error("expected a built adapter");
+
+    expect(
+      built.adapter.parse({
+        operation: "rent",
+        sourceUrl: candidate.operations.rent.requestUrl,
+        contentType: "application/json",
+        observedAt,
+        body: JSON.stringify({
+          results: {
+            items: [
+              {
+                id: "rental-1",
+                rent: { amount: 1800000 },
+                property_type: "Local comercial",
+              },
+            ],
+          },
+        }),
+      }),
+    ).toEqual({ kind: "parse_failed", code: "invalid_listing" });
+  });
+
   it.each([
     [
       "an unsupported operation",
