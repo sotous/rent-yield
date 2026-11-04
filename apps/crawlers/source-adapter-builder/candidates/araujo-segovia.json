@@ -6,50 +6,66 @@
   "cityName": "Barranquilla",
   "operations": {
     "rent": {
-      "requestUrl": "https://www.araujoysegovia.com/arriendos/barranquilla/apartamentos/",
-      "extractionRecipe": {
-        "format": "html",
-        "contentType": "text/html",
-        "propertyType": { "mode": "constant", "value": "apartment" },
-        "listingSelector": "article[data-property-card]",
-        "fields": {
-          "id": {
-            "selector": "a[href*=\"/inmuebles/\"]",
-            "attribute": "href"
-          },
-          "priceCop": {
-            "selector": "div.inset-x-0 span.text-white",
-            "numberFormat": "cop"
-          },
-          "listingUrl": {
-            "selector": "a[href*=\"/inmuebles/\"]",
-            "attribute": "href"
+      "requests": [
+        {
+          "requestKey": "apartment",
+          "requestUrl": "https://www.araujoysegovia.com/arriendos/barranquilla/apartamentos/",
+          "extractionRecipe": {
+            "format": "html",
+            "contentType": "text/html",
+            "listingSelector": "article[data-property-card]",
+            "fields": {
+              "id": {
+                "selector": "a[href*=\"/inmuebles/\"]",
+                "attribute": "href"
+              },
+              "priceCop": {
+                "selector": "div.inset-x-0 span.text-white",
+                "numberFormat": "cop"
+              },
+              "listingUrl": {
+                "selector": "a[href*=\"/inmuebles/\"]",
+                "attribute": "href"
+              }
+            },
+            "propertyType": {
+              "mode": "constant",
+              "value": "apartment"
+            }
           }
         }
-      }
+      ]
     },
     "sale": {
-      "requestUrl": "https://www.araujoysegovia.com/ventas/barranquilla/apartamentos/",
-      "extractionRecipe": {
-        "format": "html",
-        "contentType": "text/html",
-        "propertyType": { "mode": "constant", "value": "apartment" },
-        "listingSelector": "article[data-property-card]",
-        "fields": {
-          "id": {
-            "selector": "a[href*=\"/inmuebles/\"]",
-            "attribute": "href"
-          },
-          "priceCop": {
-            "selector": "div.inset-x-0 span.text-white",
-            "numberFormat": "cop"
-          },
-          "listingUrl": {
-            "selector": "a[href*=\"/inmuebles/\"]",
-            "attribute": "href"
+      "requests": [
+        {
+          "requestKey": "apartment",
+          "requestUrl": "https://www.araujoysegovia.com/ventas/barranquilla/apartamentos/",
+          "extractionRecipe": {
+            "format": "html",
+            "contentType": "text/html",
+            "listingSelector": "article[data-property-card]",
+            "fields": {
+              "id": {
+                "selector": "a[href*=\"/inmuebles/\"]",
+                "attribute": "href"
+              },
+              "priceCop": {
+                "selector": "div.inset-x-0 span.text-white",
+                "numberFormat": "cop"
+              },
+              "listingUrl": {
+                "selector": "a[href*=\"/inmuebles/\"]",
+                "attribute": "href"
+              }
+            },
+            "propertyType": {
+              "mode": "constant",
+              "value": "apartment"
+            }
           }
         }
-      }
+      ]
     }
   }
 }
