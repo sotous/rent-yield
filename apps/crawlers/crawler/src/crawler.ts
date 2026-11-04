@@ -12,19 +12,23 @@ export const MAX_HTTPS_REDIRECTS = 5;
 
 export type OperationFailureStatus = "fetch_failed" | "parse_failed";
 
-export type ParsedOperationResult = {
+export type RequestRunResult = {
+  requestKey: string;
   requestUrl: string;
-  status: "parsed";
+  status: "parsed" | OperationFailureStatus;
   listingCount: number;
+  error?: { code: string; summary: string };
 };
 
-export type FailedOperationResult = {
-  requestUrl: string;
-  status: OperationFailureStatus;
-  error: { code: string; summary: string };
+export type OperationRunResult = {
+  /** Kept for one-request operations; use requestUrls for multi-request runs. */
+  requestUrl?: string;
+  requestUrls: string[];
+  requests: RequestRunResult[];
+  status: "parsed" | OperationFailureStatus;
+  listingCount: number;
+  error?: { code: string; summary: string };
 };
-
-export type OperationRunResult = ParsedOperationResult | FailedOperationResult;
 
 export type CrawlRunArtifact = {
   schemaVersion: 1;
@@ -224,12 +228,15 @@ function nowIso(now: () => Date): string {
 }
 
 function failedFetch(
+  requestKey: string,
   requestUrl: string,
   error: OperationFetchError,
-): FailedOperationResult {
+): RequestRunResult {
   return {
+    requestKey,
     requestUrl,
     status: "fetch_failed",
+    listingCount: 0,
     error: { code: error.code, summary: error.summary },
   };
 }
@@ -260,62 +267,91 @@ export async function crawlCandidate(
   const listings: ListingInput[] = [];
 
   for (const operation of adapter.supportedOperations) {
-    const requestUrl = adapter.sourceUrls[operation];
-    if (requestUrl === undefined) {
+    const requests = adapter.sourceRequests[operation] ?? [];
+    if (requests.length === 0) {
       operations[operation] = {
-        requestUrl: "",
+        requestUrls: [],
+        requests: [],
         status: "fetch_failed",
+        listingCount: 0,
         error: {
           code: "missing_request_url",
-          summary:
-            "The adapter has no configured request URL for this operation.",
+          summary: "The adapter has no configured requests for this operation.",
         },
       };
       continue;
     }
 
-    let response: { contentType: string; body: string };
-    try {
-      response = await retrieveResponse(requestUrl, fetchImplementation, {
-        timeoutMs,
-        maxResponseBytes,
+    const requestResults: RequestRunResult[] = [];
+    const operationListings: ListingInput[] = [];
+    for (const request of requests) {
+      let response: { contentType: string; body: string };
+      try {
+        response = await retrieveResponse(
+          request.requestUrl,
+          fetchImplementation,
+          {
+            timeoutMs,
+            maxResponseBytes,
+          },
+        );
+      } catch (error) {
+        const fetchError =
+          error instanceof OperationFetchError
+            ? error
+            : new OperationFetchError(
+                "network_error",
+                "The source request failed.",
+              );
+        requestResults.push(
+          failedFetch(request.requestKey, request.requestUrl, fetchError),
+        );
+        continue;
+      }
+
+      const observedAt = nowIso(now);
+      const parsed = adapter.parse({
+        operation,
+        sourceUrl: request.requestUrl,
+        contentType: response.contentType,
+        body: response.body,
+        observedAt,
       });
-    } catch (error) {
-      const fetchError =
-        error instanceof OperationFetchError
-          ? error
-          : new OperationFetchError(
-              "network_error",
-              "The source request failed.",
-            );
-      operations[operation] = failedFetch(requestUrl, fetchError);
-      continue;
+      if (parsed.kind === "parse_failed") {
+        requestResults.push({
+          requestKey: request.requestKey,
+          requestUrl: request.requestUrl,
+          status: "parse_failed",
+          listingCount: 0,
+          error: {
+            code: parsed.code,
+            summary: "The source adapter could not parse the response.",
+          },
+        });
+        continue;
+      }
+      operationListings.push(...parsed.listings);
+      requestResults.push({
+        requestKey: request.requestKey,
+        requestUrl: request.requestUrl,
+        status: "parsed",
+        listingCount: parsed.listings.length,
+      });
     }
 
-    const observedAt = nowIso(now);
-    const parsed = adapter.parse({
-      operation,
-      sourceUrl: requestUrl,
-      contentType: response.contentType,
-      body: response.body,
-      observedAt,
-    });
-    if (parsed.kind === "parse_failed") {
-      operations[operation] = {
-        requestUrl,
-        status: "parse_failed",
-        error: {
-          code: parsed.code,
-          summary: "The source adapter could not parse the response.",
-        },
-      };
-      continue;
-    }
-    listings.push(...parsed.listings);
+    const firstFailure = requestResults.find(
+      (request) => request.status !== "parsed",
+    );
+    listings.push(...operationListings);
     operations[operation] = {
-      requestUrl,
-      status: "parsed",
-      listingCount: parsed.listings.length,
+      ...(requests.length === 1 ? { requestUrl: requests[0]!.requestUrl } : {}),
+      requestUrls: requests.map((request) => request.requestUrl),
+      requests: requestResults,
+      status: firstFailure?.status ?? "parsed",
+      listingCount: operationListings.length,
+      ...(firstFailure?.error === undefined
+        ? {}
+        : { error: firstFailure.error }),
     };
   }
 

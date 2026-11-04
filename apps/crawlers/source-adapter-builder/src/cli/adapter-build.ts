@@ -27,7 +27,7 @@ async function main(args: readonly string[]): Promise<void> {
             kind: "built",
             sourceKey: result.adapter.sourceKey,
             supportedOperations: result.adapter.supportedOperations,
-            sourceUrls: result.adapter.sourceUrls,
+            sourceRequests: result.adapter.sourceRequests,
           }
         : result,
       null,

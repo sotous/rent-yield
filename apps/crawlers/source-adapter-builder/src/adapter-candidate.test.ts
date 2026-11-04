@@ -48,9 +48,14 @@ describe("validateAdapterCandidate", () => {
         supportedOperations: ["rent"],
         operations: {
           rent: {
-            contentType: "application/json",
-            listingCollectionPath: "results.items",
-            fieldNames: ["id", "listingUrl", "priceCop"],
+            requests: [
+              {
+                requestKey: "default",
+                contentType: "application/json",
+                listingCollectionPath: "results.items",
+                fieldNames: ["id", "listingUrl", "priceCop"],
+              },
+            ],
           },
         },
       },
@@ -72,8 +77,16 @@ describe("validateAdapterCandidate", () => {
       candidate: {
         supportedOperations: ["rent", "sale"],
         operations: {
-          rent: { listingCollectionPath: "results.items" },
-          sale: { listingCollectionPath: "data.listings" },
+          rent: {
+            requests: [
+              { requestKey: "default", listingCollectionPath: "results.items" },
+            ],
+          },
+          sale: {
+            requests: [
+              { requestKey: "default", listingCollectionPath: "data.listings" },
+            ],
+          },
         },
       },
     });
@@ -102,11 +115,57 @@ describe("validateAdapterCandidate", () => {
       candidate: {
         operations: {
           rent: {
-            fieldNames: ["id", "listingUrl", "priceCop", "socialStratum"],
+            requests: [
+              {
+                fieldNames: ["id", "listingUrl", "priceCop", "socialStratum"],
+              },
+            ],
           },
         },
       },
     });
+  });
+
+  it("accepts multiple requests for one operation with per-request type recipes", () => {
+    const candidate = {
+      ...validCandidate,
+      operations: {
+        rent: {
+          requests: [
+            {
+              requestKey: "apartment",
+              requestUrl: "https://example.test/rent/apartment",
+              extractionRecipe: {
+                ...rentRecipe.extractionRecipe,
+                propertyType: { mode: "constant", value: "apartment" },
+              },
+            },
+            {
+              requestKey: "house",
+              requestUrl: "https://example.test/rent/house",
+              extractionRecipe: {
+                ...rentRecipe.extractionRecipe,
+                propertyType: { mode: "constant", value: "house" },
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    expect(validateAdapterCandidate(candidate)).toMatchObject({
+      kind: "accepted",
+      candidate: {
+        operations: {
+          rent: {
+            requests: [{ requestKey: "apartment" }, { requestKey: "house" }],
+          },
+        },
+      },
+    });
+    expect(JSON.stringify(validateAdapterCandidate(candidate))).not.toContain(
+      "https://example.test/rent/house",
+    );
   });
 
   it.each([
@@ -174,6 +233,24 @@ describe("validateAdapterCandidate", () => {
         },
       },
       "invalid_source_url",
+    ],
+    [
+      "an operation with duplicate request keys",
+      {
+        ...validCandidate,
+        operations: {
+          rent: {
+            requests: [
+              { requestKey: "residential", ...rentRecipe },
+              {
+                requestKey: "residential",
+                ...saleRecipe,
+              },
+            ],
+          },
+        },
+      },
+      "invalid_operations",
     ],
     [
       "an unsupported constant property type",
