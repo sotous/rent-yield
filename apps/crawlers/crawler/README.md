@@ -12,7 +12,7 @@ From the repository root:
 
 ```sh
 pnpm --filter @rent-yield/crawler crawl \
-  --candidate apps/crawlers/source-adapter-builder/candidates/dc-colombia.json
+  --candidate apps/crawlers/source-adapter-builder/candidates/ciencuadras.json
 ```
 
 Choose an explicit output path with `--output`:

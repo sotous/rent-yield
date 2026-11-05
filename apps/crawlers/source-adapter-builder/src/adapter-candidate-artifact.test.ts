@@ -14,9 +14,9 @@ describe("adapter candidate artifacts", () => {
       ["rent"],
     ],
     [
-      "the D.C. Colombia rent and sale candidate",
-      "../candidates/dc-colombia.json",
-      "dc-colombia",
+      "the Ciencuadras rent and sale candidate",
+      "../candidates/ciencuadras.json",
+      "ciencuadras",
       ["rent", "sale"],
     ],
   ])(
