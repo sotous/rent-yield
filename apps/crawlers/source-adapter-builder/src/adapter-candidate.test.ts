@@ -79,6 +79,36 @@ describe("validateAdapterCandidate", () => {
     });
   });
 
+  it("accepts evidence-backed property type recipes and a social stratum mapping", () => {
+    const candidate = {
+      ...validCandidate,
+      operations: {
+        rent: {
+          ...rentRecipe,
+          extractionRecipe: {
+            ...rentRecipe.extractionRecipe,
+            propertyType: { mode: "constant", value: "apartment" },
+            fields: {
+              ...rentRecipe.extractionRecipe.fields,
+              socialStratum: "stratum",
+            },
+          },
+        },
+      },
+    };
+
+    expect(validateAdapterCandidate(candidate)).toMatchObject({
+      kind: "accepted",
+      candidate: {
+        operations: {
+          rent: {
+            fieldNames: ["id", "listingUrl", "priceCop", "socialStratum"],
+          },
+        },
+      },
+    });
+  });
+
   it.each([
     ["a malformed root", null, "invalid_candidate"],
     [
@@ -144,6 +174,42 @@ describe("validateAdapterCandidate", () => {
         },
       },
       "invalid_source_url",
+    ],
+    [
+      "an unsupported constant property type",
+      {
+        ...validCandidate,
+        operations: {
+          rent: {
+            ...rentRecipe,
+            extractionRecipe: {
+              ...rentRecipe.extractionRecipe,
+              propertyType: { mode: "constant", value: "office" },
+            },
+          },
+        },
+      },
+      "invalid_extraction_recipe",
+    ],
+    [
+      "a property type field mapping with no values",
+      {
+        ...validCandidate,
+        operations: {
+          rent: {
+            ...rentRecipe,
+            extractionRecipe: {
+              ...rentRecipe.extractionRecipe,
+              propertyType: {
+                mode: "field",
+                field: "type",
+                values: {},
+              },
+            },
+          },
+        },
+      },
+      "invalid_extraction_recipe",
     ],
   ])("rejects %s", (_scenario, candidate, code) => {
     expect(validateAdapterCandidate(candidate)).toEqual({

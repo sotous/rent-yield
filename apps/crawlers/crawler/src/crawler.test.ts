@@ -98,6 +98,47 @@ describe("crawlCandidate", () => {
     });
   });
 
+  it("preserves normalized property type and social stratum in the run artifact", async () => {
+    const enrichedCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          ...candidate.operations.rent,
+          extractionRecipe: {
+            ...candidate.operations.rent.extractionRecipe,
+            propertyType: { mode: "constant", value: "apartment" },
+            fields: {
+              ...candidate.operations.rent.extractionRecipe.fields,
+              socialStratum: "stratum",
+            },
+          },
+        },
+      },
+    };
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            results: { items: [{ id: "rent-1", price: 1800000, stratum: 4 }] },
+          }),
+          { headers: { "content-type": "application/json" } },
+        ),
+    );
+
+    const result = await crawlCandidate(enrichedCandidate, { fetch });
+
+    expect(result.kind).toBe("completed");
+    if (result.kind !== "completed") throw new Error("expected completed run");
+    expect(result.artifact.listings).toMatchObject([
+      {
+        sourceListingId: "rent-1",
+        operation: "rent",
+        propertyType: "apartment",
+        socialStratum: 4,
+      },
+    ]);
+  });
+
   it("continues after a failed operation and retains successful listings", async () => {
     const fetch = vi.fn(async (input: string | URL | Request) =>
       String(input).endsWith("rent")

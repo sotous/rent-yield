@@ -10,6 +10,7 @@
       "extractionRecipe": {
         "format": "html",
         "contentType": "text/html",
+        "propertyType": { "mode": "constant", "value": "apartment" },
         "listingSelector": "article.card.result",
         "fields": {
           "id": {
@@ -28,6 +29,7 @@
       "extractionRecipe": {
         "format": "html",
         "contentType": "text/html",
+        "propertyType": { "mode": "constant", "value": "apartment" },
         "listingSelector": "article.card.result",
         "fields": {
           "id": {

@@ -7,6 +7,8 @@ export {
   type HtmlFieldRecipe,
   type ListingOperation,
   type OperationRecipe,
+  type PropertyType,
+  type PropertyTypeRecipe,
 } from "./adapter-candidate.js";
 export {
   buildSourceAdapter,
