@@ -34,10 +34,16 @@ export type ExtractionRecipe = {
   fields: Record<string, FieldRecipe>;
 };
 
-export type OperationRecipe = {
+export type OperationRequestRecipe = {
+  requestKey: string;
   requestUrl: string;
   extractionRecipe: ExtractionRecipe;
 };
+
+/** A legacy single request or an explicit set of category/feed requests. */
+export type OperationRecipe =
+  | Omit<OperationRequestRecipe, "requestKey">
+  | { requests: OperationRequestRecipe[] };
 
 export type AdapterCandidate = {
   sourceKey: string;
@@ -62,10 +68,13 @@ export type AdapterCandidateValidation =
           Record<
             ListingOperation,
             {
-              contentType: ExtractionRecipe["contentType"];
-              listingCollectionPath?: string;
-              listingSelector?: string;
-              fieldNames: string[];
+              requests: Array<{
+                requestKey: string;
+                contentType: ExtractionRecipe["contentType"];
+                listingCollectionPath?: string;
+                listingSelector?: string;
+                fieldNames: string[];
+              }>;
             }
           >
         >;
@@ -85,12 +94,49 @@ export type AdapterCandidateValidation =
 const sourceKeyPattern = /^[a-z][a-z0-9-]{1,62}$/;
 const supportedOperations: ListingOperation[] = ["rent", "sale"];
 
-type OperationRecipeReceipt = {
+type OperationRequestReceipt = {
+  requestKey: string;
   contentType: ExtractionRecipe["contentType"];
   listingCollectionPath?: string;
   listingSelector?: string;
   fieldNames: string[];
 };
+
+function parseOperationRequests(value: unknown): Array<{
+  requestKey: string;
+  requestUrl: unknown;
+  extractionRecipe: unknown;
+}> | null {
+  if (!isRecord(value)) return null;
+  if (Array.isArray(value.requests)) {
+    if (Object.keys(value).length !== 1 || value.requests.length === 0) {
+      return null;
+    }
+    const requests = value.requests.map((request) => {
+      if (!isRecord(request)) return null;
+      return {
+        requestKey: request.requestKey,
+        requestUrl: request.requestUrl,
+        extractionRecipe: request.extractionRecipe,
+      };
+    });
+    return requests.some((request) => request === null)
+      ? null
+      : (requests as Array<{
+          requestKey: string;
+          requestUrl: unknown;
+          extractionRecipe: unknown;
+        }>);
+  }
+  if (Object.keys(value).length !== 2) return null;
+  return [
+    {
+      requestKey: "default",
+      requestUrl: value.requestUrl,
+      extractionRecipe: value.extractionRecipe,
+    },
+  ];
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -326,31 +372,50 @@ export function validateAdapterCandidate(
   }
 
   const operationReceipts: Partial<
-    Record<ListingOperation, OperationRecipeReceipt>
+    Record<ListingOperation, { requests: OperationRequestReceipt[] }>
   > = {};
   for (const operation of supportedOperations) {
     if (!(operation in operations)) continue;
-    const operationRecipe = operations[operation];
-    if (!isRecord(operationRecipe)) {
+    const requests = parseOperationRequests(operations[operation]);
+    if (requests === null) {
       return { kind: "rejected", code: "invalid_operations" };
     }
-    if (!isSafeSourceUrl(operationRecipe.requestUrl)) {
-      return { kind: "rejected", code: "invalid_source_url" };
+    const requestKeys = new Set<string>();
+    const requestUrls = new Set<string>();
+    const requestReceipts: OperationRequestReceipt[] = [];
+    for (const request of requests) {
+      if (
+        typeof request.requestKey !== "string" ||
+        !/^[a-z][a-z0-9-]{0,62}$/.test(request.requestKey) ||
+        requestKeys.has(request.requestKey)
+      ) {
+        return { kind: "rejected", code: "invalid_operations" };
+      }
+      requestKeys.add(request.requestKey);
+      if (!isSafeSourceUrl(request.requestUrl)) {
+        return { kind: "rejected", code: "invalid_source_url" };
+      }
+      if (requestUrls.has(request.requestUrl)) {
+        return { kind: "rejected", code: "invalid_operations" };
+      }
+      requestUrls.add(request.requestUrl);
+      const recipe = parseRecipe(request.extractionRecipe);
+      if (recipe === null) {
+        return { kind: "rejected", code: "invalid_extraction_recipe" };
+      }
+      requestReceipts.push({
+        requestKey: request.requestKey,
+        contentType: recipe.contentType,
+        ...(recipe.listingCollectionPath === undefined
+          ? {}
+          : { listingCollectionPath: recipe.listingCollectionPath }),
+        ...(recipe.listingSelector === undefined
+          ? {}
+          : { listingSelector: recipe.listingSelector }),
+        fieldNames: Object.keys(recipe.fields).sort(),
+      });
     }
-    const recipe = parseRecipe(operationRecipe.extractionRecipe);
-    if (recipe === null) {
-      return { kind: "rejected", code: "invalid_extraction_recipe" };
-    }
-    operationReceipts[operation] = {
-      contentType: recipe.contentType,
-      ...(recipe.listingCollectionPath === undefined
-        ? {}
-        : { listingCollectionPath: recipe.listingCollectionPath }),
-      ...(recipe.listingSelector === undefined
-        ? {}
-        : { listingSelector: recipe.listingSelector }),
-      fieldNames: Object.keys(recipe.fields).sort(),
-    };
+    operationReceipts[operation] = { requests: requestReceipts };
   }
 
   return {

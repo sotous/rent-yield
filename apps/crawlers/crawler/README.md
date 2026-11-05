@@ -1,10 +1,10 @@
 # Crawler PoC
 
 `@rent-yield/crawler` connects a saved `AdapterCandidate` JSON file to its
-generated source adapter. It fetches each configured operation once, parses the
-actual response through the adapter, and writes a schema-versioned local run
-artifact. It does not paginate, retry, schedule, persist to a database, or call
-the Rent Model.
+generated source adapter. It fetches every configured request for each
+operation, parses each response through that request's recipe, and writes a
+schema-versioned local run artifact. It does not paginate, retry, schedule,
+persist to a database, or call the Rent Model.
 
 ## Run a candidate
 
@@ -12,7 +12,7 @@ From the repository root:
 
 ```sh
 pnpm --filter @rent-yield/crawler crawl \
-  --candidate apps/crawlers/source-adapter-builder/candidates/dc-colombia.json
+  --candidate apps/crawlers/source-adapter-builder/candidates/ciencuadras.json
 ```
 
 Choose an explicit output path with `--output`:
@@ -30,16 +30,18 @@ are ignored by Git.
 
 ## Fetch and parse behavior
 
-The crawler sends one GET to each configured operation URL, in rent then sale
-order where present. Requests use a 30-second timeout and a 10 MiB response
-limit. Redirects are followed only when they remain on credential-free HTTPS,
-for at most five hops. The parser receives the configured request URL, actual
-response content type, response body as text, operation, and UTC observation
-timestamp. Raw response bodies are not written to artifacts.
+The crawler sends one GET per configured request, in rent then sale order and
+in candidate request order within each operation. Requests use a 30-second
+timeout and a 10 MiB response limit. Redirects are followed only when they
+remain on credential-free HTTPS, for at most five hops. The parser receives the
+configured request URL, actual response content type, response body as text,
+operation, and UTC observation timestamp. Raw response bodies are not written
+to artifacts.
 
-An operation is recorded as `parsed`, `fetch_failed`, or `parse_failed`. Failures
-do not stop later operations. Successful listings are retained in a partial
-artifact, and the command exits nonzero if any configured operation fails. A
+Each request is recorded as `parsed`, `fetch_failed`, or `parse_failed`; the
+operation also has an aggregate status and listing count. Failures do not stop
+later requests. Listings from successful requests are retained in a partial
+artifact, and the command exits nonzero if any configured request fails. A
 valid empty response is successful with zero listings. Invalid candidates fail
 before network access and do not produce artifacts.
 

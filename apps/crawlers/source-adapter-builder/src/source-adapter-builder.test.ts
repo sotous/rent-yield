@@ -50,9 +50,19 @@ describe("buildSourceAdapter", () => {
     if (result.kind !== "built") throw new Error("expected a built adapter");
 
     expect(result.adapter.supportedOperations).toEqual(["rent", "sale"]);
-    expect(result.adapter.sourceUrls).toEqual({
-      rent: candidate.operations.rent.requestUrl,
-      sale: candidate.operations.sale.requestUrl,
+    expect(result.adapter.sourceRequests).toEqual({
+      rent: [
+        {
+          requestKey: "default",
+          requestUrl: candidate.operations.rent.requestUrl,
+        },
+      ],
+      sale: [
+        {
+          requestKey: "default",
+          requestUrl: candidate.operations.sale.requestUrl,
+        },
+      ],
     });
     expect(
       result.adapter.parse({
@@ -229,6 +239,78 @@ describe("buildSourceAdapter", () => {
     expect(result).toMatchObject({
       kind: "parsed",
       listings: [{ propertyType: "apartment" }],
+    });
+  });
+
+  it("parses multiple category-scoped requests for the same operation", () => {
+    const multiTypeCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          requests: [
+            {
+              requestKey: "apartment",
+              requestUrl: "https://example.test/rent/apartment",
+              extractionRecipe: {
+                ...candidate.operations.rent.extractionRecipe,
+                propertyType: { mode: "constant", value: "apartment" },
+              },
+            },
+            {
+              requestKey: "house",
+              requestUrl: "https://example.test/rent/house",
+              extractionRecipe: {
+                ...candidate.operations.rent.extractionRecipe,
+                propertyType: { mode: "constant", value: "house" },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const built = buildSourceAdapter(multiTypeCandidate);
+    if (built.kind !== "built") throw new Error("expected a built adapter");
+
+    expect(built.adapter.sourceRequests.rent).toEqual([
+      {
+        requestKey: "apartment",
+        requestUrl: "https://example.test/rent/apartment",
+      },
+      {
+        requestKey: "house",
+        requestUrl: "https://example.test/rent/house",
+      },
+    ]);
+    expect(
+      built.adapter.parse({
+        operation: "rent",
+        sourceUrl: "https://example.test/rent/house",
+        contentType: "application/json",
+        observedAt,
+        body: JSON.stringify({
+          results: {
+            items: [
+              {
+                id: "house-1",
+                rent: { amount: 2200000 },
+                area: 120,
+                bedrooms: 3,
+                neighborhood: "Alto Prado",
+                url: "https://example.test/listings/house-1",
+              },
+            ],
+          },
+        }),
+      }),
+    ).toMatchObject({
+      kind: "parsed",
+      listings: [
+        {
+          sourceListingId: "house-1",
+          operation: "rent",
+          propertyType: "house",
+        },
+      ],
     });
   });
 

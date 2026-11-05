@@ -1,11 +1,11 @@
 # Source Adapter Builder
 
 `@rent-yield/source-adapter-builder` turns one local `AdapterCandidate` JSON
-artifact into a source adapter. A candidate can configure rent, sale, or both
-operations independently. Each operation declares its response format and an
-executable extraction recipe. The builder accepts JSON, static HTML, CSV, and
-XML and parses supplied response bodies into `ListingInput[]`; it does not fetch
-responses, render JavaScript, register adapters, or run a crawler.
+artifact into a source adapter. A candidate identifies a source, not one
+property type. It can configure rent, sale, or both operations, and each
+operation can contain multiple named requests. The builder accepts JSON, static
+HTML, CSV, and XML and parses supplied response bodies into `ListingInput[]`; it
+does not fetch responses, render JavaScript, register adapters, or run a crawler.
 
 ## Build a source adapter
 
@@ -17,11 +17,12 @@ pnpm --filter @rent-yield/source-adapter-builder run adapter:build \
 ```
 
 The command reads one local JSON file and prints a `built` summary with the
-source key, supported operations, and operation request URLs. `AdapterCandidate`
-is builder input. The [crawler package](../crawler/README.md) fetches one
-response for each configured operation and supplies its operation, request URL,
-content type, body, and observation timestamp to `adapter.parse()`. The adapter
-returns normalized listings tagged with that operation.
+source key, supported operations, and configured request keys and URLs.
+`AdapterCandidate` is builder input. The [crawler package](../crawler/README.md)
+fetches every configured request in order and supplies its operation, request
+URL, content type, body, and observation timestamp to `adapter.parse()`. The
+adapter returns normalized listings tagged with that operation and property
+type when the request recipe establishes it.
 
 Invalid arguments, unreadable files, malformed JSON, or an unsupported
 candidate return a typed build failure and a nonzero status.
@@ -29,9 +30,12 @@ candidate return a typed build failure and a nonzero status.
 ## Candidate contract
 
 The canonical `sourceUrl` identifies the source. Every supported operation has
-its own request URL and extraction recipe. JSON and XML use dot paths. CSV maps
-normalized fields to header names. Static HTML uses CSS selectors for listing
-cards and fields; a field can read text or an HTML attribute. For example:
+a nonempty `requests` array. Each request has a unique `requestKey`, its own
+request URL, and extraction recipe. A legacy single `requestUrl` and recipe is
+still accepted and normalized to a `default` request. JSON and XML use dot
+paths. CSV maps normalized fields to header names. Static HTML uses CSS
+selectors for listing cards and fields; a field can read text or an HTML
+attribute. For example:
 
 ```json
 {
@@ -48,13 +52,14 @@ cards and fields; a field can read text or an HTML attribute. For example:
 }
 ```
 
-`propertyType` is optional and may be declared as a canonical constant when
-the operation is explicitly category-scoped, or as a source field plus an
-explicit value map when individual listing types vary. Supported canonical
-values are `apartment`, `house`, `studio`, and `other_residential`; unknown
-source values fail parsing. `fields.socialStratum` is also optional and accepts
-only integer values from 1 through 6. A missing stratum value is omitted, while
-an invalid nonempty value fails the response.
+`propertyType` belongs to a request's recipe. A request may use a canonical
+constant only when that specific route is verified to return one property
+type. A mixed-feed request must instead map an evidenced per-listing type field
+to `apartment`, `house`, `studio`, or `other_residential`; unknown source values
+fail parsing. Thus one candidate can describe several types with separate
+category requests, or parse a mixed feed with a type field. `fields.socialStratum`
+is also optional and accepts only integer values from 1 through 6. A missing
+stratum value is omitted, while an invalid nonempty value fails the response.
 
 CSV recipes use `contentType: "text/csv"` and map fields to header names. XML
 recipes use `application/xml` or `text/xml`, a `listingCollectionPath`, and
@@ -72,40 +77,50 @@ the normalized media type. The JSON example below shows the candidate envelope:
   "cityName": "Barranquilla",
   "operations": {
     "rent": {
-      "requestUrl": "https://dccolombia.com.co/api/properties?operation=rent&city=Barranquilla",
-      "extractionRecipe": {
-        "format": "json",
-        "contentType": "application/json",
-        "listingCollectionPath": "properties",
-        "fields": {
-          "id": "slug",
-          "priceCop": "price_rent"
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://dccolombia.com.co/api/properties?operation=rent&city=Barranquilla",
+          "extractionRecipe": {
+            "format": "json",
+            "contentType": "application/json",
+            "listingCollectionPath": "properties",
+            "fields": {
+              "id": "slug",
+              "priceCop": "price_rent"
+            }
+          }
         }
-      }
+      ]
     },
     "sale": {
-      "requestUrl": "https://dccolombia.com.co/api/properties?operation=sale&city=Barranquilla",
-      "extractionRecipe": {
-        "format": "json",
-        "contentType": "application/json",
-        "listingCollectionPath": "properties",
-        "fields": {
-          "id": "slug",
-          "priceCop": "price_sale"
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://dccolombia.com.co/api/properties?operation=sale&city=Barranquilla",
+          "extractionRecipe": {
+            "format": "json",
+            "contentType": "application/json",
+            "listingCollectionPath": "properties",
+            "fields": {
+              "id": "slug",
+              "priceCop": "price_sale"
+            }
+          }
         }
-      }
+      ]
     }
   }
 }
 ```
 
-Each operation needs its own verified `id` and `priceCop` mappings. Optional
+Each request needs its own verified `id` and `priceCop` mappings. Optional
 field mappings include `builtAreaSqm`, `bedrooms`, `neighborhood`,
 `socialStratum`, and `listingUrl`. A candidate can define one operation when
 evidence for the other is incomplete. The built
-adapter exposes `supportedOperations` and a `sourceUrls` map for the crawler;
-each `SourceResponse` carries the operation label, and the parser checks that
-the label and URL match the candidate.
+adapter exposes `supportedOperations` and a `sourceRequests` map for the
+crawler; each `SourceResponse` carries the operation label, and the parser
+checks that the label and URL match one configured request.
 
 The checked-in `fixtures/candidates/example-baq-rentals.json` is synthetic: its
 `example.test` URL and recipe illustrate the contract only. It is not a real

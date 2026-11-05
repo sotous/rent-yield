@@ -36,7 +36,7 @@ function jsonResponse(id: string, price: number, status = 200): Response {
 }
 
 describe("crawlCandidate", () => {
-  it("fetches and parses each configured operation once in order", async () => {
+  it("fetches and parses each configured request in operation order", async () => {
     const fetch = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       return url.endsWith("rent")
@@ -139,6 +139,119 @@ describe("crawlCandidate", () => {
     ]);
   });
 
+  it("fetches every category request and combines its typed listings", async () => {
+    const multiTypeCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          requests: [
+            {
+              requestKey: "apartment",
+              requestUrl: "https://fixture.example/rent/apartment",
+              extractionRecipe: {
+                ...candidate.operations.rent.extractionRecipe,
+                propertyType: { mode: "constant", value: "apartment" },
+              },
+            },
+            {
+              requestKey: "house",
+              requestUrl: "https://fixture.example/rent/house",
+              extractionRecipe: {
+                ...candidate.operations.rent.extractionRecipe,
+                propertyType: { mode: "constant", value: "house" },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const fetch = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify({
+          results: {
+            items: [
+              {
+                id: url.endsWith("house") ? "house-1" : "apt-1",
+                price: url.endsWith("house") ? 2200000 : 1800000,
+              },
+            ],
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      );
+    });
+
+    const result = await crawlCandidate(multiTypeCandidate, { fetch });
+
+    expect(result.kind).toBe("completed");
+    if (result.kind !== "completed") throw new Error("expected completed run");
+    expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
+      "https://fixture.example/rent/apartment",
+      "https://fixture.example/rent/house",
+    ]);
+    expect(result.artifact.operations.rent).toMatchObject({
+      status: "parsed",
+      listingCount: 2,
+      requestUrls: [
+        "https://fixture.example/rent/apartment",
+        "https://fixture.example/rent/house",
+      ],
+      requests: [
+        { requestKey: "apartment", status: "parsed", listingCount: 1 },
+        { requestKey: "house", status: "parsed", listingCount: 1 },
+      ],
+    });
+    expect(result.artifact.listings).toMatchObject([
+      { sourceListingId: "apt-1", propertyType: "apartment" },
+      { sourceListingId: "house-1", propertyType: "house" },
+    ]);
+  });
+
+  it("retains successful category requests when another category request fails", async () => {
+    const multiTypeCandidate = {
+      ...candidate,
+      operations: {
+        rent: {
+          requests: [
+            {
+              requestKey: "apartment",
+              requestUrl: "https://fixture.example/rent/apartment",
+              extractionRecipe: candidate.operations.rent.extractionRecipe,
+            },
+            {
+              requestKey: "house",
+              requestUrl: "https://fixture.example/rent/house",
+              extractionRecipe: candidate.operations.rent.extractionRecipe,
+            },
+          ],
+        },
+      },
+    };
+    const fetch = vi.fn(async (input: string | URL | Request) =>
+      String(input).endsWith("house")
+        ? new Response("failed", { status: 503 })
+        : jsonResponse("apt-1", 1800000),
+    );
+
+    const result = await crawlCandidate(multiTypeCandidate, { fetch });
+
+    expect(result.kind).toBe("completed");
+    if (result.kind !== "completed") throw new Error("expected completed run");
+    expect(result.artifact.status).toBe("failed");
+    expect(result.artifact.operations.rent).toMatchObject({
+      status: "fetch_failed",
+      listingCount: 1,
+      requests: [
+        { requestKey: "apartment", status: "parsed", listingCount: 1 },
+        { requestKey: "house", status: "fetch_failed", listingCount: 0 },
+      ],
+    });
+    expect(
+      result.artifact.listings.map((listing) => listing.sourceListingId),
+    ).toEqual(["apt-1"]);
+  });
+
   it("continues after a failed operation and retains successful listings", async () => {
     const fetch = vi.fn(async (input: string | URL | Request) =>
       String(input).endsWith("rent")
@@ -215,11 +328,29 @@ describe("crawlCandidate", () => {
     expect(result.artifact.operations).toEqual({
       rent: {
         requestUrl: "https://fixture.example/listings?operation=rent",
+        requestUrls: ["https://fixture.example/listings?operation=rent"],
+        requests: [
+          {
+            requestKey: "default",
+            requestUrl: "https://fixture.example/listings?operation=rent",
+            status: "parsed",
+            listingCount: 0,
+          },
+        ],
         status: "parsed",
         listingCount: 0,
       },
       sale: {
         requestUrl: "https://fixture.example/listings?operation=sale",
+        requestUrls: ["https://fixture.example/listings?operation=sale"],
+        requests: [
+          {
+            requestKey: "default",
+            requestUrl: "https://fixture.example/listings?operation=sale",
+            status: "parsed",
+            listingCount: 0,
+          },
+        ],
         status: "parsed",
         listingCount: 0,
       },

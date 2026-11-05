@@ -8,7 +8,7 @@ import type {
   FieldRecipe,
   HtmlFieldRecipe,
   ListingOperation,
-  OperationRecipe,
+  OperationRequestRecipe,
   PropertyType,
   PropertyTypeRecipe,
 } from "./adapter-candidate.js";
@@ -35,10 +35,15 @@ export type SourceResponse = {
   observedAt: string;
 };
 
+export type SourceRequest = Pick<
+  OperationRequestRecipe,
+  "requestKey" | "requestUrl"
+>;
+
 export type SourceAdapter = {
   sourceKey: string;
   supportedOperations: ListingOperation[];
-  sourceUrls: Partial<Record<ListingOperation, string>>;
+  sourceRequests: Partial<Record<ListingOperation, SourceRequest[]>>;
   parse(
     response: SourceResponse,
   ):
@@ -53,9 +58,11 @@ type BuilderRecipe = ExtractionRecipe & {
   };
 };
 
-type BuilderOperationRecipe = Omit<OperationRecipe, "extractionRecipe"> & {
+type BuilderRequestRecipe = OperationRequestRecipe & {
   extractionRecipe: BuilderRecipe;
 };
+
+type BuilderOperationRecipe = { requests: BuilderRequestRecipe[] };
 
 type BuilderCandidate = Omit<AdapterCandidate, "operations"> & {
   operations: Partial<Record<ListingOperation, BuilderOperationRecipe>>;
@@ -240,13 +247,50 @@ function validateRecipe(value: unknown): BuilderRecipe | null {
   return value as unknown as BuilderRecipe;
 }
 
-function validateOperationRecipe(
+function validateOperationRequest(
   value: unknown,
-): BuilderOperationRecipe | null {
+  requestKey: string,
+): BuilderRequestRecipe | null {
   if (!isRecord(value) || !isSafeSourceUrl(value.requestUrl)) return null;
   const extractionRecipe = validateRecipe(value.extractionRecipe);
   if (extractionRecipe === null) return null;
-  return { requestUrl: value.requestUrl, extractionRecipe };
+  return { requestKey, requestUrl: value.requestUrl, extractionRecipe };
+}
+
+function validateOperationRecipe(
+  value: unknown,
+): BuilderOperationRecipe | null {
+  if (!isRecord(value)) return null;
+  if (Array.isArray(value.requests)) {
+    if (Object.keys(value).length !== 1 || value.requests.length === 0) {
+      return null;
+    }
+    const requests: BuilderRequestRecipe[] = [];
+    const requestKeys = new Set<string>();
+    const requestUrls = new Set<string>();
+    for (const request of value.requests) {
+      if (!isRecord(request) || typeof request.requestKey !== "string") {
+        return null;
+      }
+      const requestKey = request.requestKey;
+      if (!/^[a-z][a-z0-9-]{0,62}$/.test(requestKey)) return null;
+      const validated = validateOperationRequest(request, requestKey);
+      if (
+        validated === null ||
+        requestKeys.has(requestKey) ||
+        requestUrls.has(validated.requestUrl)
+      ) {
+        return null;
+      }
+      requestKeys.add(requestKey);
+      requestUrls.add(validated.requestUrl);
+      requests.push(validated);
+    }
+    return { requests };
+  }
+  if (Object.keys(value).length !== 2) return null;
+  const legacy = validateOperationRequest(value, "default");
+  return legacy === null ? null : { requests: [legacy] };
 }
 
 function validateBuilderCandidate(input: unknown): BuilderCandidate | null {
@@ -470,17 +514,19 @@ function createAdapter(candidate: BuilderCandidate): SourceAdapter {
   const supportedOperations: ListingOperation[] = (
     ["rent", "sale"] as const
   ).filter((operation) => candidate.operations[operation] !== undefined);
-  const sourceUrls: Partial<Record<ListingOperation, string>> = {};
+  const sourceRequests: Partial<Record<ListingOperation, SourceRequest[]>> = {};
   for (const operation of supportedOperations) {
     const operationRecipe = candidate.operations[operation];
     if (operationRecipe !== undefined)
-      sourceUrls[operation] = operationRecipe.requestUrl;
+      sourceRequests[operation] = operationRecipe.requests.map(
+        ({ requestKey, requestUrl }) => ({ requestKey, requestUrl }),
+      );
   }
 
   return {
     sourceKey: candidate.sourceKey,
     supportedOperations,
-    sourceUrls,
+    sourceRequests,
     parse(response) {
       if (!isListingOperation(response.operation)) {
         return { kind: "parse_failed", code: "unsupported_operation" };
@@ -489,17 +535,20 @@ function createAdapter(candidate: BuilderCandidate): SourceAdapter {
       if (operationRecipe === undefined) {
         return { kind: "parse_failed", code: "unsupported_operation" };
       }
-      if (response.sourceUrl !== operationRecipe.requestUrl) {
+      const requestRecipe = operationRecipe.requests.find(
+        (request) => request.requestUrl === response.sourceUrl,
+      );
+      if (requestRecipe === undefined) {
         return { kind: "parse_failed", code: "source_url_drift" };
       }
       if (
         normalizedContentType(response.contentType) !==
-        operationRecipe.extractionRecipe.contentType
+        requestRecipe.extractionRecipe.contentType
       ) {
         return { kind: "parse_failed", code: "content_type_drift" };
       }
 
-      const recipe = operationRecipe.extractionRecipe;
+      const recipe = requestRecipe.extractionRecipe;
       const extracted = extractRows(response.body, recipe);
       if (extracted.kind === "failed") {
         return { kind: "parse_failed", code: extracted.code };

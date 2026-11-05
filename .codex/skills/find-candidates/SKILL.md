@@ -41,13 +41,15 @@ implementation, or crawler invocation.
    write it. Deduplicate discoveries from this run by the same keys.
 3. Keep unknowns explicit, including whether public evidence supports
    long-term, residential, rental, sale, or city-specific scope.
-4. For each operation the source supports, verify its response format and a
-   representative listing structure from public documentation, a published
-   schema, or a publicly accessible source page. Do not invent request URLs,
-   paths, selectors, or field names. Verify each operation's listing collection
-   and required ID/price mappings independently. Include rent, sale, or both
-   only when each recipe is supported by evidence. The builder accepts JSON,
-   static HTML, CSV, and XML; it does not render JavaScript.
+4. For each operation the source supports, discover its residential property
+   types and how each is retrieved. Verify a representative listing structure
+   for every category-specific request or mixed feed from public documentation,
+   a published schema, or a publicly accessible source page. Do not invent
+   request URLs, paths, selectors, or field names. Verify each request's
+   response format, listing collection, required ID/price mappings, and type
+   scope independently. Include rent, sale, or both only when each request
+   recipe is supported by evidence. The builder accepts JSON, static HTML, CSV,
+   and XML; it does not render JavaScript.
 5. Before saving, re-check the target filename and compare the source URL with
    stored artifacts. Never overwrite an existing file. If a key or source
    identity collision appears, skip the write and report the conflict.
@@ -60,10 +62,10 @@ implementation, or crawler invocation.
 
 Each emitted artifact is one standalone JSON object. `sourceUrl` identifies the
 source's canonical HTTPS homepage or API base. `operations` contains one entry
-for each evidenced operation and configures the URL and extraction recipe the
-future crawler must use for that operation. JSON and XML recipes use dot paths;
-CSV recipes map fields to header names; static HTML recipes select listing cards
-and fields with CSS selectors. HTML fields may read text or an attribute.
+for each evidenced operation, with one or more named requests and an extraction
+recipe per request. JSON and XML recipes use dot paths; CSV recipes map fields
+to header names; static HTML recipes select listing cards and fields with CSS
+selectors. HTML fields may read text or an attribute.
 
 ```json
 {
@@ -74,38 +76,57 @@ and fields with CSS selectors. HTML fields may read text or an attribute.
   "cityName": "Barranquilla",
   "operations": {
     "rent": {
-      "requestUrl": "https://example.com/api/listings?operation=rent",
-      "extractionRecipe": {
-        "format": "json",
-        "contentType": "application/json",
-        "listingCollectionPath": "results.items",
-        "propertyType": {
-          "mode": "field",
-          "field": "property_type",
-          "values": {
-            "Apartamento": "apartment",
-            "Casa": "house",
-            "Apartaestudio": "studio"
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://example.com/api/listings?operation=rent",
+          "extractionRecipe": {
+            "format": "json",
+            "contentType": "application/json",
+            "listingCollectionPath": "results.items",
+            "propertyType": {
+              "mode": "field",
+              "field": "property_type",
+              "values": {
+                "Apartamento": "apartment",
+                "Casa": "house",
+                "Apartaestudio": "studio"
+              }
+            },
+            "fields": {
+              "id": "id",
+              "priceCop": "rent.amount",
+              "socialStratum": "social_stratum"
+            }
           }
-        },
-        "fields": {
-          "id": "id",
-          "priceCop": "rent.amount",
-          "socialStratum": "social_stratum"
         }
-      }
+      ]
     },
     "sale": {
-      "requestUrl": "https://example.com/api/listings?operation=sale",
-      "extractionRecipe": {
-        "format": "json",
-        "contentType": "application/json",
-        "listingCollectionPath": "results.items",
-        "fields": {
-          "id": "id",
-          "priceCop": "sale.amount"
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://example.com/api/listings?operation=sale",
+          "extractionRecipe": {
+            "format": "json",
+            "contentType": "application/json",
+            "listingCollectionPath": "results.items",
+            "propertyType": {
+              "mode": "field",
+              "field": "property_type",
+              "values": {
+                "Apartamento": "apartment",
+                "Casa": "house",
+                "Apartaestudio": "studio"
+              }
+            },
+            "fields": {
+              "id": "id",
+              "priceCop": "sale.amount"
+            }
+          }
         }
-      }
+      ]
     }
   }
 }
@@ -145,15 +166,26 @@ The constraints are mandatory:
   username or password.
 - `countryCode` is `CO`; `cityName` is `Barranquilla`.
 - `operations` contains at least one of `rent` and `sale`, with no other keys.
+- Each operation contains a nonempty `requests` array. Each request has a
+  unique lowercase `requestKey`, an evidenced HTTPS `requestUrl`, and its own
+  extraction recipe. A source candidate represents the organization/source;
+  it does not have one property type assigned to the whole source.
 - Each recipe uses one supported format (`json`, `html`, `csv`, or `xml`) and
   its matching content type. Include the `format` discriminator for HTML, CSV,
   and XML recipes; existing JSON artifacts may omit it.
 - JSON/XML require a nonempty `listingCollectionPath` and nonempty dot paths for
   `fields.id` and `fields.priceCop`.
-- `propertyType` may declare a canonical constant when the operation is
-  explicitly category-scoped, or map an evidenced source field's exact values
-  to `apartment`, `house`, `studio`, or `other_residential`. Do not infer it
-  from a broad source's name, URL, or description.
+- `propertyType` belongs to each request's extraction recipe. It may declare a
+  canonical constant only when that specific request is verified to return one
+  property type, or map an evidenced per-listing field's exact values to
+  `apartment`, `house`, `studio`, or `other_residential`. Never assign one
+  constant to a source-wide candidate that offers multiple types.
+- Discover the residential property types the source offers for each
+  operation. Use one request per verified category-specific route, or one mixed
+  feed request with an evidenced per-listing type mapping. A visible filter
+  control alone does not prove that its current result set includes every
+  option; verify the selected scope and representative results for each
+  request. Do not invent URL patterns from filter labels.
 - CSV maps `fields.id` and `fields.priceCop` to nonempty header names. An
   evidenced comma, semicolon, or tab delimiter may be declared.
 - HTML requires a nonempty `listingSelector` and selector objects for `id` and

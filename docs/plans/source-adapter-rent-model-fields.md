@@ -1,79 +1,90 @@
-# Source-Adapter Rent Model Fields Plan
+# Source-Adapter Property-Type and Social-Stratum Plan
 
 ## Status
 
-Completed. The user requested adding `property_type` and `social_stratum`
-support to the source-adapter builder.
+Completed. The candidate contract separates source identity from each
+operation's collection requests, and the builder and crawler digest multiple
+verified property-type requests.
 
 ## Objective
 
-Extend adapter candidates and normalized `ListingInput` rows so an operation
-can provide a canonical property type and social stratum when the source
-evidence supports them. The crawler should preserve these parsed values in its
-run artifact.
+Represent a listing source's supported residential property types without
+labeling the source candidate itself as one fixed type. Let the builder and
+crawler consume multiple verified collection requests per operation, or a
+single mixed feed whose rows expose a mapped type.
 
 ## Contract decisions
 
-- `propertyType` is an optional extraction-recipe declaration. It supports an
-  explicit constant for a verified category-scoped operation, or a source field
-  plus an explicit mapping to the Rent Model enum.
-- Canonical property types are `apartment`, `house`, `studio`, and
-  `other_residential`. Unknown source values fail parsing; the builder never
-  guesses from arbitrary listing text or URLs.
-- `socialStratum` is an optional field recipe that parses an integer from 1
-  through 6. Missing/unmapped fields stay absent; a declared but invalid value
-  fails the operation consistently with other mapped fields.
-- Both output properties remain optional so existing candidates continue to
-  build and run without fabricated values.
-- The crawler remains a transport layer; it serializes the additional
-  `ListingInput` properties without adding source-specific logic.
-- Existing rent/sale semantics and the Rent Model estimator are unchanged.
+- A candidate identifies a source and geography. It does not have one
+  `propertyType` value assigned to the source as a whole.
+- Each rent or sale operation may contain one or more named collection requests.
+  A request owns its URL and extraction recipe.
+- A request may use a property-type constant only when its verified URL or
+  request parameters restrict results to that one type. A mixed request must
+  map a verified per-listing type field.
+- The candidate-finding skill records the residential types it verified and
+  how each type is retrieved. A UI filter's existence alone is not a request
+  recipe; the request URL and representative response/page must be verified.
+- Keep the legacy one-request operation shape readable during migration so
+  existing checked-in candidates and downstream callers continue to work.
+- The builder exposes every configured request to the crawler. The crawler
+  executes requests sequentially, parses each with its own recipe, and records
+  request-level outcomes alongside the operation summary.
+- Missing social stratum remains optional; an invalid configured value remains
+  a parse failure. Existing property-type mapping behavior remains strict.
 
 ## Approach
 
-1. Add focused failing tests for constant and mapped property types, social
-   stratum parsing/range validation, candidate contract validation, and
-   crawler-artifact pass-through.
-2. Implement the typed candidate recipes and parser behavior.
-3. Update the candidate-discovery skill and builder documentation to explain
-   evidence-backed constants, explicit source-value maps, and stratum bounds.
-4. Add constants to existing apartment-only candidates where their operation
-   URL/category explicitly establishes apartment scope. Do not add guessed
-   mappings to broader sources.
-5. Run relevant builder and crawler tests, types, lint, formatting, and diff
-   checks.
+1. Define the new candidate request-list shape and validation rules while
+   retaining legacy single-request candidates. Completed.
+2. Add focused tests for multiple category requests, mixed-feed field mappings,
+   duplicate request identifiers, invalid URLs/recipes, and legacy compatibility.
+   Completed.
+3. Update the built adapter API to expose requests by operation and validate
+   response URLs against the exact request recipe. Completed.
+4. Update crawler execution and run artifacts to fetch all requests in order,
+   aggregate listings per operation, and preserve request-level failures.
+   Completed.
+5. Update the candidate-finding skill and source-adapter documentation so
+   source-level discovery is distinct from per-request property-type evidence.
+   Completed.
+6. Revisit existing candidate artifacts. Retain constants only on verified
+   category-scoped requests; use mapped type fields for mixed results; do not
+   claim unsupported categories without evidence. Completed.
+7. Update the crawler specification and retrospective, then run focused tests,
+   typechecks, lint, formatting, and diff checks. Completed.
 
 ## Risks and assumptions
 
-- Some sources expose category rather than a per-listing type. A constant is
-  valid only when the candidate operation is explicitly scoped to that type.
-- Source labels vary by language and capitalization. The candidate must provide
-  the observed-to-canonical mapping; runtime matching may normalize whitespace
-  and case but must not use fuzzy or substring matching.
-- Social stratum may be absent for some listings. It remains optional unless a
-  candidate explicitly maps it; out-of-range values are invalid evidence.
-- The current crawler normalizer work must treat these new properties as
-  optional inputs and continue surfacing other missing Rent Model fields.
+- Search pages may expose category controls while still rendering only one
+  category. The skill verifies the actual request/result scope rather than
+  treating visible controls as proof that a recipe collects every type.
+- The supported canonical type enum remains residential. Commercial categories
+  must not be coerced into `other_residential`.
+- Source-specific request URLs and field mappings must be observed; do not infer
+  route patterns from labels in a dropdown.
 
 ## Likely files
 
 - `apps/crawlers/source-adapter-builder/src/adapter-candidate.ts`
 - `apps/crawlers/source-adapter-builder/src/source-adapter-builder.ts`
-- `apps/crawlers/source-adapter-builder/src/adapter-candidate.test.ts`
-- `apps/crawlers/source-adapter-builder/src/source-adapter-builder.test.ts`
-- `apps/crawlers/crawler/src/crawler.test.ts`
+- `apps/crawlers/source-adapter-builder/src/*.test.ts`
+- `apps/crawlers/crawler/src/crawler.ts` and tests
 - `apps/crawlers/source-adapter-builder/candidates/*.json`
 - `.codex/skills/find-candidates/SKILL.md`
-- builder and crawler documentation
+- `apps/crawlers/source-adapter-builder/README.md`
+- `docs/specs/crawler-poc-spec.md`
 
 ## Success criteria
 
-- Candidates can declare a verified constant or evidence-backed mapping for
-  property type and an optional stratum field recipe.
-- Parsed listing rows include only canonical property types and valid integer
-  strata from 1 through 6.
-- Invalid mapped values return typed parse failures; absent optional recipes do
-  not break existing candidate behavior.
-- The crawler artifact preserves both normalized fields without extra
-  source-specific handling.
-- Documentation and candidate examples match the tested contract.
+- A candidate can describe multiple verified requests for rent and sale without
+  assigning one property type to the source as a whole.
+- Category-scoped requests assign a constant only to their own output; mixed
+  requests map the listing's actual type.
+- The builder and crawler execute every configured request and retain clear
+  request-level results and failures.
+- Existing one-request candidates remain accepted during migration.
+- Ciencuadras has separately verified apartment, house, and apartaestudio
+  requests for rent and sale; each request carries its own category scope.
+- Araújo & Segovia and Metrocuadrado retain apartment-scoped request entries;
+  those entries do not declare the whole source apartment-only.
