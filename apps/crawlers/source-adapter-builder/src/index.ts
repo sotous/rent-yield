@@ -7,6 +7,7 @@ export {
   type HtmlFieldRecipe,
   type ListingOperation,
   type OperationRecipe,
+  type OperationRequestRecipe,
   type PropertyType,
   type PropertyTypeRecipe,
 } from "./adapter-candidate.js";
@@ -15,4 +16,5 @@ export {
   type ListingInput,
   type SourceAdapter,
   type SourceResponse,
+  type SourceRequest,
 } from "./source-adapter-builder.js";

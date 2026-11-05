@@ -8,9 +8,10 @@ parses supplied response bodies; it does not make network requests.
 
 ## Purpose
 
-Connect a saved `AdapterCandidate` to the adapter builder, retrieve one response
-for each configured operation, parse those responses through the generated
-adapter, and save an inspectable local artifact of normalized listings.
+Connect a saved `AdapterCandidate` to the adapter builder, retrieve each
+configured request for its operations, parse those responses through the
+generated adapter, and save an inspectable local artifact of normalized
+listings.
 This proves the candidate → builder → crawler → `ListingInput[]` pipeline with
 real candidate artifacts before adding pagination, scheduling, or model
 integration.
@@ -21,7 +22,7 @@ integration.
 find-candidates skill
   → one saved AdapterCandidate JSON file
   → source-adapter-builder builds an in-memory SourceAdapter
-  → crawler fetches each supported operation once
+  → crawler fetches each configured request for supported operations
   → SourceAdapter.parse(SourceResponse)
   → local crawl-run JSON artifact containing normalized ListingInput rows
 ```
@@ -54,9 +55,10 @@ stdout and the artifact path to stderr or as a documented summary field.
 
 1. Read and validate the candidate, then build the adapter. On either failure,
    print the typed error and exit nonzero without making a request.
-2. Iterate `adapter.supportedOperations` in the builder's declared order. For
-   each operation, use exactly `adapter.sourceUrls[operation]` and make one
-   HTTPS `GET` request. Do not synthesize or modify request URLs.
+2. Iterate `adapter.supportedOperations` in the builder's declared order, then
+   each operation's `adapter.sourceRequests[operation]` in candidate order. Use
+   each configured HTTPS request URL exactly as declared. Do not synthesize or
+   modify request URLs.
 3. Use a bounded request timeout (30 seconds) and a bounded response body
    (10 MiB). Do not retry. Do not paginate, schedule, or parallelize operations
    in this first version.
@@ -64,18 +66,19 @@ stdout and the artifact path to stderr or as a documented summary field.
    Do not execute JavaScript, bypass access controls, or call endpoints absent
    from the candidate. Redirects may be followed only over HTTPS, with a
    maximum of five hops; use the originally configured request URL as the
-   `SourceResponse.sourceUrl` so it matches the adapter recipe.
+   `SourceResponse.sourceUrl` so it matches that request's adapter recipe.
 5. For a successful HTTP response, pass the operation, configured request URL,
    response `Content-Type`, response body as text, and one UTC ISO-8601
    `observedAt` timestamp to `adapter.parse()`.
 6. Preserve the builder's parse result without dropping or repairing rows. The
    builder currently treats each response atomically: any invalid mapped row
-   fails that operation; valid rows from that same response are not returned.
+   fails that request; valid rows from that same response are not returned.
    A successfully parsed empty response is recorded as parsed with zero rows.
-7. Continue to the next configured operation after an operation failure. Keep
-   successful operation listings in the run artifact and record each failure.
-   Exit nonzero if any configured operation fails, while retaining the artifact
-   for diagnosis.
+7. Continue to the next configured request after a failure. Keep listings from
+   successful requests in the run artifact. An operation is `parsed` only if
+   all its requests parsed; otherwise record the first failure at operation
+   level and retain every request-level result. Exit nonzero if any request
+   fails, while retaining the artifact for diagnosis.
 8. Do not store raw response bodies by default.
 
 ## Adapter boundary
@@ -111,10 +114,11 @@ type ListingInput = {
 };
 ```
 
-The request URL must match the candidate's operation URL, and the response
-content type must match that operation's recipe. The crawler passes the actual
-response content type to the adapter; it does not relabel a response to make it
-parse. Existing parser error codes are preserved in the run report.
+The request URL must match one configured request under the candidate's
+operation, and the response content type must match that request's recipe. The
+crawler passes the actual response content type to the adapter; it does not
+relabel a response to make it parse. Existing parser error codes are preserved
+in request-level run results.
 
 ## Output artifact
 
@@ -131,12 +135,28 @@ Write one JSON object per run with this shape:
   "status": "succeeded",
   "operations": {
     "rent": {
-      "requestUrl": "https://example.com/api/listings?operation=rent",
+      "requestUrls": ["https://example.com/api/listings?operation=rent"],
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://example.com/api/listings?operation=rent",
+          "status": "parsed",
+          "listingCount": 1
+        }
+      ],
       "status": "parsed",
       "listingCount": 1
     },
     "sale": {
-      "requestUrl": "https://example.com/api/listings?operation=sale",
+      "requestUrls": ["https://example.com/api/listings?operation=sale"],
+      "requests": [
+        {
+          "requestKey": "residential-feed",
+          "requestUrl": "https://example.com/api/listings?operation=sale",
+          "status": "parsed",
+          "listingCount": 1
+        }
+      ],
       "status": "parsed",
       "listingCount": 1
     }
@@ -166,23 +186,24 @@ Write one JSON object per run with this shape:
 }
 ```
 
-`status` is `succeeded` only when all configured operations fetched and parsed;
-otherwise it is `failed`. Operation status is `parsed`, `fetch_failed`, or
-`parse_failed`. Failed operations include a stable error code and safe summary,
-not response bodies or secrets. `listings` is the concatenation of listings
-from operations that parsed successfully. A zero-row parse is successful for
-run reporting, but does not satisfy the pipeline smoke-test acceptance below.
+`status` is `succeeded` only when all configured requests fetched and parsed;
+otherwise it is `failed`. Each operation retains an aggregate status and count,
+plus ordered request results. Failed request results include a stable error
+code and safe summary, not response bodies or secrets. `listings` is the
+concatenation of listings from requests that parsed successfully. A zero-row
+parse is successful for run reporting, but does not satisfy the pipeline
+smoke-test acceptance below.
 
 ## Failure behavior
 
 - Invalid/unreadable candidate or builder rejection: no network request, no
   output artifact, nonzero exit.
 - Timeout, TLS/network error, redirect policy violation, oversized body, or
-  non-2xx status: mark that operation `fetch_failed`.
-- Adapter parse failure: mark that operation `parse_failed` with its builder
+  non-2xx status: mark that request `fetch_failed`.
+- Adapter parse failure: mark that request `parse_failed` with its builder
   error code.
-- Any failed operation: continue other declared operations, write the partial
-  run artifact, and exit nonzero.
+- Any failed request: continue other declared requests, write the partial run
+  artifact, and exit nonzero.
 - All operations parsed, including valid empty responses: write a succeeded
   artifact and exit zero.
 
@@ -192,10 +213,11 @@ The crawler and builder integration is demonstrated when:
 
 - the developer invokes the crawler with a real saved candidate artifact;
 - the candidate builds into an adapter without changing its JSON by hand;
-- every configured operation is fetched once and passed to that adapter;
+- every configured request is fetched and passed to its adapter recipe;
 - the run has no fetch or parse failure and produces at least one normalized
   listing for each configured operation;
-- the output artifact records the operation URLs, statuses, counts, and
+- the output artifact records request URLs, per-request and operation statuses,
+  counts, and
   normalized listings; and
 - the smoke run succeeds for at least two distinct candidates and two
   extraction formats. The current candidate set can exercise HTML with
@@ -212,10 +234,10 @@ batch orchestration, raw-response archives, database persistence, source
 health/approval lifecycle, and direct Rent Model ingestion.
 
 The current `ListingInput` is not yet sufficient to create every
-`ResidentialListing` required by the Rent Model. In particular, city and
-property type are absent from parsed rows, and bathrooms/social stratum are not
-mapped. A separate mapping/enrichment contract must resolve that gap before
-connecting crawler output to the Rent Model or Explorer.
+`ResidentialListing` required by the Rent Model. In particular, city IDs,
+built-area verification, rent composition, and extraction-version provenance
+still need mapping or enrichment before connecting crawler output to the Rent
+Model or Explorer.
 
 ## References
 
